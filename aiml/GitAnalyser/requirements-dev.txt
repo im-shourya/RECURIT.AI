@@ -1,0 +1,37 @@
+# Development Dependencies
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+httpx==0.26.0  # Already in main requirements, but needed for testing
+
+# Code Quality
+black==23.12.1
+flake8==7.0.0
+mypy==1.8.0
+isort==5.13.2
+
+# Database Migrations
+alembic==1.13.1
+
+# Monitoring & Logging
+sentry-sdk[fastapi]==1.39.2
+
+# Rate Limiting
+slowapi==0.1.9
+
+# Caching
+redis==5.0.1
+aioredis==2.0.1
+
+# WebSocket support (already in FastAPI, but explicit)
+websockets==12.0
+
+# PDF Generation
+reportlab==4.0.9
+weasyprint==60.2
+
+# Additional utilities
+python-multipart==0.0.6

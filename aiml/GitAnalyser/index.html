@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepoLens - Where Code Grows</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Mermaid.js v10 – client-side diagram rendering, zero server cost -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });</script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=blauer:wght@300;400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'blauer', sans-serif;
+            background: #0a0a0f;
+            color: #ffffff;
+            overflow-x: hidden;
+            font-size: 17px;
+        }
+
+        /* 3D Sphere Effect */
+        .sphere {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #c084fc, #7c3aed 50%, #4c1d95);
+            box-shadow:
+                0 20px 60px rgba(124, 58, 237, 0.4),
+                inset -10px -10px 30px rgba(0, 0, 0, 0.3),
+                inset 10px 10px 30px rgba(255, 255, 255, 0.1);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .sphere-1 {
+            width: 300px;
+            height: 300px;
+            top: 20%;
+            left: 10%;
+        }
+
+        .sphere-2 {
+            width: 200px;
+            height: 200px;
+            top: 15%;
+            right: 10%;
+            animation-delay: 1s;
+        }
+
+        .sphere-3 {
+            width: 150px;
+            height: 150px;
+            bottom: 20%;
+            left: 15%;
+            animation-delay: 2s;
+        }
+
+        .sphere-4 {
+            width: 180px;
+            height: 180px;
+            bottom: 15%;
+            right: 12%;
+            animation-delay: 3s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-20px) rotate(5deg);
+            }
+        }
+
+        /* Cloud/Mist Effect */
+        .cloud-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(ellipse at 20% 50%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 30%, rgba(168, 85, 247, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(124, 58, 237, 0.12) 0%, transparent 50%);
+            filter: blur(60px);
+            opacity: 0.6;
+        }
+
+        /* Dark Card Styles */
+        .dark-card {
+            background: linear-gradient(135deg, rgba(30, 27, 75, 0.9) 0%, rgba(24, 24, 27, 0.95) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 24px;
+            backdrop-filter: blur(20px);
+            transition: all 0.3s ease;
+        }
+
+        .dark-card:hover {
+            border-color: rgba(168, 85, 247, 0.4);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(124, 58, 237, 0.3);
+        }
+
+        /* Gradient Text */
+        .gradient-text {
+            background: linear-gradient(135deg, #e0e7ff 0%, #c4b5fd 50%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator span {
+            animation: typing 1.4s infinite;
+            opacity: 0.3;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+
+            0%,
+            60%,
+            100% {
+                opacity: 0.3;
+            }
+
+            30% {
+                opacity: 1;
+            }
+        }
+
+        /* Chat Scrollbar */
+        .chat-messages {
+            max-height: 550px;
+            overflow-y: auto;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: rgba(30, 27, 75, 0.3);
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(168, 85, 247, 0.5);
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: rgba(168, 85, 247, 0.7);
+        }
+
+        /* Button Glow */
+        .btn-glow {
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .btn-glow:hover {
+            box-shadow: 0 0 30px rgba(168, 85, 247, 0.6);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Configuration
+        // Dynamically set API_BASE_URL to support both local development (Live Server) and production
+        const isLocalDevelopment = (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') && window.location.port !== '8000';
+        const API_BASE_URL = isLocalDevelopment ? 'http://127.0.0.1:8000/api' : '/api';
+        const POLL_INTERVAL = 2000;
+
+        // Icons
+        const SparklesIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path>
+                <path d="M5 3v4"></path>
+                <path d="M19 17v4"></path>
+                <path d="M3 5h4"></path>
+                <path d="M17 19h4"></path>
+            </svg>
+        );
+
+        const CodeIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+        );
+
+        const LayersIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+        );
+
+        const FileTextIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <line x1="10" y1="9" x2="8" y2="9"></line>
+            </svg>
+        );
+
+        const MessageCircleIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+            </svg>
+        );
+
+        const AlertCircleIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+        );
+
+        const BookOpenIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+            </svg>
+        );
+
+        const BarChartIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="20" x2="12" y2="10"></line>
+                <line x1="18" y1="20" x2="18" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="16"></line>
+            </svg>
+        );
+
+        const SendIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+        );
+
+        const LoaderIcon = () => (
+            <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="2" x2="12" y2="6"></line>
+                <line x1="12" y1="18" x2="12" y2="22"></line>
+                <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                <line x1="2" y1="12" x2="6" y2="12"></line>
+                <line x1="18" y1="12" x2="22" y2="12"></line>
+                <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+            </svg>
+        );
+
+        const CheckCircleIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+        );
+
+        const XCircleIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+        );
+
+        // API Functions
+        const api = {
+            async analyzeRepo(repoUrl) {
+                const response = await fetch(`${API_BASE_URL}/analyze-repo`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ repo_url: repoUrl })
+                });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to start analysis');
+                }
+                return response.json();
+            },
+
+            async getStatus(repoId) {
+                const response = await fetch(`${API_BASE_URL}/status/${repoId}`);
+                if (!response.ok) throw new Error('Failed to get status');
+                return response.json();
+            },
+
+            async getAnalysis(repoId) {
+                const response = await fetch(`${API_BASE_URL}/analysis/${repoId}`);
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to get analysis');
+                }
+                return response.json();
+            },
+
+            async askQuestion(repoId, question) {
+                const response = await fetch(`${API_BASE_URL}/ask`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        repo_id: repoId,
+                        question: question
+                    })
+                });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to get answer');
+                }
+                return response.json();
+            }
+        };
+
+        // Architecture Diagram Component (client-side Mermaid rendering)
+        function ArchitectureDiagram({ syntax }) {
+            const containerRef = useRef(null);
+            const [renderError, setRenderError] = React.useState(null);
+            const [isRendering, setIsRendering] = React.useState(true);
+
+            useEffect(() => {
+                if (!syntax || !containerRef.current) return;
+
+                let cancelled = false;
+
+                const renderDiagram = async () => {
+                    try {
+                        setIsRendering(true);
+                        setRenderError(null);
+
+                        // Unique ID required by Mermaid
+                        const id = `mermaid-diagram-${Date.now()}`;
+                        const { svg } = await mermaid.render(id, syntax);
+
+                        if (!cancelled && containerRef.current) {
+                            containerRef.current.innerHTML = svg;
+
+                            // Make the SVG fill its container nicely
+                            const svgEl = containerRef.current.querySelector('svg');
+                            if (svgEl) {
+                                svgEl.style.width = '100%';
+                                svgEl.style.height = 'auto';
+                                svgEl.style.maxWidth = '100%';
+                                svgEl.removeAttribute('height');
+                            }
+
+                            setIsRendering(false);
+                        }
+                    } catch (err) {
+                        if (!cancelled) {
+                            setRenderError('Diagram rendering unavailable.');
+                            setIsRendering(false);
+                        }
+                    }
+                };
+
+                renderDiagram();
+                return () => { cancelled = true; };
+            }, [syntax]);
+
+            return (
+                <div className="bg-gradient-to-br from-slate-900 to-violet-950 rounded-2xl p-8 shadow-lg border border-violet-700/40 mb-6">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
+                            <LayersIcon />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-white">Architecture Diagram</h3>
+                            <p className="text-violet-300 text-sm">Generated from analysis • No API calls</p>
+                        </div>
+                    </div>
+
+                    {isRendering && !renderError && (
+                        <div className="flex items-center justify-center py-12 gap-3 text-violet-300">
+                            <LoaderIcon />
+                            <span className="text-sm">Rendering diagram...</span>
+                        </div>
+                    )}
+
+                    {renderError && (
+                        <div className="p-4 bg-red-900/20 rounded-xl border border-red-500/30 text-red-300 text-sm">
+                            {renderError}
+                        </div>
+                    )}
+
+                    <div
+                        ref={containerRef}
+                        className="overflow-x-auto"
+                        style={{ display: isRendering ? 'none' : 'block' }}
+                    />
+                </div>
+            );
+        }
+
+        // Landing Page Component
+        function LandingPage({ onAnalyze }) {
+            const [repoUrl, setRepoUrl] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+            const [error, setError] = useState('');
+            const [openFAQ, setOpenFAQ] = useState(null);
+
+            const handleAnalyze = async () => {
+                if (!repoUrl.trim()) {
+                    setError('Please enter a GitHub repository URL');
+                    return;
+                }
+
+                if (!repoUrl.includes('github.com')) {
+                    setError('Please enter a valid GitHub URL');
+                    return;
+                }
+
+                setError('');
+                setIsLoading(true);
+
+                try {
+                    const result = await api.analyzeRepo(repoUrl);
+                    onAnalyze(result.repo_id, repoUrl);
+                } catch (err) {
+                    setError(err.message || 'Failed to connect to backend');
+                    setIsLoading(false);
+                }
+            };
+
+            return (
+                <div className="bg-[#0a0a0f] min-h-screen">
+                    {/* Navbar */}
+                    <nav className="border-b border-gray-800 bg-black/50 backdrop-blur-sm sticky top-0 z-50">
+                        <div className="max-w-full mx-auto px-12 py-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
+                                    <SparklesIcon />
+                                </div>
+                                <span className="text-xl font-bold text-white">RepoLens</span>
+                            </div>
+                            <div className="flex items-center gap-6">
+                                <a href="#benefits" className="text-gray-300 hover:text-white transition-colors text-sm font-medium">Benefits</a>
+                                <a href="#how-it-works" className="text-gray-300 hover:text-white transition-colors text-sm font-medium">How it works</a>
+                                <a href="#faq" className="text-gray-300 hover:text-white transition-colors text-sm font-medium">FAQ</a>
+                                <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="px-5 py-2 bg-gradient-to-r from-purple-600 to-violet-600 text-white text-sm font-semibold rounded-xl btn-glow">
+                                    Get Started
+                                </button>
+                            </div>
+                        </div>
+                    </nav>
+
+                    {/* Hero Area */}
+                    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+                        {/* Cloud Background */}
+                        <div className="cloud-bg"></div>
+
+                        {/* 3D Spheres */}
+                        <div className="sphere sphere-1"></div>
+                        <div className="sphere sphere-2"></div>
+                        <div className="sphere sphere-3"></div>
+                        <div className="sphere sphere-4"></div>
+
+                        {/* Hero Content */}
+                        <div className="relative z-10 max-w-6xl mx-auto px-6 text-center py-20">
+                            {/* RepoLens Branding - Now at Top */}
+                            <div className="mb-8">
+                                <h1 className="text-8xl md:text-9xl font-bold gradient-text mb-4">RepoLens</h1>
+                            </div>
+
+                            <p className="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed mb-12">
+                                AI-powered repository analysis. Understand any codebase in seconds with intelligent insights and natural language Q&A.
+                            </p>
+
+                            {/* Input Section */}
+                            <div className="max-w-3xl mx-auto">
+                                <div className="dark-card p-8">
+                                    <div className="flex flex-col md:flex-row gap-4">
+                                        <input
+                                            type="text"
+                                            value={repoUrl}
+                                            onChange={(e) => setRepoUrl(e.target.value)}
+                                            onKeyPress={(e) => e.key === 'Enter' && handleAnalyze()}
+                                            placeholder="https://github.com/username/repository"
+                                            className="flex-1 px-6 py-4 bg-black/30 border border-purple-500/30 rounded-2xl outline-none focus:border-purple-500 transition-all text-white placeholder-gray-500"
+                                            disabled={isLoading}
+                                        />
+                                        <button
+                                            onClick={handleAnalyze}
+                                            disabled={isLoading || !repoUrl.trim()}
+                                            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-semibold rounded-2xl btn-glow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap"
+                                        >
+                                            {isLoading ? (
+                                                <>
+                                                    <LoaderIcon />
+                                                    <span>Analyzing...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <SparklesIcon />
+                                                    <span>Analyze Repository</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    {error && (
+                                        <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3">
+                                            <XCircleIcon />
+                                            <p className="text-red-400 text-sm">{error}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Benefits Section */}
+                    <section id="benefits" className="py-24 px-6 bg-gradient-to-b from-[#0a0a0f] to-[#0f0f1a]">
+                        <div className="max-w-7xl mx-auto">
+                            <div className="text-center mb-16">
+                                <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Why Choose RepoLens?</h2>
+                                <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+                                    Focus on how it helps user instead of what features it has
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <div className="dark-card p-8 text-left">
+                                    <div className="w-14 h-14 bg-purple-500/20 rounded-2xl flex items-center justify-center mb-6">
+                                        <CodeIcon />
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-white mb-4">Always liquid, always stable</h3>
+                                    <p className="text-gray-400 leading-relaxed">
+                                        Instant analysis of any repository with AI-powered insights into architecture and tech stack. Get comprehensive understanding in seconds.
+                                    </p>
+                                </div>
+
+                                <div className="dark-card p-8 text-left">
+                                    <div className="w-14 h-14 bg-violet-500/20 rounded-2xl flex items-center justify-center mb-6">
+                                        <MessageCircleIcon />
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-white mb-4">100% hands-free</h3>
+                                    <p className="text-gray-400 leading-relaxed">
+                                        Ask questions in plain English and get instant answers about any codebase. No manual documentation reading required.
+                                    </p>
+                                </div>
+
+                                <div className="dark-card p-8 text-left">
+                                    <div className="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center mb-6">
+                                        <LayersIcon />
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-white mb-4">Capital that grows</h3>
+                                    <p className="text-gray-400 leading-relaxed">
+                                        Deep insights into risks, issues, and contribution areas to grow your understanding and accelerate development.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* How it Works Section */}
+                    <section id="how-it-works" className="py-24 px-6 bg-[#0a0a0f]">
+                        <div className="max-w-7xl mx-auto">
+                            <div className="text-center mb-16">
+                                <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">How it works?</h2>
+                                <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+                                    Explain how to get started with your product in 3 simple steps
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <div className="relative">
+                                    <div className="dark-card p-8 h-full">
+                                        <div className="flex items-center gap-4 mb-6">
+                                            <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-violet-600 text-white rounded-xl flex items-center justify-center font-bold text-xl">
+                                                1
+                                            </div>
+                                            <h3 className="text-xl font-bold text-white">Paste Repository URL</h3>
+                                        </div>
+                                        <p className="text-gray-400 leading-relaxed">
+                                            Simply paste any public GitHub repository URL into the input field. Our system will automatically fetch and prepare the codebase for analysis.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="relative">
+                                    <div className="dark-card p-8 h-full">
+                                        <div className="flex items-center gap-4 mb-6">
+                                            <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-violet-600 text-white rounded-xl flex items-center justify-center font-bold text-xl">
+                                                2
+                                            </div>
+                                            <h3 className="text-xl font-bold text-white">AI Analyzes Codebase</h3>
+                                        </div>
+                                        <p className="text-gray-400 leading-relaxed">
+                                            Our advanced AI examines the repository structure, identifies technologies, maps architecture patterns, and extracts key insights in 30-60 seconds.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="relative">
+                                    <div className="dark-card p-8 h-full">
+                                        <div className="flex items-center gap-4 mb-6">
+                                            <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-violet-600 text-white rounded-xl flex items-center justify-center font-bold text-xl">
+                                                3
+                                            </div>
+                                            <h3 className="text-xl font-bold text-white">Explore & Ask Questions</h3>
+                                        </div>
+                                        <p className="text-gray-400 leading-relaxed">
+                                            Browse comprehensive insights across 7 tabs or use natural language Q&A to get instant answers about any aspect of the codebase.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* FAQ Section */}
+                    <section id="faq" className="py-24 px-6 bg-gradient-to-b from-[#0a0a0f] to-[#0f0f1a]">
+                        <div className="max-w-4xl mx-auto">
+                            <div className="text-center mb-16">
+                                <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Frequently Asked Questions</h2>
+                                <p className="text-gray-400 text-lg">
+                                    Everything you need to know about RepoLens
+                                </p>
+                            </div>
+
+                            <div className="space-y-4">
+                                {[
+                                    {
+                                        q: "What repositories can I analyze?",
+                                        a: "You can analyze any public GitHub repository. Simply paste the URL and our AI will handle the rest. Private repositories are not currently supported."
+                                    },
+                                    {
+                                        q: "How long does analysis take?",
+                                        a: "Most repositories are analyzed in 30-60 seconds. Larger codebases may take slightly longer, but you'll see real-time progress updates."
+                                    },
+                                    {
+                                        q: "What information does the analysis provide?",
+                                        a: "You get comprehensive insights including tech stack, architecture patterns, key files, setup instructions, contribution areas, known issues, and risks. Plus, you can ask unlimited questions via natural language Q&A."
+                                    },
+                                    {
+                                        q: "Is my data secure?",
+                                        a: "Yes! We only analyze public repositories and don't store your code. Analysis results are cached temporarily for Q&A functionality but are never shared with third parties."
+                                    }
+                                ].map((faq, idx) => (
+                                    <div key={idx} className="dark-card overflow-hidden">
+                                        <button
+                                            onClick={() => setOpenFAQ(openFAQ === idx ? null : idx)}
+                                            className="w-full px-8 py-6 flex items-center justify-between text-left hover:bg-purple-500/5 transition-colors"
+                                        >
+                                            <span className="text-lg font-semibold text-white">{faq.q}</span>
+                                            <svg
+                                                className={`w-5 h-5 text-purple-400 transition-transform ${openFAQ === idx ? 'rotate-180' : ''}`}
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </button>
+                                        {openFAQ === idx && (
+                                            <div className="px-8 pb-6 text-gray-400 leading-relaxed border-t border-gray-800 pt-6">
+                                                {faq.a}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* CTA Section */}
+                    <section className="py-24 px-6 bg-[#0a0a0f]">
+                        <div className="max-w-4xl mx-auto">
+                            <div className="dark-card p-12 text-center relative overflow-hidden">
+                                {/* Background decoration */}
+                                <div className="absolute inset-0 opacity-10">
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500 rounded-full blur-3xl"></div>
+                                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-violet-500 rounded-full blur-3xl"></div>
+                                </div>
+
+                                <div className="relative z-10">
+                                    <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+                                        Ready to analyze your first repository?
+                                    </h2>
+                                    <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+                                        Join developers who are understanding codebases faster with AI-powered insights.
+                                    </p>
+                                    <button
+                                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                                        className="px-10 py-5 bg-gradient-to-r from-purple-600 to-violet-600 text-white text-lg font-semibold rounded-2xl btn-glow inline-flex items-center gap-3"
+                                    >
+                                        <SparklesIcon />
+                                        <span>Get Started Now</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Footer */}
+                    <footer className="border-t border-gray-800 bg-black/50 py-8 px-6">
+                        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
+                                    <SparklesIcon />
+                                </div>
+                                <span className="text-lg font-bold text-white">RepoLens</span>
+                            </div>
+                            <p className="text-gray-400 text-sm">
+                                © 2026 RepoLens. Powered by Gemini AI.
+                            </p>
+                            <div className="flex items-center gap-6">
+                                <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Privacy</a>
+                                <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Terms</a>
+                                <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Support</a>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            );
+        }
+
+        // Dashboard Component
+        function Dashboard({ repoId, repoUrl, onBack }) {
+            const [activeTab, setActiveTab] = useState('overview');
+            const [analysisData, setAnalysisData] = useState(null);
+            const [status, setStatus] = useState('processing');
+            const [error, setError] = useState('');
+            const [chatHistory, setChatHistory] = useState([]);
+            const [currentQuestion, setCurrentQuestion] = useState('');
+            const [isAsking, setIsAsking] = useState(false);
+            const chatEndRef = useRef(null);
+
+            // Poll for status
+            useEffect(() => {
+                let interval;
+
+                const checkStatus = async () => {
+                    try {
+                        const statusData = await api.getStatus(repoId);
+                        setStatus(statusData.status);
+
+                        if (statusData.status === 'completed') {
+                            const analysis = await api.getAnalysis(repoId);
+                            setAnalysisData(analysis);
+                            clearInterval(interval);
+                        } else if (statusData.status === 'failed') {
+                            setError(statusData.error_message || 'Analysis failed');
+                            clearInterval(interval);
+                        }
+                    } catch (err) {
+                        setError(err.message);
+                        clearInterval(interval);
+                    }
+                };
+
+                checkStatus();
+                interval = setInterval(checkStatus, POLL_INTERVAL);
+
+                return () => clearInterval(interval);
+            }, [repoId]);
+
+            // Auto-scroll chat
+            useEffect(() => {
+                chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, [chatHistory]);
+
+            const handleAskQuestion = async () => {
+                if (!currentQuestion.trim() || isAsking) return;
+
+                const question = currentQuestion.trim();
+                setCurrentQuestion('');
+                setIsAsking(true);
+
+                // Add user message
+                setChatHistory(prev => [...prev, { type: 'user', text: question }]);
+
+                // Add typing indicator
+                setChatHistory(prev => [...prev, { type: 'typing', text: '' }]);
+
+                try {
+                    const response = await api.askQuestion(repoId, question);
+
+                    // Remove typing indicator
+                    setChatHistory(prev => prev.filter(msg => msg.type !== 'typing'));
+
+                    // Add assistant response
+                    setChatHistory(prev => [...prev, { type: 'assistant', text: response.answer }]);
+                } catch (err) {
+                    // Remove typing indicator
+                    setChatHistory(prev => prev.filter(msg => msg.type !== 'typing'));
+
+                    // Add error message
+                    setChatHistory(prev => [...prev, {
+                        type: 'error',
+                        text: err.message || 'Could not reach Gemini. Please ensure analysis is completed.'
+                    }]);
+                } finally {
+                    setIsAsking(false);
+                }
+            };
+
+            const tabs = [
+                { id: 'overview', name: 'Overview', icon: <BarChartIcon /> },
+                { id: 'tech-stack', name: 'Tech Stack', icon: <CodeIcon /> },
+                { id: 'architecture', name: 'Architecture', icon: <LayersIcon /> },
+                { id: 'files', name: 'File Browser', icon: <FileTextIcon /> },
+                { id: 'chat', name: 'Q&A Chat', icon: <MessageCircleIcon /> },
+                { id: 'issues', name: 'Issues & Risks', icon: <AlertCircleIcon /> },
+                { id: 'guide', name: 'Contributor Guide', icon: <BookOpenIcon /> },
+            ];
+
+            return (
+                <div className="min-h-screen flex bg-gradient-to-br from-violet-900 via-purple-800 to-violet-900">
+                    {/* Sidebar */}
+                    <div className="w-80 text-white p-6 flex flex-col relative z-10">
+                        {/* Brand */}
+                        <div className="mb-8">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                                    <SparklesIcon />
+                                </div>
+                                <h2 className="text-2xl font-bold">RepoLens</h2>
+                            </div>
+                            <p className="text-violet-200 text-sm truncate">{repoUrl.replace('https://github.com/', '')}</p>
+                        </div>
+
+                        {/* Navigation */}
+                        <nav className="flex-1 space-y-2">
+                            {tabs.map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    disabled={status !== 'completed' && tab.id !== 'overview'}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === tab.id
+                                        ? 'bg-white/20 shadow-lg'
+                                        : 'hover:bg-white/10'
+                                        } ${status !== 'completed' && tab.id !== 'overview' ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                >
+                                    {tab.icon}
+                                    <span className="font-medium">{tab.name}</span>
+                                </button>
+                            ))}
+                        </nav>
+
+                        {/* Status */}
+                        <div className="mt-6 p-4 bg-white/10 rounded-xl backdrop-blur-sm">
+                            <div className="flex items-center gap-2">
+                                {status === 'completed' ? (
+                                    <>
+                                        <CheckCircleIcon />
+                                        <span className="text-sm font-medium">Analysis Complete</span>
+                                    </>
+                                ) : status === 'processing' ? (
+                                    <>
+                                        <LoaderIcon />
+                                        <span className="text-sm font-medium">Analyzing...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <XCircleIcon />
+                                        <span className="text-sm font-medium">Failed</span>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Decorative Visual Element */}
+                        <div className="mt-auto mb-4">
+                            <svg viewBox="0 0 200 150" className="w-full opacity-60">
+                                <defs>
+                                    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" style={{ stopColor: '#c084fc', stopOpacity: 1 }} />
+                                        <stop offset="100%" style={{ stopColor: '#7c3aed', stopOpacity: 1 }} />
+                                    </linearGradient>
+                                </defs>
+                                {/* Abstract geometric shapes */}
+                                <circle cx="50" cy="100" r="30" fill="url(#grad1)" opacity="0.6" />
+                                <circle cx="80" cy="80" r="20" fill="#a78bfa" opacity="0.7" />
+                                <circle cx="120" cy="90" r="25" fill="#c084fc" opacity="0.5" />
+                                <path d="M 30 120 Q 100 60 170 110" stroke="#e0e7ff" strokeWidth="3" fill="none" opacity="0.4" />
+                                <circle cx="150" cy="70" r="15" fill="#ddd6fe" opacity="0.6" />
+                            </svg>
+                        </div>
+
+                        {/* Back Button */}
+                        <button
+                            onClick={onBack}
+                            className="px-4 py-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all text-sm font-medium"
+                        >
+                            ← New Analysis
+                        </button>
+                    </div>
+
+                    {/* Main Content - Overlay Style */}
+                    <div className="flex-1 overflow-auto relative">
+                        <div className="absolute inset-0 p-8 ml-[-2rem]">
+                            <div className="bg-white rounded-3xl shadow-2xl min-h-full p-8">
+                                {error && (
+                                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3">
+                                        <XCircleIcon />
+                                        <div>
+                                            <p className="text-red-700 font-medium">Error</p>
+                                            <p className="text-red-600 text-sm mt-1">{error}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {status === 'processing' && activeTab === 'overview' && (
+                                    <div className="flex flex-col items-center justify-center min-h-[70vh]">
+                                        <div className="w-32 h-32 bg-gradient-to-br from-violet-600 to-purple-600 rounded-3xl flex items-center justify-center mb-8 shadow-2xl">
+                                            <LoaderIcon />
+                                        </div>
+                                        <h2 className="text-4xl font-bold text-slate-800 mb-4">Analyzing Repository</h2>
+                                        <p className="text-slate-600 text-xl mb-12">This typically takes 30-60 seconds</p>
+
+                                        {/* Large Prominent Loading Bar */}
+                                        <div className="w-full max-w-md mb-12">
+                                            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
+                                                <div className="h-3 bg-gradient-to-r from-violet-600 via-purple-600 to-violet-600 rounded-full animate-pulse" style={{ width: '70%', transition: 'width 0.3s ease' }}></div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4 w-full max-w-lg">
+                                            <div className="flex items-center gap-4 p-5 bg-white rounded-2xl shadow-md border-l-4 border-green-500">
+                                                <CheckCircleIcon />
+                                                <span className="text-slate-700 font-medium text-lg">Fetching repository data</span>
+                                            </div>
+                                            <div className="flex items-center gap-4 p-5 bg-white rounded-2xl shadow-md border-l-4 border-violet-500">
+                                                <LoaderIcon />
+                                                <span className="text-slate-700 font-medium text-lg">Analyzing codebase structure</span>
+                                            </div>
+                                            <div className="flex items-center gap-4 p-5 bg-white/50 rounded-2xl border-l-4 border-gray-300">
+                                                <div className="w-5 h-5"></div>
+                                                <span className="text-slate-400 font-medium text-lg">Generating AI insights</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {status === 'completed' && analysisData && (
+                                    <>
+                                        {/* Overview Tab */}
+                                        {activeTab === 'overview' && (
+                                            <div>
+                                                <h2 className="text-3xl font-bold text-slate-800 mb-8">Project Overview</h2>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-purple-100">
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <span className="text-slate-600 text-sm font-medium">Confidence</span>
+                                                            <div className="w-10 h-10 bg-violet-500 rounded-xl flex items-center justify-center">
+                                                                <BarChartIcon />
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent">
+                                                            {Math.round((analysisData.confidence_score || 0) * 100)}%
+                                                        </p>
+                                                        <p className="text-xs text-slate-500 mt-1">Analysis accuracy</p>
+                                                    </div>
+
+                                                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-purple-100">
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <span className="text-slate-600 text-sm font-medium">Technologies</span>
+                                                            <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center">
+                                                                <CodeIcon />
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-4xl font-bold text-slate-800">
+                                                            {analysisData.tech_stack?.length || 0}
+                                                        </p>
+                                                        <p className="text-xs text-slate-500 mt-1">Detected</p>
+                                                    </div>
+
+                                                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-purple-100">
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <span className="text-slate-600 text-sm font-medium">Code Modules</span>
+                                                            <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center">
+                                                                <LayersIcon />
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-4xl font-bold text-slate-800">
+                                                            {analysisData.components?.length || 0}
+                                                        </p>
+                                                        <p className="text-xs text-slate-500 mt-1">Architectural parts</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-white rounded-2xl p-8 shadow-sm border border-purple-100 mb-6">
+                                                    <h3 className="text-xl font-bold text-slate-800 mb-4">Summary</h3>
+                                                    <p className="text-slate-700 leading-relaxed">{analysisData.summary}</p>
+                                                </div>
+
+                                                <div className="bg-white rounded-2xl p-8 shadow-sm border border-purple-100">
+                                                    <h3 className="text-xl font-bold text-slate-800 mb-4">Purpose</h3>
+                                                    <p className="text-slate-700 leading-relaxed">{analysisData.purpose}</p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Tech Stack Tab */}
+                                        {activeTab === 'tech-stack' && (
+                                            <div>
+                                                <h2 className="text-3xl font-bold text-slate-800 mb-8">Technology Stack</h2>
+
+                                                {analysisData.tech_stack && analysisData.tech_stack.length > 0 ? (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                        {analysisData.tech_stack.map((tech, idx) => (
+                                                            <div key={idx} className="bg-white rounded-2xl p-6 shadow-sm border border-purple-100 hover:shadow-md hover:border-violet-300 transition-all">
+                                                                <div className="flex items-start justify-between mb-3">
+                                                                    <h3 className="font-bold text-slate-800 text-lg">{tech.name}</h3>
+                                                                    <span className="text-xs bg-violet-100 text-violet-700 px-3 py-1 rounded-full font-medium">
+                                                                        {tech.category}
+                                                                    </span>
+                                                                </div>
+                                                                {tech.version && (
+                                                                    <p className="text-sm text-slate-600 mb-2">Version: <span className="font-medium">{tech.version}</span></p>
+                                                                )}
+                                                                <div className="mt-3 pt-3 border-t border-slate-100">
+                                                                    <p className="text-xs text-slate-500">Why it's used</p>
+                                                                    <p className="text-sm text-slate-700 mt-1">Core {tech.category} technology</p>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="bg-white rounded-2xl p-12 text-center">
+                                                        <p className="text-slate-600">No technology stack information available</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Architecture Tab */}
+                                        {activeTab === 'architecture' && (
+                                            <div>
+                                                <h2 className="text-3xl font-bold text-slate-800 mb-8">Architecture Overview</h2>
+
+                                                {/* ── Mermaid Diagram Card ─────────────────────────────── */}
+                                                {analysisData.architecture_diagram && (
+                                                    <ArchitectureDiagram syntax={analysisData.architecture_diagram} />
+                                                )}
+
+                                                <div className="bg-white rounded-2xl p-8 shadow-sm border border-purple-100 mb-6">
+                                                    <h3 className="text-xl font-bold text-slate-800 mb-4">Pattern</h3>
+                                                    <p className="text-slate-700 leading-relaxed">{analysisData.architecture_pattern}</p>
+                                                </div>
+
+                                                <div className="bg-white rounded-2xl p-8 shadow-sm border border-purple-100 mb-6">
+                                                    <h3 className="text-xl font-bold text-slate-800 mb-4">Data Flow</h3>
+                                                    <p className="text-slate-700 leading-relaxed">{analysisData.data_flow}</p>
+                                                </div>
+
+                                                {analysisData.components && analysisData.components.length > 0 && (
+                                                    <div>
+                                                        <h3 className="text-xl font-bold text-slate-800 mb-4">Components</h3>
+                                                        <div className="space-y-4">
+                                                            {analysisData.components.map((comp, idx) => (
+                                                                <div key={idx} className="bg-white rounded-2xl p-6 shadow-sm border border-purple-100">
+                                                                    <h4 className="font-bold text-slate-800 text-lg mb-2">{comp.name}</h4>
+                                                                    <p className="text-slate-700 mb-4">{comp.purpose}</p>
+                                                                    {comp.files && comp.files.length > 0 && (
+                                                                        <div className="flex flex-wrap gap-2">
+                                                                            {comp.files.map((file, fidx) => (
+                                                                                <span key={fidx} className="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-lg font-mono">
+                                                                                    {file}
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Files Tab */}
+                                        {activeTab === 'files' && (
+                                            <div>
+                                                <h2 className="text-3xl font-bold text-slate-800 mb-8">Key Files</h2>
+
+                                                {analysisData.key_files && analysisData.key_files.length > 0 ? (
+                                                    <div className="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
+                                                        <div className="overflow-x-auto">
+                                                            <table className="w-full">
+                                                                <thead className="bg-gradient-to-r from-violet-50 to-purple-50">
+                                                                    <tr>
+                                                                        <th className="text-left px-6 py-4 text-sm font-bold text-slate-700">File Path</th>
+                                                                        <th className="text-left px-6 py-4 text-sm font-bold text-slate-700">Role</th>
+                                                                        <th className="text-left px-6 py-4 text-sm font-bold text-slate-700">Purpose</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {analysisData.key_files.map((file, idx) => (
+                                                                        <tr key={idx} className="border-t border-slate-100 hover:bg-violet-50/30 transition-colors">
+                                                                            <td className="px-6 py-4">
+                                                                                <div className="flex items-center gap-3">
+                                                                                    <FileTextIcon />
+                                                                                    <span className="text-sm font-medium text-slate-800 font-mono">{file.path}</span>
+                                                                                </div>
+                                                                            </td>
+                                                                            <td className="px-6 py-4">
+                                                                                <span className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-violet-100 text-violet-700">
+                                                                                    {file.role}
+                                                                                </span>
+                                                                            </td>
+                                                                            <td className="px-6 py-4">
+                                                                                <span className="text-sm text-slate-600">{file.purpose}</span>
+                                                                            </td>
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="bg-white rounded-2xl p-12 text-center">
+                                                        <p className="text-slate-600">No key files identified</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Chat Tab */}
+                                        {activeTab === 'chat' && (
+                                            <div>
+                                                <h2 className="text-3xl font-bold text-slate-800 mb-8">Q&A Chat</h2>
+
+                                                <div className="bg-white rounded-2xl shadow-sm border border-purple-100 p-6">
+                                                    <div className="chat-messages mb-6">
+                                                        {chatHistory.length === 0 ? (
+                                                            <div className="text-center py-16">
+                                                                <div className="w-16 h-16 bg-violet-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                                                    <MessageCircleIcon />
+                                                                </div>
+                                                                <p className="text-slate-700 font-medium mb-2">Ask anything about this repository</p>
+                                                                <p className="text-sm text-slate-500 mb-6">Get instant answers powered by AI</p>
+                                                                <div className="flex flex-wrap justify-center gap-2">
+                                                                    {[
+                                                                        "What is this project about?",
+                                                                        "How does authentication work?",
+                                                                        "What's the main tech stack?"
+                                                                    ].map((suggestion, idx) => (
+                                                                        <button
+                                                                            key={idx}
+                                                                            onClick={() => setCurrentQuestion(suggestion)}
+                                                                            className="px-4 py-2 bg-violet-50 hover:bg-violet-100 text-violet-700 rounded-xl text-sm transition-colors"
+                                                                        >
+                                                                            {suggestion}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="space-y-4">
+                                                                {chatHistory.map((msg, idx) => (
+                                                                    <div key={idx} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                                                        {msg.type === 'typing' ? (
+                                                                            <div className="bg-slate-100 rounded-2xl px-6 py-4 max-w-[80%]">
+                                                                                <div className="typing-indicator flex gap-1">
+                                                                                    <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+                                                                                    <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+                                                                                    <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+                                                                                </div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className={`rounded-2xl px-6 py-4 max-w-[80%] ${msg.type === 'user'
+                                                                                ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white'
+                                                                                : msg.type === 'error'
+                                                                                    ? 'bg-red-50 text-red-700 border border-red-200'
+                                                                                    : 'bg-slate-100 text-slate-800'
+                                                                                }`}>
+                                                                                <p className="text-sm leading-relaxed">{msg.text}</p>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                                <div ref={chatEndRef} />
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="flex gap-3">
+                                                        <input
+                                                            type="text"
+                                                            value={currentQuestion}
+                                                            onChange={(e) => setCurrentQuestion(e.target.value)}
+                                                            onKeyPress={(e) => e.key === 'Enter' && handleAskQuestion()}
+                                                            placeholder="Ask a question about this repository..."
+                                                            className="flex-1 px-6 py-4 bg-slate-50 border-2 border-purple-100 rounded-2xl outline-none focus:border-violet-400 transition-all text-slate-900 placeholder-slate-500"
+                                                            disabled={isAsking}
+                                                        />
+                                                        <button
+                                                            onClick={handleAskQuestion}
+                                                            disabled={isAsking || !currentQuestion.trim()}
+                                                            className="px-6 py-4 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-2xl hover:shadow-lg hover:shadow-violet-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                                        >
+                                                            {isAsking ? <LoaderIcon /> : <SendIcon />}
+                                                            <span className="font-medium">Send</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Issues Tab */}
+                                        {activeTab === 'issues' && (
+                                            <div>
+                                                <h2 className="text-3xl font-bold text-slate-800 mb-8">Issues & Risks</h2>
+
+                                                <div className="space-y-6">
+                                                    <div>
+                                                        <h3 className="text-xl font-bold text-slate-800 mb-4">Known Issues</h3>
+                                                        {analysisData.known_issues && analysisData.known_issues.length > 0 ? (
+                                                            <div className="space-y-3">
+                                                                {analysisData.known_issues.map((issue, idx) => (
+                                                                    <div key={idx} className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-start gap-3">
+                                                                        <AlertCircleIcon />
+                                                                        <p className="text-sm text-slate-700 leading-relaxed">{issue}</p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="bg-white rounded-2xl p-8 text-center border border-purple-100">
+                                                                <p className="text-slate-600">No known issues identified</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div>
+                                                        <h3 className="text-xl font-bold text-slate-800 mb-4">Risky Areas</h3>
+                                                        {analysisData.risky_areas && analysisData.risky_areas.length > 0 ? (
+                                                            <div className="space-y-3">
+                                                                {analysisData.risky_areas.map((area, idx) => (
+                                                                    <div key={idx} className="bg-red-50 border border-red-200 rounded-2xl p-5 flex items-start gap-3">
+                                                                        <XCircleIcon />
+                                                                        <p className="text-sm text-slate-700 leading-relaxed">{area}</p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="bg-white rounded-2xl p-8 text-center border border-purple-100">
+                                                                <p className="text-slate-600">No risky areas identified</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Guide Tab */}
+                                        {activeTab === 'guide' && (
+                                            <div>
+                                                <h2 className="text-3xl font-bold text-slate-800 mb-8">Contributor Guide</h2>
+
+                                                <div className="space-y-6">
+                                                    <div>
+                                                        <h3 className="text-xl font-bold text-slate-800 mb-4">Getting Started</h3>
+                                                        {analysisData.setup_steps && analysisData.setup_steps.length > 0 ? (
+                                                            <div className="bg-white rounded-2xl shadow-sm border border-purple-100 p-8">
+                                                                <div className="space-y-6">
+                                                                    {analysisData.setup_steps.map((step, idx) => (
+                                                                        <div key={idx} className="flex gap-4">
+                                                                            <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-violet-600 to-purple-600 text-white rounded-xl flex items-center justify-center font-bold">
+                                                                                {idx + 1}
+                                                                            </div>
+                                                                            <div className="flex-1 pt-2">
+                                                                                <p className="text-slate-700 leading-relaxed">{step}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="bg-white rounded-2xl p-8 text-center border border-purple-100">
+                                                                <p className="text-slate-600">No setup steps available</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div>
+                                                        <h3 className="text-xl font-bold text-slate-800 mb-4">Where to Contribute</h3>
+                                                        {analysisData.contribution_areas && analysisData.contribution_areas.length > 0 ? (
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                {analysisData.contribution_areas.map((area, idx) => (
+                                                                    <div key={idx} className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-start gap-3">
+                                                                        <CheckCircleIcon />
+                                                                        <p className="text-sm text-slate-700 leading-relaxed">{area}</p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="bg-white rounded-2xl p-8 text-center border border-purple-100">
+                                                                <p className="text-slate-600">No contribution areas identified</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Main App Component
+        function App() {
+            const [view, setView] = useState('landing');
+            const [repoId, setRepoId] = useState(null);
+            const [repoUrl, setRepoUrl] = useState('');
+
+            const handleAnalyze = (id, url) => {
+                setRepoId(id);
+                setRepoUrl(url);
+                setView('dashboard');
+            };
+
+            const handleBack = () => {
+                setView('landing');
+                setRepoId(null);
+                setRepoUrl('');
+            };
+
+            return (
+                <>
+                    {view === 'landing' ? (
+                        <LandingPage onAnalyze={handleAnalyze} />
+                    ) : (
+                        <Dashboard repoId={repoId} repoUrl={repoUrl} onBack={handleBack} />
+                    )}
+                </>
+            );
+        }
+
+        // Render
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
+
