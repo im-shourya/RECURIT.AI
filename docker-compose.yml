@@ -1,0 +1,38 @@
+# RECRUIT.AI — Docker Compose for local development services
+# Spins up PostgreSQL and Redis for the backend.
+# Usage: docker-compose up -d
+
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: recruit_ai_postgres
+    environment:
+      POSTGRES_USER: recruit_user
+      POSTGRES_PASSWORD: recruit_pass
+      POSTGRES_DB: recruit_ai
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recruit_user -d recruit_ai"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: recruit_ai_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:
