@@ -87,14 +87,14 @@ class Drive(Base):
     org_id = Column(UUID(as_uuid=True), ForeignKey("organisations.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(255), nullable=False)
     domain = Column(String(255), nullable=False)
-    task_type = Column(SAEnum(TaskType, name="task_type_enum"), nullable=False)
+    task_type = Column(SAEnum(TaskType, name="task_type_enum", values_callable=lambda obj: [e.value for e in obj]), nullable=False)
     task_description = Column(Text, default="")
-    question_level = Column(SAEnum(QuestionLevel, name="question_level_enum"), default=QuestionLevel.BEGINNER)
+    question_level = Column(SAEnum(QuestionLevel, name="question_level_enum", values_callable=lambda obj: [e.value for e in obj]), default=QuestionLevel.BEGINNER)
     apply_deadline = Column(Date, nullable=False)
     task_deadline = Column(Date, nullable=True)  # Only needed when task_type = 'task'
     link_token = Column(String(64), unique=True, nullable=False, index=True)
     qr_code_url = Column(Text, default="")
-    status = Column(SAEnum(DriveStatus, name="drive_status_enum"), default=DriveStatus.ACTIVE)
+    status = Column(SAEnum(DriveStatus, name="drive_status_enum", values_callable=lambda obj: [e.value for e in obj]), default=DriveStatus.ACTIVE)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     # Relationships
@@ -117,7 +117,7 @@ class Applicant(Base):
     primary_domain = Column(String(255), default="")
     github_url = Column(Text, default="")
     status = Column(
-        SAEnum(ApplicantStatus, name="applicant_status_enum"),
+        SAEnum(ApplicantStatus, name="applicant_status_enum", values_callable=lambda obj: [e.value for e in obj]),
         default=ApplicantStatus.APPLIED
     )
     applied_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
@@ -178,7 +178,7 @@ class EmailLog(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     applicant_id = Column(UUID(as_uuid=True), ForeignKey("applicants.id", ondelete="CASCADE"), nullable=False)
-    type = Column(SAEnum(EmailType, name="email_type_enum"), nullable=False)
+    type = Column(SAEnum(EmailType, name="email_type_enum", values_callable=lambda obj: [e.value for e in obj]), nullable=False)
     sent_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     emailjs_msg_id = Column(String(255), default="")
 
