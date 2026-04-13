@@ -241,6 +241,28 @@ class EmailLogResponse(BaseModel):
         from_attributes = True
 
 
+# ══════════════════════════════════════════════
+# ANALYTICS
+# ══════════════════════════════════════════════
+class ChartDataPoint(BaseModel):
+    name: str
+    value: int
+
+class AnalyticsResponse(BaseModel):
+    total_drives: int
+    active_drives: int
+    total_applicants: int
+    total_interviews: int
+    avg_score: int
+    
+    score_distribution: list[ChartDataPoint]
+    domain_distribution: list[ChartDataPoint]
+    status_distribution: list[ChartDataPoint]
+    recent_trend: list[ChartDataPoint]
+    
+    class Config:
+        from_attributes = True
+
 # Forward references for nested models
 DriveDetailResponse.model_rebuild()
 ApplicantResponse.model_rebuild()

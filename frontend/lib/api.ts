@@ -171,6 +171,23 @@ export interface InterviewSummary {
   malpractice_flags: unknown[];
 }
 
+export interface ChartDataPoint {
+  name: string;
+  value: number;
+}
+
+export interface AnalyticsResponse {
+  total_drives: number;
+  active_drives: number;
+  total_applicants: number;
+  total_interviews: number;
+  avg_score: number;
+  score_distribution: ChartDataPoint[];
+  domain_distribution: ChartDataPoint[];
+  status_distribution: ChartDataPoint[];
+  recent_trend: ChartDataPoint[];
+}
+
 // ══════════════════════════════════════════════
 // API METHODS
 // ══════════════════════════════════════════════
@@ -248,4 +265,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ recording_url }),
     }),
+
+  // ── Analytics (authed) ──
+  getAnalytics: () => request<AnalyticsResponse>('/api/analytics/dashboard', {}, true),
 };

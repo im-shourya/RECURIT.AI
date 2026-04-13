@@ -1,0 +1,55 @@
+services:
+  # ── Backend API ──
+  - type: web
+    name: recruit-ai-api
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    rootDir: backend
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: recruit-ai-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: recruit-ai-redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
+
+  # ── Celery Worker ──
+  - type: worker
+    name: recruit-ai-worker
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "celery -A app.worker.celery_app worker --loglevel=info"
+    rootDir: backend
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: recruit-ai-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: recruit-ai-redis
+          property: connectionString
+      - key: SECRET_KEY
+        fromService:
+          type: web
+          name: recruit-ai-api
+          property: SECRET_KEY
+
+  # ── Redis (Managed Instance) ──
+  - type: redis
+    name: recruit-ai-redis
+    plan: free # Note: Render free redis is limited, consider Upstash
+    ipAllowList: [] # Allow internal traffic
+
+databases:
+  - name: recruit-ai-db
+    plan: free # Note: Render free postgres lasts 90 days. Recommended: Neon for production.
