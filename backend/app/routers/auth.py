@@ -15,6 +15,7 @@ from app.models.schemas import (
     OrgLoginRequest,
     TokenResponse,
     OrgProfileResponse,
+    OrgProfileUpdate,
 )
 from app.services.auth_service import (
     hash_password,
@@ -70,4 +71,24 @@ def login(body: OrgLoginRequest, db: Session = Depends(get_db)):
 # ──────────────────────────────────────────────
 @router.get("/me", response_model=OrgProfileResponse)
 def get_me(org: Organisation = Depends(get_current_org)):
+    return org
+
+
+@router.patch("/me", response_model=OrgProfileResponse)
+def update_me(
+    body: OrgProfileUpdate,
+    org: Organisation = Depends(get_current_org),
+    db: Session = Depends(get_db)
+):
+    if body.name is not None:
+        org.name = body.name
+    if body.description is not None:
+        org.description = body.description
+    if body.domain_tags is not None:
+        org.domain_tags = body.domain_tags
+    if body.logo_url is not None:
+        org.logo_url = body.logo_url
+
+    db.commit()
+    db.refresh(org)
     return org

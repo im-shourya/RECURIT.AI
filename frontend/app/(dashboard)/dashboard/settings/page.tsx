@@ -40,14 +40,24 @@ export default function SettingsPage() {
     loadProfile()
   }, [])
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!profile) return
+
     setSaving(true)
-    // Simulate API call for saving
-    setTimeout(() => {
-      setSaving(false)
+    try {
+      const updated = await api.updateMe({
+        name: profile.name,
+        description: profile.description,
+        domain_tags: profile.domain_tags,
+      })
+      setProfile(updated)
       toast.success('Settings saved successfully!')
-    }, 1000)
+    } catch (err: any) {
+      toast.error('Failed to save settings', { description: err.message })
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (loading) {
@@ -107,7 +117,11 @@ export default function SettingsPage() {
                  <Label htmlFor="name" className="flex items-center gap-2">
                    <Building2 className="h-4 w-4" /> Organisation Name
                  </Label>
-                 <Input id="name" defaultValue={profile.name} />
+                 <Input 
+                   id="name" 
+                   value={profile.name} 
+                   onChange={e => setProfile({ ...profile, name: e.target.value })} 
+                 />
                </div>
                <div className="space-y-2">
                  <Label htmlFor="email" className="flex items-center gap-2">
@@ -124,7 +138,8 @@ export default function SettingsPage() {
                </Label>
                <Textarea 
                  id="description" 
-                 defaultValue={profile.description} 
+                 value={profile.description} 
+                 onChange={e => setProfile({ ...profile, description: e.target.value })} 
                  rows={4} 
                  placeholder="Tell candidates about your organisation..."
                />
@@ -143,7 +158,12 @@ export default function SettingsPage() {
                <Label htmlFor="tags" className="flex items-center gap-2">
                  <Tag className="h-4 w-4" /> Domain Tags (comma separated)
                </Label>
-               <Input id="tags" defaultValue={profile.domain_tags.join(', ')} placeholder="Engineering, Marketing, Data Science..." />
+               <Input 
+                 id="tags" 
+                 value={profile.domain_tags.join(', ')} 
+                 onChange={e => setProfile({ ...profile, domain_tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })} 
+                 placeholder="Engineering, Marketing, Data Science..." 
+               />
              </div>
           </CardContent>
         </Card>

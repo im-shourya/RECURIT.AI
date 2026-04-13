@@ -45,6 +45,13 @@ class OrgProfileResponse(BaseModel):
         from_attributes = True
 
 
+class OrgProfileUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=255)
+    description: Optional[str] = None
+    domain_tags: Optional[list[str]] = None
+    logo_url: Optional[str] = None
+
+
 # ══════════════════════════════════════════════
 # DRIVES
 # ══════════════════════════════════════════════

@@ -206,6 +206,13 @@ export const api = {
 
   getMe: () => request<OrgProfile>('/api/auth/me', {}, true),
 
+  updateMe: (data: {
+    name?: string;
+    description?: string;
+    domain_tags?: string[];
+    logo_url?: string;
+  }) => request<OrgProfile>('/api/auth/me', { method: 'PATCH', body: JSON.stringify(data) }, true),
+
   // ── Drives (authed) ──
   createDrive: (data: {
     name: string;
