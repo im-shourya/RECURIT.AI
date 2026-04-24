@@ -28,6 +28,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://recuritai.shouryaparashar.in'),
   title: 'RECRUIT.AI',
   description: 'Streamline your recruitment process with AI-powered interviews, automated screening, and intelligent candidate evaluation for organizations of every scale.',
   keywords: ['recruitment', 'AI', 'interviews', 'hiring', 'organizations', 'automation'],
