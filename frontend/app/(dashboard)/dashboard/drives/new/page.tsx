@@ -26,7 +26,6 @@ import {
   Github,
   Calendar,
   Brain,
-  Sparkles,
   Copy,
   QrCode,
   Download,
@@ -155,9 +154,9 @@ export default function CreateDrivePage() {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
-              className="inline-flex items-center justify-center h-20 w-20 rounded-full gradient-primary mb-6"
+              className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-emerald/10 mb-6"
             >
-              <Check className="h-10 w-10 text-white" />
+              <Check className="h-10 w-10 text-emerald" />
             </motion.div>
 
             <h1 className="text-2xl font-bold mb-2">Drive Created Successfully!</h1>
@@ -340,7 +339,7 @@ export default function CreateDrivePage() {
                   <Spinner className="h-4 w-4" />
                 ) : (
                   <>
-                    <Sparkles className="mr-2 h-4 w-4" />
+                    <Check className="mr-2 h-4 w-4" />
                     Create Drive
                   </>
                 )}

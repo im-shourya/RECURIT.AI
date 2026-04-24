@@ -95,7 +95,8 @@ export default function DashboardPage() {
         change: `${drives.length} total`,
         icon: FolderOpen,
         color: 'text-primary',
-        bgColor: 'bg-primary/10',
+        bgColor: 'bg-primary/8',
+        accent: 'bg-primary',
       },
       {
         title: 'Total Applicants',
@@ -103,7 +104,8 @@ export default function DashboardPage() {
         change: `Across ${drives.length} drives`,
         icon: Users,
         color: 'text-cyan',
-        bgColor: 'bg-cyan/10',
+        bgColor: 'bg-cyan/8',
+        accent: 'bg-cyan',
       },
       {
         title: 'Interviews Completed',
@@ -111,7 +113,8 @@ export default function DashboardPage() {
         change: `${allApplicants.length - interviewed} pending`,
         icon: Brain,
         color: 'text-emerald',
-        bgColor: 'bg-emerald/10',
+        bgColor: 'bg-emerald/8',
+        accent: 'bg-emerald',
       },
       {
         title: 'Avg. Score',
@@ -119,7 +122,8 @@ export default function DashboardPage() {
         change: scores.length > 0 ? `From ${scores.length} interviews` : 'No data yet',
         icon: TrendingUp,
         color: 'text-amber',
-        bgColor: 'bg-amber/10',
+        bgColor: 'bg-amber/8',
+        accent: 'bg-amber',
       },
     ]
   }, [drives, allApplicants])
@@ -145,7 +149,12 @@ export default function DashboardPage() {
       {/* Welcome Section */}
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Welcome back{user?.name ? `, ${user.name}` : ''}!</h1>
+          <h1 className="text-2xl font-bold">
+            {(() => {
+              const hour = new Date().getHours()
+              return hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+            })()}{user?.name ? `, ${user.name}` : ''}!
+          </h1>
           <p className="text-muted-foreground mt-1">
             Here&apos;s what&apos;s happening with your recruitment drives.
           </p>
@@ -161,7 +170,8 @@ export default function DashboardPage() {
       {/* Stats Grid */}
       <motion.div variants={itemVariants} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat, index) => (
-          <Card key={stat.title} className="card-hover border-border/50 bg-card/50">
+          <Card key={stat.title} className="card-hover border-border/50 bg-card/50 overflow-hidden relative">
+            <div className={`absolute top-0 left-0 right-0 h-0.5 ${stat.accent}`} />
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className={`p-2 rounded-lg ${stat.bgColor}`}>

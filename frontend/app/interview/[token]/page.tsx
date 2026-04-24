@@ -17,7 +17,7 @@ import {
   Square,
   AlertCircle,
   CheckCircle,
-  Sparkles,
+
   Clock,
   User,
   Brain,
@@ -261,9 +261,9 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
-                className="inline-flex items-center justify-center h-24 w-24 rounded-full gradient-primary mb-6"
+                className="inline-flex items-center justify-center h-24 w-24 rounded-full bg-emerald/10 mb-6"
               >
-                <CheckCircle className="h-12 w-12 text-white" />
+                <CheckCircle className="h-12 w-12 text-emerald" />
               </motion.div>
 
               <h1 className="text-2xl font-bold mb-2">Interview Complete!</h1>
@@ -480,8 +480,8 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
             <CardContent className="p-4 flex-1 flex flex-col">
               {stage === 'setup' || stage === 'ready' ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
-                  <div className="inline-flex items-center justify-center h-20 w-20 rounded-full gradient-primary mb-6">
-                    <Brain className="h-10 w-10 text-white" />
+                  <div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-primary/10 mb-6">
+                    <Brain className="h-10 w-10 text-primary" />
                   </div>
                   <h2 className="text-2xl font-bold mb-2">AI Interview Room</h2>
                   <p className="text-muted-foreground max-w-md mb-8">
@@ -540,7 +540,7 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
                             : 'bg-primary/10'
                         )}>
                           {message.role === 'ai' ? (
-                            <Sparkles className="h-5 w-5 text-white" />
+                            <Brain className="h-5 w-5 text-white" />
                           ) : (
                             <User className="h-5 w-5 text-primary" />
                           )}

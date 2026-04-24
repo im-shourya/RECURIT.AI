@@ -6,12 +6,6 @@ import { ArrowRight } from 'lucide-react'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useRef } from 'react'
 
-const stats = [
-  { label: 'Organizations', value: '500+' },
-  { label: 'Candidates Evaluated', value: '50K+' },
-  { label: 'Time Saved', value: '80%' },
-]
-
 export function HeroSection() {
   const containerRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({
@@ -21,67 +15,65 @@ export function HeroSection() {
 
   const heroY = useTransform(scrollYProgress, [0, 1], ['0%', '20%'])
   const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0])
-  const mockupScale = useTransform(scrollYProgress, [0, 0.5], [0.92, 1])
-  const mockupRotate = useTransform(scrollYProgress, [0, 0.5], [3, 0])
-  const mockupY = useTransform(scrollYProgress, [0, 0.5], ['0%', '-10%'])
+  const mockupScale = useTransform(scrollYProgress, [0, 0.5], [0.95, 1])
+  const mockupY = useTransform(scrollYProgress, [0, 0.5], ['0%', '-8%'])
 
   return (
     <section
       ref={containerRef}
-      className="relative min-h-screen flex items-center justify-center overflow-hidden pt-[52px]"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden pt-14 noise-overlay"
     >
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
         <motion.div
           style={{ y: heroY, opacity: heroOpacity }}
-          className="text-center"
+          className="text-center md:text-left"
         >
           {/* Pill Badge */}
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="flex justify-center mb-8"
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            className="flex justify-center md:justify-start mb-6"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary border border-border">
-              <span className="w-2 h-2 rounded-full bg-primary pulse-dot" />
-              <span className="text-[13px] font-medium text-muted-foreground">
-                AI-Powered Recruitment
-              </span>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-secondary border border-border text-[13px] font-medium text-muted-foreground">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald" />
+              Now serving 500+ organizations
             </div>
           </motion.div>
 
-          {/* Headline - Playfair Display */}
+          {/* Headline */}
           <motion.h1
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="headline-display text-5xl sm:text-6xl md:text-7xl lg:text-[80px] text-balance"
+            className="headline-display text-5xl sm:text-6xl md:text-7xl lg:text-[76px] max-w-3xl"
           >
-            <span className="block text-foreground">Recruitment,</span>
-            <span className="block gradient-text mt-2">reinvented.</span>
+            <span className="block text-foreground">Hire smarter.</span>
+            <span className="block text-gradient-warm mt-1">Interview less.</span>
           </motion.h1>
 
-          {/* Subheadline - DM Sans */}
+          {/* Subheadline */}
           <motion.p
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="mx-auto mt-8 max-w-xl text-[21px] text-muted-foreground text-pretty leading-relaxed"
+            initial={{ opacity: 0, filter: 'blur(4px)' }}
+            animate={{ opacity: 1, filter: 'blur(0px)' }}
+            transition={{ duration: 0.9, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="mx-auto md:mx-0 mt-7 max-w-lg text-lg text-muted-foreground text-pretty leading-relaxed body-large"
           >
-            Transform how your organization recruits with intelligent AI interviews,
-            automated screening, and data-driven candidate evaluation.
+            AI handles the screening and interviews so your team can focus 
+            on the candidates who actually matter. Five minutes per candidate, 
+            not five hours.
           </motion.p>
 
           {/* CTA Buttons */}
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
+            transition={{ duration: 0.7, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-9 flex flex-col sm:flex-row items-center md:items-start gap-3"
           >
             <Button
               asChild
-              className="h-12 px-8 text-base font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-full transition-all duration-200"
+              className="h-12 px-8 text-[15px] font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-full transition-all duration-200"
             >
               <Link href="/auth/register">
                 Start Hiring Free
@@ -90,7 +82,7 @@ export function HeroSection() {
             <Button
               asChild
               variant="ghost"
-              className="h-12 px-6 text-base font-medium text-muted-foreground hover:text-foreground group"
+              className="h-12 px-5 text-[15px] font-medium text-muted-foreground hover:text-foreground group"
             >
               <Link href="#how-it-works" className="flex items-center gap-2">
                 See How It Works
@@ -100,70 +92,48 @@ export function HeroSection() {
           </motion.div>
         </motion.div>
 
-        {/* Dashboard Mockup with Apple-style scale effect */}
+        {/* Dashboard Preview — Clean floating cards, no browser chrome */}
         <motion.div
-          initial={{ opacity: 0, y: 60 }}
+          initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 1, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
           style={{
             scale: mockupScale,
-            rotateX: mockupRotate,
             y: mockupY,
           }}
-          className="mt-20 relative perspective-1000"
+          className="mt-16 lg:mt-20 relative"
         >
           <div className="relative mx-auto max-w-5xl">
-            {/* Dashboard Preview */}
-            <div className="relative rounded-xl border border-border bg-card shadow-whisper overflow-hidden">
-              {/* Browser Chrome */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-secondary/50">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-destructive/60" />
-                  <div className="w-3 h-3 rounded-full bg-warning/60" />
-                  <div className="w-3 h-3 rounded-full bg-success/60" />
-                </div>
-                <div className="flex-1 flex justify-center">
-                  <div className="px-4 py-1 rounded-md bg-background text-xs text-muted-foreground font-mono">
-                    recruit.ai/dashboard
-                  </div>
-                </div>
-              </div>
-
-              {/* Dashboard Content */}
-              <div className="p-6 space-y-6 bg-background">
+            {/* Floating Stats Cards */}
+            <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-sm shadow-whisper overflow-hidden">
+              <div className="p-6 sm:p-8 space-y-6 bg-background/60">
                 {/* Stats Row */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                   {[
-                    { label: 'Active Drives', value: '12', change: '+3' },
-                    { label: 'Total Applicants', value: '847', change: '+24' },
-                    { label: 'Interviews Done', value: '234', change: '+12' },
-                    { label: 'Avg Score', value: '78%', change: '+5%' },
+                    { label: 'Active Drives', value: '12', change: '+3 this week', accent: 'bg-primary' },
+                    { label: 'Total Applicants', value: '847', change: '+24 today', accent: 'bg-cyan' },
+                    { label: 'Interviews Done', value: '234', change: '12 pending', accent: 'bg-emerald' },
+                    { label: 'Avg Score', value: '78%', change: '↑ 5% from last month', accent: 'bg-amber' },
                   ].map((item, i) => (
                     <motion.div
                       key={item.label}
-                      initial={{ opacity: 0, y: 20 }}
+                      initial={{ opacity: 0, y: 16 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
-                      transition={{ delay: 0.6 + i * 0.1, duration: 0.5 }}
-                      className="p-4 rounded-lg border border-border bg-card shadow-whisper"
+                      transition={{ delay: 0.7 + i * 0.08, duration: 0.5 }}
+                      className="relative p-4 rounded-xl border border-border bg-card shadow-whisper overflow-hidden"
                     >
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 rounded-lg bg-primary-subtle flex items-center justify-center">
-                          <div className="w-3 h-3 rounded-full bg-primary" />
-                        </div>
-                      </div>
-                      <div className="text-xs text-muted-foreground mb-1">{item.label}</div>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-bold text-foreground">{item.value}</span>
-                        <span className="text-xs font-medium text-success">{item.change}</span>
-                      </div>
+                      <div className={`absolute top-0 left-0 right-0 h-0.5 ${item.accent}`} />
+                      <div className="text-xs text-muted-foreground mb-2">{item.label}</div>
+                      <div className="text-2xl font-bold text-foreground tracking-tight">{item.value}</div>
+                      <div className="text-[11px] text-muted-foreground mt-1">{item.change}</div>
                     </motion.div>
                   ))}
                 </div>
 
                 {/* Table Preview */}
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <div className="px-4 py-3 border-b border-border bg-secondary/30">
+                <div className="rounded-xl border border-border overflow-hidden">
+                  <div className="px-5 py-3 border-b border-border bg-secondary/40">
                     <h3 className="font-semibold text-sm text-foreground">Recent Applicants</h3>
                   </div>
                   <div className="divide-y divide-border">
@@ -177,8 +147,8 @@ export function HeroSection() {
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
-                        transition={{ delay: 0.8 + i * 0.1 }}
-                        className="px-4 py-3 flex items-center justify-between hover:bg-secondary/20 transition-colors"
+                        transition={{ delay: 0.9 + i * 0.08 }}
+                        className="px-5 py-3 flex items-center justify-between hover:bg-secondary/20 transition-colors"
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-primary-subtle flex items-center justify-center">
@@ -204,7 +174,7 @@ export function HeroSection() {
                             {applicant.status}
                           </span>
                           {applicant.score && (
-                            <div className="text-sm font-medium text-success">{applicant.score}%</div>
+                            <div className="text-sm font-semibold text-emerald">{applicant.score}%</div>
                           )}
                         </div>
                       </motion.div>

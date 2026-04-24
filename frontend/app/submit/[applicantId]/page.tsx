@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
 import {
-  Sparkles,
+  Brain,
   Upload,
   File,
   Github,
@@ -141,7 +141,7 @@ export default function SubmitPage({ params }: { params: Promise<{ applicantId: 
 
               <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 mb-6">
                 <div className="flex items-center justify-center gap-2 text-primary">
-                  <Sparkles className="h-5 w-5" />
+                  <Brain className="h-5 w-5" />
                   <span className="font-medium">AI Interview Link Coming Soon</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
@@ -164,12 +164,9 @@ export default function SubmitPage({ params }: { params: Promise<{ applicantId: 
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary">
-              <Sparkles className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-lg font-bold tracking-tight">
-              RECRUIT<span className="gradient-text">.AI</span>
+          <Link href="/" className="flex items-center gap-0.5">
+            <span className="text-lg font-extrabold tracking-tight">
+              RECRUIT<span className="text-primary">.</span>AI
             </span>
           </Link>
           <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">

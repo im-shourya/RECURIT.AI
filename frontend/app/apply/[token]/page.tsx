@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  Sparkles,
+
   User,
   Mail,
   Hash,
@@ -224,12 +224,9 @@ export default function ApplyPage({ params }: { params: Promise<{ token: string 
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary">
-              <Sparkles className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-lg font-bold tracking-tight">
-              RECRUIT<span className="gradient-text">.AI</span>
+          <Link href="/" className="flex items-center gap-0.5">
+            <span className="text-lg font-extrabold tracking-tight">
+              RECRUIT<span className="text-primary">.</span>AI
             </span>
           </Link>
           <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">

@@ -29,17 +29,19 @@ const socialLinks = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-background">
+    <footer className="relative bg-background">
+      {/* Gradient top edge instead of hard border */}
+      <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 gap-8 py-12 md:grid-cols-4 lg:py-16">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-0.5">
-              <span className="text-base font-bold tracking-tight text-foreground">
+            <Link href="/" className="flex items-center gap-0.5 group">
+              <span className="text-base font-extrabold tracking-tight text-foreground">
                 RECRUIT
               </span>
-              <span className="text-primary pulse-dot">.</span>
-              <span className="text-base font-bold tracking-tight text-foreground">
+              <span className="text-primary transition-transform group-hover:scale-125">.</span>
+              <span className="text-base font-extrabold tracking-tight text-foreground">
                 AI
               </span>
             </Link>
@@ -115,9 +117,12 @@ export function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-border py-6">
+        <div className="border-t border-border/50 py-6">
           <p className="text-center text-sm text-muted-foreground">
             &copy; {new Date().getFullYear()} RECRUIT.AI. All rights reserved.
+          </p>
+          <p className="text-center text-xs text-muted-foreground/50 mt-1">
+            Built for teams who value their time.
           </p>
         </div>
       </div>

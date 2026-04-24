@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import {
-  Sparkles,
   LayoutDashboard,
   Plus,
   FolderOpen,
@@ -62,18 +61,16 @@ export default function DashboardLayout({
 
   const NavContent = ({ mobile = false }: { mobile?: boolean }) => (
     <div className="flex flex-col h-full">
-      {/* Logo */}
       <div className={cn(
-        "flex items-center gap-3 px-4 h-16 border-b border-border/50",
-        isCollapsed && !mobile && "justify-center px-2"
+        "flex items-center px-4 h-16 border-b border-border/50",
+        isCollapsed && !mobile && "justify-center px-3"
       )}>
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary flex-shrink-0">
-          <Sparkles className="h-5 w-5 text-white" />
-        </div>
-        {(!isCollapsed || mobile) && (
-          <span className="text-lg font-bold tracking-tight">
-            RECRUIT<span className="gradient-text">.AI</span>
+        {(!isCollapsed || mobile) ? (
+          <span className="text-lg font-extrabold tracking-tight">
+            RECRUIT<span className="text-primary">.</span>AI
           </span>
+        ) : (
+          <span className="text-lg font-extrabold text-primary">R</span>
         )}
       </div>
 
@@ -89,11 +86,11 @@ export default function DashboardLayout({
               href={item.href}
               onClick={() => mobile && setIsMobileOpen(false)}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all relative",
                 isActive
-                  ? "bg-primary/10 text-primary"
+                  ? "bg-primary/8 text-primary border-l-2 border-primary ml-0"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                isCollapsed && !mobile && "justify-center px-2"
+                isCollapsed && !mobile && "justify-center px-2 border-l-0"
               )}
             >
               <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -155,9 +152,9 @@ export default function DashboardLayout({
               <NavContent mobile />
             </SheetContent>
           </Sheet>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary">
-            <Sparkles className="h-4 w-4 text-white" />
-          </div>
+          <span className="text-base font-extrabold tracking-tight">
+            RECRUIT<span className="text-primary">.</span>AI
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -180,10 +177,11 @@ export default function DashboardLayout({
         <header className="hidden lg:flex items-center justify-between h-16 px-8 border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-30">
           <div>
             <h1 className="text-lg font-semibold">
-              {navItems.find(item => 
-                pathname === item.href || 
-                (item.href !== '/dashboard' && pathname.startsWith(item.href))
-              )?.label || 'Dashboard'}
+              {(() => {
+                const hour = new Date().getHours()
+                const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+                return `${greeting}${user?.name ? `, ${user.name}` : ''}`
+              })()}
             </h1>
           </div>
           <div className="flex items-center gap-4">

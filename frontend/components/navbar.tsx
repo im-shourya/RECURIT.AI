@@ -31,7 +31,7 @@ export function Navbar() {
   return (
     <header
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 h-[52px] transition-all duration-300',
+        'fixed top-0 left-0 right-0 z-50 h-14 transition-all duration-300',
         isScrolled
           ? 'glass-nav border-b border-border'
           : 'bg-transparent'
@@ -40,18 +40,18 @@ export function Navbar() {
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full">
         <div className="flex h-full items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-0.5">
-            <span className="text-base font-bold tracking-tight text-foreground">
+          <Link href="/" className="flex items-center gap-0.5 group">
+            <span className="text-base font-extrabold tracking-tight text-foreground transition-colors">
               RECRUIT
             </span>
-            <span className="text-primary pulse-dot">.</span>
-            <span className="text-base font-bold tracking-tight text-foreground">
+            <span className="text-primary transition-transform group-hover:scale-125">.</span>
+            <span className="text-base font-extrabold tracking-tight text-foreground transition-colors">
               AI
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => (
               <Link
                 key={link.href}

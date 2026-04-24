@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Sparkles } from 'lucide-react'
+
 import { motion } from 'framer-motion'
 
 export default function AuthLayout({
@@ -15,21 +15,17 @@ export default function AuthLayout({
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-card">
         {/* Animated Gradient Mesh */}
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-indigo/20 to-cyan/20 animate-gradient" />
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/30 rounded-full blur-3xl animate-float" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan/30 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
-          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-indigo/30 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }} />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/12 via-indigo/8 to-cyan/6 animate-gradient" />
+          <div className="absolute top-1/3 left-1/4 w-[28rem] h-[28rem] bg-primary/15 rounded-full blur-3xl animate-float" />
+          <div className="absolute bottom-1/3 right-1/4 w-[24rem] h-[24rem] bg-cyan/15 rounded-full blur-3xl animate-float" style={{ animationDelay: '3s' }} />
         </div>
 
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-primary">
-              <Sparkles className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-2xl font-bold tracking-tight">
-              RECRUIT<span className="gradient-text">.AI</span>
+          <Link href="/" className="flex items-center gap-0.5">
+            <span className="text-2xl font-extrabold tracking-tight">
+              RECRUIT<span className="text-primary">.</span>AI
             </span>
           </Link>
 
@@ -40,16 +36,15 @@ export default function AuthLayout({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <blockquote className="text-2xl font-medium leading-relaxed">
-                &ldquo;RECRUIT.AI transformed our organization&apos;s hiring process. We saved 80% of time
-                and found better candidates than ever before.&rdquo;
+              <blockquote className="font-serif text-2xl font-medium leading-relaxed italic">
+                &ldquo;We went from spending 40 hours screening candidates to getting ranked results overnight. It just works.&rdquo;
               </blockquote>
               <div className="mt-6 flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
-                  <span className="text-lg font-semibold text-primary">SK</span>
+                <div className="h-11 w-11 rounded-full bg-primary/15 flex items-center justify-center">
+                  <span className="text-base font-semibold text-primary">SK</span>
                 </div>
                 <div>
-                  <div className="font-semibold">Sneha Kapoor</div>
+                  <div className="font-semibold text-[15px]">Sneha Kapoor</div>
                   <div className="text-sm text-muted-foreground">Head of Recruitment, TechSoc</div>
                 </div>
               </div>
@@ -82,12 +77,9 @@ export default function AuthLayout({
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden mb-8 flex justify-center">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-primary">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-2xl font-bold tracking-tight">
-                RECRUIT<span className="gradient-text">.AI</span>
+            <Link href="/" className="flex items-center gap-0.5">
+              <span className="text-2xl font-extrabold tracking-tight">
+                RECRUIT<span className="text-primary">.</span>AI
               </span>
             </Link>
           </div>
