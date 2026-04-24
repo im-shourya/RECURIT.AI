@@ -68,19 +68,19 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: '/icon.svg',
+        url: '/icon.png',
         media: '(prefers-color-scheme: light)',
       },
       {
-        url: '/icon.svg',
+        url: '/icon.png',
         media: '(prefers-color-scheme: dark)',
       },
       {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
+        url: '/icon.png',
+        type: 'image/png',
       },
     ],
-    apple: '/icon.svg',
+    apple: '/icon.png',
   },
 }
 
@@ -118,7 +118,7 @@ export default function RootLayout({
                   "@type": "Organization",
                   name: "RECRUIT.AI",
                   url: "https://recuritai.shouryaparashar.in",
-                  logo: "https://recuritai.shouryaparashar.in/icon.svg",
+                  logo: "https://recuritai.shouryaparashar.in/icon.png",
                 }),
               }}
             />
