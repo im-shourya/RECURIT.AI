@@ -41,11 +41,11 @@ export default function AuthLayout({
               </blockquote>
               <div className="mt-6 flex items-center gap-4">
                 <div className="h-11 w-11 rounded-full bg-primary/15 flex items-center justify-center">
-                  <span className="text-base font-semibold text-primary">SK</span>
+                  <span className="text-base font-semibold text-primary">SP</span>
                 </div>
                 <div>
-                  <div className="font-semibold text-[15px]">Sneha Kapoor</div>
-                  <div className="text-sm text-muted-foreground">Head of Recruitment, TechSoc</div>
+                  <div className="font-semibold text-[15px]">Shourya Parashar</div>
+                  <div className="text-sm text-muted-foreground">CEO, Sparkles Ltd</div>
                 </div>
               </div>
             </motion.div>

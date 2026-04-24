@@ -117,7 +117,7 @@ export default function RegisterPage() {
                   <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="orgName"
-                    placeholder="e.g., Acme Corp, TechSoc, Design Guild"
+                    placeholder="e.g., Sparkles Ltd"
                     value={formData.orgName}
                     onChange={(e) => setFormData({ ...formData, orgName: e.target.value })}
                     className="pl-10"
@@ -132,7 +132,7 @@ export default function RegisterPage() {
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="adminName"
-                    placeholder="John Doe"
+                    placeholder="Shourya"
                     value={formData.adminName}
                     onChange={(e) => setFormData({ ...formData, adminName: e.target.value })}
                     className="pl-10"

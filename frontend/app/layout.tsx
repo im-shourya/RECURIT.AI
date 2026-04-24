@@ -28,18 +28,18 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'RECRUIT.AI - AI-Powered Recruitment Platform',
+  title: 'RECRUIT.AI',
   description: 'Streamline your recruitment process with AI-powered interviews, automated screening, and intelligent candidate evaluation for organizations of every scale.',
   keywords: ['recruitment', 'AI', 'interviews', 'hiring', 'organizations', 'automation'],
   authors: [{ name: 'RECRUIT.AI' }],
   icons: {
     icon: [
       {
-        url: '/icon-light-32x32.png',
+        url: '/icon.svg',
         media: '(prefers-color-scheme: light)',
       },
       {
-        url: '/icon-dark-32x32.png',
+        url: '/icon.svg',
         media: '(prefers-color-scheme: dark)',
       },
       {
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
         type: 'image/svg+xml',
       },
     ],
-    apple: '/apple-icon.png',
+    apple: '/icon.svg',
   },
 }
 
