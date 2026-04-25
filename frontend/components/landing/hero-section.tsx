@@ -138,9 +138,9 @@ export function HeroSection() {
                   </div>
                   <div className="divide-y divide-border">
                     {[
-                      { name: 'Sarah Chen', role: 'Frontend Developer', status: 'Interviewed', score: 85 },
-                      { name: 'Alex Kumar', role: 'Backend Developer', status: 'Submitted', score: null },
-                      { name: 'Maya Patel', role: 'UI/UX Designer', status: 'Applied', score: null },
+                      { name: 'Virat', role: 'Frontend Developer', status: 'Interviewed', score: 85 },
+                      { name: 'Elon Musk', role: 'Backend Developer', status: 'Submitted', score: null },
+                      { name: 'Bill Gates', role: 'UI/UX Designer', status: 'Applied', score: null },
                     ].map((applicant, i) => (
                       <motion.div
                         key={applicant.name}
