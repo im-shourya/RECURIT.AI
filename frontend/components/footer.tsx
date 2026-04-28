@@ -23,7 +23,7 @@ const footerLinks = {
 
 const socialLinks = [
   { icon: Github, href: 'https://github.com/im-shourya', label: 'GitHub' },
-  { icon: Twitter, href: 'https://twitter.com/shouryaparashar', label: 'Twitter' },
+  { icon: Twitter, href: 'https://x.com/im_SParashar', label: 'Twitter' },
   { icon: Linkedin, href: 'https://www.linkedin.com/in/im-shourya/', label: 'LinkedIn' },
 ]
 
