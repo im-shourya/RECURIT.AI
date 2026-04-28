@@ -24,7 +24,7 @@ const footerLinks = {
 const socialLinks = [
   { icon: Github, href: 'https://github.com/im-shourya', label: 'GitHub' },
   { icon: Twitter, href: 'https://twitter.com/shouryaparashar', label: 'Twitter' },
-  { icon: Linkedin, href: 'https://linkedin.com/im-shourya', label: 'LinkedIn' },
+  { icon: Linkedin, href: 'https://www.linkedin.com/in/im-shourya/', label: 'LinkedIn' },
 ]
 
 export function Footer() {
@@ -122,7 +122,7 @@ export function Footer() {
             &copy; {new Date().getFullYear()} RECRUIT.AI. All rights reserved.
           </p>
           <p className="text-center text-xs text-muted-foreground/50 mt-1">
-            Built for teams who value their time.
+            Built for teams who value their time. By <a href="https://shouryaparashar.in" target="_blank" rel="me noreferrer" className="text-foreground hover:underline hover:font-bold ">Shourya Parashar</a>.
           </p>
         </div>
       </div>
