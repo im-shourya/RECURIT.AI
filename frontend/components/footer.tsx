@@ -123,7 +123,7 @@ export function Footer() {
             &copy; {new Date().getFullYear()} RECRUIT.AI. All rights reserved.
           </p>
           <p className="text-center text-xs text-muted-foreground/50 mt-1">
-            Built for teams who value their time. By <a href="https://shouryaparashar.in" target="_blank" rel="me noreferrer" className="text-foreground hover:underline hover:font-bold ">Shourya Parashar</a>.
+            Built for teams who value their time. With love by <a href="https://shouryaparashar.in" target="_blank" rel="me noreferrer" className="text-foreground hover:underline hover:font-bold ">Shourya Parashar</a>.
           </p>
         </div>
       </div>
