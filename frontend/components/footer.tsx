@@ -6,13 +6,6 @@ const footerLinks = {
     { label: 'Features', href: '/#features' },
     { label: 'How it Works', href: '/#how-it-works' },
     { label: 'For Organizations', href: '/#trusted' },
-    { label: 'Changelog', href: '/changelog' },
-  ],
-  company: [
-    { label: 'About', href: '/about' },
-    { label: 'Blog', href: '/blog' },
-    { label: 'Careers', href: '/careers' },
-    { label: 'Contact', href: '/contact' },
   ],
   legal: [
     { label: 'Privacy Policy', href: '/privacy' },
@@ -34,7 +27,7 @@ export function Footer() {
       {/* Gradient top edge instead of hard border */}
       <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 gap-8 py-12 md:grid-cols-4 lg:py-16">
+        <div className="grid grid-cols-2 gap-8 py-12 md:grid-cols-3 lg:py-16">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-0.5 group">
@@ -70,23 +63,6 @@ export function Footer() {
             <h3 className="text-sm font-semibold text-foreground">Product</h3>
             <ul className="mt-4 space-y-3">
               {footerLinks.product.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Company Links */}
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">Company</h3>
-            <ul className="mt-4 space-y-3">
-              {footerLinks.company.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
