@@ -39,7 +39,7 @@ const ROUNDS = [
 
 export default function InterviewPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params)
-  const [stage, setStage] = useState<'setup' | 'ready' | 'interview' | 'processing' | 'complete'>('setup')
+  const [stage, setStage] = useState<'setup' | 'ready' | 'interview' | 'processing' | 'complete' | 'error'>('setup')
   const [currentRound, setCurrentRound] = useState(0)
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [timeRemaining, setTimeRemaining] = useState(TOTAL_TIME)
@@ -72,6 +72,8 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
         setStage('ready')
       } catch (error) {
         console.error('Error accessing camera:', error)
+        toast.error('Camera and microphone access is required for the interview.')
+        setStage('error')
       }
     }
 
@@ -478,7 +480,7 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
         <div className="lg:w-3/5 flex flex-col">
           <Card className="border-border/50 bg-card/50 flex-1 flex flex-col">
             <CardContent className="p-4 flex-1 flex flex-col">
-              {stage === 'setup' || stage === 'ready' ? (
+              {stage === 'setup' || stage === 'ready' || stage === 'error' ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
                   <div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-primary/10 mb-6">
                     <Brain className="h-10 w-10 text-primary" />
@@ -487,6 +489,8 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
                   <p className="text-muted-foreground max-w-md mb-8">
                     {stage === 'setup'
                       ? 'Setting up your camera and microphone...'
+                      : stage === 'error'
+                      ? 'Camera and microphone access denied.'
                       : 'Your camera is ready. When you start, you will have 5 minutes to complete 3 interview rounds.'}
                   </p>
                   
@@ -516,6 +520,20 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
                   
                   {stage === 'setup' && (
                     <Spinner className="h-6 w-6 text-primary" />
+                  )}
+
+                  {stage === 'error' && (
+                    <div className="space-y-4">
+                      <p className="text-rose-500 text-sm">
+                        Please allow camera and microphone access in your browser settings to continue.
+                      </p>
+                      <Button
+                        onClick={() => setStage('setup')}
+                        variant="outline"
+                      >
+                        Try Again
+                      </Button>
+                    </div>
                   )}
                 </div>
               ) : (
