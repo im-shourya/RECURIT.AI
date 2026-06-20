@@ -57,20 +57,36 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop())
+      }
+    }
+  }, [])
+
   // Setup camera
   useEffect(() => {
+    let active = true
+
     const setupCamera = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true,
         })
+        if (!active) {
+          stream.getTracks().forEach((track) => track.stop())
+          return
+        }
         streamRef.current = stream
         if (videoRef.current) {
           videoRef.current.srcObject = stream
         }
         setStage('ready')
       } catch (error) {
+        if (!active) return
         console.error('Error accessing camera:', error)
         toast.error('Camera and microphone access is required for the interview.')
         setStage('error')
@@ -82,9 +98,7 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
     }
 
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop())
-      }
+      active = false
     }
   }, [stage])
 
