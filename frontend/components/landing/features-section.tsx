@@ -90,7 +90,7 @@ export function FeaturesSection() {
                 delay: index * 0.06,
                 ease: [0.16, 1, 0.3, 1] 
               }}
-              className={`group relative rounded-xl border border-border bg-card p-7 shadow-whisper shadow-whisper-hover transition-all duration-300 border-l-[3px] ${feature.accent}`}
+              className={`group relative rounded-xl border border-border bg-card p-7 shadow-whisper shadow-whisper-hover transition-all duration-300`}
             >
               <div className={`inline-flex rounded-lg p-2.5 ${feature.iconBg} transition-transform duration-300 group-hover:scale-110`}>
                 <feature.icon className="h-5 w-5 text-foreground/70" />
