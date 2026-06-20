@@ -88,9 +88,9 @@ export default function DashboardLayout({
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all relative",
                 isActive
-                  ? "bg-primary/8 text-primary border-l-2 border-primary ml-0"
+                  ? "bg-primary/8 text-primary"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                isCollapsed && !mobile && "justify-center px-2 border-l-0"
+                isCollapsed && !mobile && "justify-center px-2"
               )}
             >
               <item.icon className="h-5 w-5 flex-shrink-0" />
