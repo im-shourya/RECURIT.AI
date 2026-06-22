@@ -100,6 +100,7 @@ export default function DashboardLayout({
         })}
       </nav>
 
+
       {/* Collapse Toggle - Desktop Only */}
       {!mobile && (
         <div className="p-2 border-t border-border/50">
