@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { 
   Brain, 
   Video, 
@@ -43,15 +43,19 @@ const features = [
   },
 ]
 
+const appleEase = [0.25, 0.1, 0.25, 1] as const
+
 export function FeaturesSection() {
+  const prefersReducedMotion = useReducedMotion()
+
   return (
-    <section id="features" className="py-24 lg:py-32 bg-secondary/30 border-y border-border">
+    <section id="features" className="py-24 lg:py-32 border-y border-border/40 overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-10%' }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          viewport={{ once: true, margin: '-15%' }}
+          transition={{ duration: 0.7, ease: appleEase }}
           className="mb-16 md:mb-24 text-center max-w-3xl mx-auto"
         >
           <h2 className="section-title text-4xl mb-6">
@@ -66,17 +70,18 @@ export function FeaturesSection() {
           {features.map((feature, index) => (
             <motion.div
               key={feature.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-10%' }}
-              transition={{ 
-                duration: 0.6, 
-                delay: index * 0.05,
-                ease: [0.16, 1, 0.3, 1] 
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 32, scale: 0.97 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true, margin: '-8%' }}
+              transition={{
+                duration: 0.6,
+                delay: index * 0.08,
+                ease: appleEase
               }}
-              className="group solid-panel p-8 transition-colors hover:border-primary/40"
+              whileHover={prefersReducedMotion ? {} : { y: -4, transition: { duration: 0.25 } }}
+              className="group p-8 rounded-xl border border-border/40 transition-colors duration-300 hover:border-primary/30 bg-background"
             >
-              <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform group-hover:scale-105">
+              <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/8 text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-105">
                 <feature.icon className="h-6 w-6" />
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-3">
