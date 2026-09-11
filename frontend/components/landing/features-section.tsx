@@ -15,90 +15,74 @@ const features = [
     icon: Brain,
     title: 'AI-Powered Interviews',
     description: 'Structured interviews that adapt to each candidate. Relevant questions based on their profile, projects, and experience.',
-    accent: 'border-l-primary',
-    iconBg: 'bg-primary/8',
   },
   {
     icon: Github,
     title: 'GitHub Integration',
     description: 'Analyze candidate repositories automatically — code quality, tech stack, commit patterns, and project complexity.',
-    accent: 'border-l-foreground',
-    iconBg: 'bg-foreground/8',
   },
   {
     icon: Video,
     title: 'Video Analysis',
-    description: 'Real-time integrity checks using computer vision. Face and gaze tracking catch malpractice so you don\'t have to.',
-    accent: 'border-l-cyan',
-    iconBg: 'bg-cyan/8',
+    description: 'Real-time integrity checks using computer vision. Face and gaze tracking catch malpractice securely and privately.',
   },
   {
     icon: BarChart3,
     title: 'Smart Scoring',
-    description: 'BERT-powered answer evaluation across communication, technical depth, and domain knowledge. No gut feelings needed.',
-    accent: 'border-l-emerald',
-    iconBg: 'bg-emerald/8',
+    description: 'Advanced NLP evaluation across communication, technical depth, and domain knowledge. Deep, explainable metrics.',
   },
   {
     icon: QrCode,
     title: 'Instant Drive Links',
-    description: 'Generate shareable links and QR codes for your recruitment drives. Candidates apply in under 30 seconds.',
-    accent: 'border-l-amber',
-    iconBg: 'bg-amber/8',
+    description: 'Generate shareable links and QR codes for your recruitment drives. Candidates can apply in under 30 seconds.',
   },
   {
     icon: Mail,
-    title: 'Automated Emails',
-    description: 'Confirmation emails, task assignments, interview invitations, and results — all triggered automatically.',
-    accent: 'border-l-rose',
-    iconBg: 'bg-rose/8',
+    title: 'Automated Workflows',
+    description: 'Confirmation emails, task assignments, interview invitations, and results — all triggered automatically upon phase completion.',
   },
 ]
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="py-24 lg:py-28 bg-secondary/50">
+    <section id="features" className="py-24 lg:py-32 bg-secondary/30 border-y border-border">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Section Header — Left-aligned on desktop */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-15%' }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="section-offset mb-16"
+          viewport={{ once: true, margin: '-10%' }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="mb-16 md:mb-24 text-center max-w-3xl mx-auto"
         >
-          <h2 className="headline-display text-3xl sm:text-4xl lg:text-[44px]">
-            Everything you need for{' '}
-            <span className="text-gradient-warm">modern recruitment</span>
+          <h2 className="section-title text-4xl mb-6">
+            Everything you need for modern recruitment.
           </h2>
-          <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-xl">
-            From first application to final decision — one platform, 
-            no spreadsheets, no guesswork.
+          <p className="body-text text-lg">
+            From first application to final decision — one unified platform without the spreadsheets, friction, or guesswork.
           </p>
         </motion.div>
 
-        {/* Feature Grid — Varied layout: 2 large + 4 smaller */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, index) => (
             <motion.div
               key={feature.title}
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-10%' }}
               transition={{ 
-                duration: 0.7, 
-                delay: index * 0.06,
+                duration: 0.6, 
+                delay: index * 0.05,
                 ease: [0.16, 1, 0.3, 1] 
               }}
-              className={`group relative rounded-xl border border-border bg-card p-7 shadow-whisper shadow-whisper-hover transition-all duration-300`}
+              className="group solid-panel p-8 transition-colors hover:border-primary/40"
             >
-              <div className={`inline-flex rounded-lg p-2.5 ${feature.iconBg} transition-transform duration-300 group-hover:scale-110`}>
-                <feature.icon className="h-5 w-5 text-foreground/70" />
+              <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform group-hover:scale-105">
+                <feature.icon className="h-6 w-6" />
               </div>
-              <h3 className="mt-5 text-[15px] font-semibold text-foreground">
+              <h3 className="text-xl font-semibold text-foreground mb-3">
                 {feature.title}
               </h3>
-              <p className="mt-2.5 text-sm text-muted-foreground leading-relaxed">
+              <p className="body-text text-[15px]">
                 {feature.description}
               </p>
             </motion.div>
