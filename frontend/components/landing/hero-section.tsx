@@ -8,8 +8,8 @@ export function HeroSection() {
   const prefersReducedMotion = useReducedMotion()
 
   return (
-    <section className="relative min-h-[90vh] flex flex-col justify-center items-center overflow-hidden bg-background">
-      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center mt-20">
+    <section className="relative h-screen flex flex-col justify-center items-center overflow-hidden bg-background">
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         
         {/* Main Title */}
         <motion.div
