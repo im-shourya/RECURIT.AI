@@ -155,17 +155,34 @@
 }
 
 @layer utilities {
-  /* Typography Hierarchy presets for clean, professional data density */
-  .display-title {
-    @apply text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-foreground leading-[1.1];
+  /* Typography Hierarchy for Apple-style cinematic storytelling */
+  .hero-title {
+    font-size: clamp(4rem, 8vw, 8rem);
+    line-height: 0.95;
+    letter-spacing: -0.055em;
+    font-weight: 600;
   }
   
   .section-title {
-    @apply text-2xl sm:text-3xl font-semibold tracking-tight text-foreground;
+    font-size: clamp(3rem, 6vw, 6rem);
+    line-height: 0.98;
+    letter-spacing: -0.05em;
+    font-weight: 600;
   }
 
+  .body-large {
+    font-size: clamp(1.25rem, 2vw, 2rem);
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+    font-weight: 400;
+  }
+  
   .body-text {
     @apply text-base text-muted-foreground leading-relaxed;
+  }
+  
+  .eyebrow {
+    @apply text-sm uppercase tracking-[0.2em] font-semibold text-primary;
   }
   
   .data-value {

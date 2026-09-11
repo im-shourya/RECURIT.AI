@@ -21,14 +21,14 @@ export function TrustedBySection() {
   const prefersReducedMotion = useReducedMotion()
 
   return (
-    <section id="trusted" className="py-12 border-y border-border/30 overflow-hidden">
+    <section id="trusted" className="py-24 overflow-hidden bg-background">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.p
           initial={prefersReducedMotion ? {} : { opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-8"
+          className="text-center eyebrow opacity-50 mb-12"
         >
           Trusted by organizations worldwide
         </motion.p>
