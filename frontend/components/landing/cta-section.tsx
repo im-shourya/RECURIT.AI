@@ -7,43 +7,28 @@ import { ArrowRight } from 'lucide-react'
 
 export function CTASection() {
   return (
-    <section className="py-20 lg:py-28 relative">
-      {/* Subtle dot pattern background */}
-      <div className="absolute inset-0 dot-pattern" />
-      
+    <section className="py-24 lg:py-32 relative bg-secondary/30">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-15%' }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className="text-center"
+          viewport={{ once: true, margin: '-10%' }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="text-center solid-panel max-w-4xl mx-auto p-12 lg:p-20"
         >
-          <h2 className="headline-display text-4xl sm:text-5xl lg:text-[56px] max-w-2xl mx-auto text-balance">
-            Your next great team{' '}
-            <span className="text-gradient-warm">starts here</span>.
+          <h2 className="section-title text-4xl sm:text-5xl max-w-2xl mx-auto text-balance mb-6">
+            Your next great team starts here.
           </h2>
 
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-5 text-lg text-muted-foreground max-w-md mx-auto"
-          >
+          <p className="body-text text-lg max-w-md mx-auto mb-10">
             Set up your first recruitment drive in under 5 minutes. No credit card required.
-          </motion.p>
+          </p>
 
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.24, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3"
-          >
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button
               asChild
-              className="h-13 px-8 text-[15px] font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-full transition-all duration-200"
+              size="lg"
+              className="w-full sm:w-auto h-14 px-8 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all rounded-lg"
             >
               <Link href="/auth/register">
                 Get Started Free
@@ -52,14 +37,15 @@ export function CTASection() {
             </Button>
             <Button
               asChild
-              variant="ghost"
-              className="h-13 px-5 text-[15px] font-medium text-muted-foreground hover:text-foreground"
+              variant="outline"
+              size="lg"
+              className="w-full sm:w-auto h-14 px-8 text-base font-medium transition-all rounded-lg hover:bg-secondary"
             >
               <Link href="#how-it-works">
                 See a Demo
               </Link>
             </Button>
-          </motion.div>
+          </div>
         </motion.div>
       </div>
     </section>

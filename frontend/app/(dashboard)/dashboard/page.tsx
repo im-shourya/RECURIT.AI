@@ -37,13 +37,13 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
+      staggerChildren: 0.05,
     },
   },
 }
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 15 },
   visible: { opacity: 1, y: 0 },
 }
 
@@ -94,36 +94,24 @@ export default function DashboardPage() {
         value: activeDrives,
         change: `${drives.length} total`,
         icon: FolderOpen,
-        color: 'text-primary',
-        bgColor: 'bg-primary/8',
-        accent: 'bg-primary',
       },
       {
         title: 'Total Applicants',
         value: totalApplicants,
         change: `Across ${drives.length} drives`,
         icon: Users,
-        color: 'text-cyan',
-        bgColor: 'bg-cyan/8',
-        accent: 'bg-cyan',
       },
       {
         title: 'Interviews Completed',
         value: interviewed,
         change: `${allApplicants.length - interviewed} pending`,
         icon: Brain,
-        color: 'text-emerald',
-        bgColor: 'bg-emerald/8',
-        accent: 'bg-emerald',
       },
       {
         title: 'Avg. Score',
         value: avgScore ? `${avgScore}%` : '—',
         change: scores.length > 0 ? `From ${scores.length} interviews` : 'No data yet',
         icon: TrendingUp,
-        color: 'text-amber',
-        bgColor: 'bg-amber/8',
-        accent: 'bg-amber',
       },
     ]
   }, [drives, allApplicants])
@@ -133,8 +121,8 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner className="h-8 w-8 text-primary" />
+      <div className="flex items-center justify-center py-32">
+        <Spinner className="h-6 w-6 text-primary" />
       </div>
     )
   }
@@ -147,209 +135,152 @@ export default function DashboardPage() {
       className="space-y-8"
     >
       {/* Welcome Section */}
-      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">
-            {(() => {
-              const hour = new Date().getHours()
-              return hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-            })()}{user?.name ? `, ${user.name}` : ''}!
-          </h1>
+          <h2 className="section-title">Overview</h2>
           <p className="text-muted-foreground mt-1">
-            Here&apos;s what&apos;s happening with your recruitment drives.
+            Metrics and recent activity across all your recruitment drives.
           </p>
         </div>
-        <Button asChild className="gradient-primary border-0 hover:opacity-90">
+        <Button asChild size="default" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shrink-0">
           <Link href="/dashboard/drives/new">
             <Plus className="mr-2 h-4 w-4" />
-            Create Drive
+            New Drive
           </Link>
         </Button>
       </motion.div>
 
       {/* Stats Grid */}
       <motion.div variants={itemVariants} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, index) => (
-          <Card key={stat.title} className="card-hover border-border/50 bg-card/50 overflow-hidden relative">
-            <div className={`absolute top-0 left-0 right-0 h-0.5 ${stat.accent}`} />
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                </div>
-                <span className="text-xs text-muted-foreground">{stat.change}</span>
-              </div>
-              <div className="mt-4">
-                <div className="text-3xl font-bold">{stat.value}</div>
-                <div className="text-sm text-muted-foreground mt-1">{stat.title}</div>
-              </div>
-            </CardContent>
-          </Card>
+        {stats.map((stat) => (
+          <div key={stat.title} className="solid-panel p-5 flex flex-col justify-between">
+            <div className="flex items-start justify-between mb-4">
+              <span className="text-sm font-medium text-muted-foreground">{stat.title}</span>
+              <stat.icon className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div>
+              <div className="text-3xl font-bold font-mono tracking-tight text-foreground">{stat.value}</div>
+              <div className="text-xs text-muted-foreground mt-2">{stat.change}</div>
+            </div>
+          </div>
         ))}
       </motion.div>
 
-      {/* Recent Drives & Applicants */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Recent Drives */}
-        <motion.div variants={itemVariants}>
-          <Card className="border-border/50 bg-card/50">
-            <CardHeader className="flex flex-row items-center justify-between">
+      {/* Main Content Area */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Recent Drives (Takes up 2 columns) */}
+        <motion.div variants={itemVariants} className="lg:col-span-2">
+          <div className="solid-panel h-full">
+            <div className="p-6 border-b border-border flex items-center justify-between bg-secondary/20">
               <div>
-                <CardTitle className="text-lg">Active Drives</CardTitle>
-                <CardDescription>Your current recruitment drives</CardDescription>
+                <h3 className="font-semibold text-base text-foreground">Active Drives</h3>
+                <p className="text-sm text-muted-foreground mt-1">Your most recent recruitment pipelines</p>
               </div>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/dashboard/drives">
-                  View all
-                  <ArrowRight className="ml-1 h-4 w-4" />
-                </Link>
+              <Button variant="outline" size="sm" asChild className="h-8">
+                <Link href="/dashboard/drives">View all</Link>
               </Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {recentDrives.map((drive) => (
-                <div
-                  key={drive.id}
-                  className="flex items-center justify-between p-4 rounded-lg border border-border/50 hover:border-primary/30 transition-colors"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium truncate">{drive.name}</h3>
-                      <Badge
-                        variant="secondary"
-                        className={
-                          drive.status === 'active'
-                            ? 'bg-emerald/10 text-emerald border-emerald/20'
-                            : 'bg-muted text-muted-foreground'
-                        }
-                      >
-                        {drive.status}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                      <span>{drive.domain}</span>
-                      <span className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        {drive.applicant_count} applicants
-                      </span>
-                    </div>
-                    <div className="mt-3">
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-muted-foreground">Applicants</span>
-                        <span className="font-medium">
-                          {drive.applicant_count}
+            </div>
+            <div className="divide-y divide-border">
+              {recentDrives.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">
+                  No active drives found. Create one to get started.
+                </div>
+              ) : (
+                recentDrives.map((drive) => (
+                  <div key={drive.id} className="p-4 sm:p-6 hover:bg-secondary/20 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1">
+                        <Link href={`/dashboard/drives/${drive.id}`} className="font-semibold text-foreground hover:text-primary transition-colors truncate">
+                          {drive.name}
+                        </Link>
+                        <Badge variant="outline" className={drive.status === 'active' ? 'bg-success-subtle border-success/20 font-medium' : 'bg-secondary text-muted-foreground'}>
+                          {drive.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+                        <span className="truncate max-w-[200px]">{drive.domain}</span>
+                        <span className="flex items-center gap-1.5 shrink-0">
+                          <Users className="h-3.5 w-3.5" />
+                          <span className="font-mono">{drive.applicant_count}</span> applicants
                         </span>
                       </div>
-                      <Progress
-                        value={drive.applicant_count > 0 ? 100 : 0}
-                        className="h-1.5"
-                      />
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/dashboard/drives/${drive.id}`}>Manage</Link>
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/dashboard/drives/${drive.id}`}>
+                              <ExternalLink className="mr-2 h-4 w-4" /> Details
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>Share Link</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive">Close Drive</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="ml-2 flex-shrink-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <ExternalLink className="mr-2 h-4 w-4" />
-                        View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>Share Link</DropdownMenuItem>
-                      <DropdownMenuItem>Edit Drive</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
-                        Close Drive
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+                ))
+              )}
+            </div>
+          </div>
         </motion.div>
 
         {/* Recent Applicants */}
-        <motion.div variants={itemVariants}>
-          <Card className="border-border/50 bg-card/50">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-lg">Recent Applicants</CardTitle>
-                <CardDescription>Latest candidate applications</CardDescription>
-              </div>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/dashboard/drives">
-                  View all
-                  <ArrowRight className="ml-1 h-4 w-4" />
-                </Link>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {recentApplicants.map((applicant) => (
-                  <div
-                    key={applicant.id}
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm font-medium text-primary">
-                          {applicant.name.split(' ').map(n => n[0]).join('')}
+        <motion.div variants={itemVariants} className="lg:col-span-1">
+          <div className="solid-panel h-full flex flex-col">
+            <div className="p-6 border-b border-border bg-secondary/20">
+              <h3 className="font-semibold text-base text-foreground">Latest Candidates</h3>
+              <p className="text-sm text-muted-foreground mt-1">Recently applied or interviewed</p>
+            </div>
+            <div className="flex-1 overflow-auto divide-y divide-border">
+              {recentApplicants.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">
+                  No applicants yet.
+                </div>
+              ) : (
+                recentApplicants.map((applicant) => (
+                  <div key={applicant.id} className="p-4 hover:bg-secondary/20 transition-colors flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0 border border-border">
+                        <span className="text-xs font-medium text-foreground">
+                          {applicant.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                         </span>
                       </div>
                       <div className="min-w-0">
-                        <div className="font-medium truncate">{applicant.name}</div>
-                        <div className="text-xs text-muted-foreground truncate">
+                        <div className="text-sm font-medium text-foreground truncate">{applicant.name}</div>
+                        <div className="text-xs text-muted-foreground truncate max-w-[150px]">
                           {applicant.driveName || applicant.primary_domain}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
+                    <div className="flex flex-col items-end gap-1 shrink-0">
                       <StatusBadge status={applicant.status} />
                       {applicant.interview?.total_score && (
-                        <span className="text-sm font-medium text-emerald">
+                        <span className="text-xs font-mono font-medium text-success">
                           {applicant.interview.total_score}%
                         </span>
                       )}
                     </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                ))
+              )}
+            </div>
+            <div className="p-4 border-t border-border bg-secondary/10">
+              <Button variant="ghost" className="w-full text-sm text-muted-foreground hover:text-foreground" asChild>
+                <Link href="/dashboard/drives">View all candidates</Link>
+              </Button>
+            </div>
+          </div>
         </motion.div>
       </div>
-
-      {/* Quick Actions */}
-      <motion.div variants={itemVariants}>
-        <Card className="border-border/50 bg-card/50">
-          <CardHeader>
-            <CardTitle className="text-lg">Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {[
-                { icon: Plus, label: 'Create New Drive', href: '/dashboard/drives/new' },
-                { icon: Users, label: 'View All Applicants', href: '/dashboard/drives' },
-                { icon: BarChart3, label: 'View Analytics', href: '/dashboard/analytics' },
-                { icon: Settings, label: 'Organization Settings', href: '/dashboard/settings' },
-              ].map((action) => (
-                <Button
-                  key={action.label}
-                  variant="outline"
-                  className="h-auto py-4 flex-col gap-2 hover:border-primary/30"
-                  asChild
-                >
-                  <Link href={action.href}>
-                    <action.icon className="h-5 w-5" />
-                    <span className="text-sm">{action.label}</span>
-                  </Link>
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
     </motion.div>
   )
 }
@@ -357,29 +288,24 @@ export default function DashboardPage() {
 function StatusBadge({ status }: { status: string }) {
   const config = {
     interviewed: {
-      icon: CheckCircle,
-      className: 'bg-emerald/10 text-emerald border-emerald/20',
+      className: 'bg-success-subtle border-success/20 text-success',
       label: 'Interviewed',
     },
     submitted: {
-      icon: Clock,
-      className: 'bg-primary/10 text-primary border-primary/20',
+      className: 'bg-primary-subtle border-primary/20 text-primary',
       label: 'Submitted',
     },
     applied: {
-      icon: AlertCircle,
-      className: 'bg-cyan/10 text-cyan border-cyan/20',
+      className: 'bg-secondary border-border text-muted-foreground',
       label: 'Applied',
     },
   }[status] || {
-    icon: AlertCircle,
-    className: 'bg-muted text-muted-foreground',
+    className: 'bg-secondary text-muted-foreground',
     label: status,
   }
 
   return (
-    <Badge variant="secondary" className={config.className}>
-      <config.icon className="mr-1 h-3 w-3" />
+    <Badge variant="outline" className={`text-[10px] px-2 py-0.5 font-medium ${config.className}`}>
       {config.label}
     </Badge>
   )
