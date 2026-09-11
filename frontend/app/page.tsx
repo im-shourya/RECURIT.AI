@@ -1,10 +1,12 @@
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 import { HeroSection } from '@/components/landing/hero-section'
-import { TrustedBySection } from '@/components/landing/trusted-by-section'
-import { FeaturesSection } from '@/components/landing/features-section'
-import { AIInterviewSection } from '@/components/landing/ai-interview-section'
-import { HowItWorksSection } from '@/components/landing/how-it-works-section'
+import { TrustValueSection } from '@/components/landing/trust-value-section'
+import { ProductStorySection } from '@/components/landing/product-story-section'
+import { CapabilitiesSection } from '@/components/landing/capabilities-section'
+import { OrganizationWorkflowSection } from '@/components/landing/organization-workflow-section'
+import { ApplicantWorkflowSection } from '@/components/landing/applicant-workflow-section'
+import { DecisionMomentSection } from '@/components/landing/decision-moment-section'
 import { CTASection } from '@/components/landing/cta-section'
 
 export default function HomePage() {
@@ -13,10 +15,12 @@ export default function HomePage() {
       <Navbar />
       <main>
         <HeroSection />
-        <TrustedBySection />
-        <FeaturesSection />
-        <AIInterviewSection />
-        <HowItWorksSection />
+        <TrustValueSection />
+        <ProductStorySection />
+        <CapabilitiesSection />
+        <OrganizationWorkflowSection />
+        <ApplicantWorkflowSection />
+        <DecisionMomentSection />
         <CTASection />
       </main>
       <Footer />
