@@ -21,7 +21,7 @@ export function CTASection() {
           transition={{ duration: 0.9, ease: appleEase }}
           className="mb-12"
         >
-          <h2 className="section-title text-foreground">
+          <h2 className="hero-title text-foreground tracking-tight">
             Ready to recruit with <br className="hidden sm:block" />
             more signal and less noise?
           </h2>
@@ -32,6 +32,7 @@ export function CTASection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-20%' }}
           transition={{ duration: 0.9, delay: 0.15, ease: appleEase }}
+          className="flex flex-col sm:flex-row items-center gap-6"
         >
           <Button
             asChild
@@ -39,10 +40,16 @@ export function CTASection() {
             className="h-14 px-8 text-base font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-full transition-transform active:scale-95"
           >
             <Link href="/auth/register">
-              Start recruiting
+              Start Hiring Now
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
+          <Link 
+            href="/#how-it-works" 
+            className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            See How It Works
+          </Link>
         </motion.div>
 
       </div>
