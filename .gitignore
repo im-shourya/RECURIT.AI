@@ -20,5 +20,5 @@ venv/
 env/
 .env
 
-
+.agents/
 skill/
