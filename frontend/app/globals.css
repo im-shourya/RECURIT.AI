@@ -4,87 +4,81 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ══════════════════════════════════════════════
-   Ocean Depths — Refined Professional Theme
-   A solid, authoritative interpretation of the original theme.
-   Prioritizes clarity, high contrast, and crisp borders.
+   P0341 — Calm Monochromatic Blue
+   Deep blue primary, saturated blue accent, cool blue-gray neutrals.
+   Strictly blue visual identity. No purple.
    ══════════════════════════════════════════════ */
 
 :root {
-  --background: #ffffff;
-  --foreground: #0b1120;
-  --card: #ffffff;
-  --card-foreground: #0b1120;
-  --popover: #ffffff;
-  --popover-foreground: #0b1120;
-  --primary: #115e5e; /* Deep, authoritative teal */
+  --background: #F7F8F7;
+  --foreground: #171A1F;
+  --card: #ECEDEA;
+  --card-foreground: #171A1F;
+  --popover: #ECEDEA;
+  --popover-foreground: #171A1F;
+  --primary: #2C52BA;
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f8fafc;
-  --muted-foreground: #64748b;
-  --accent: #f1f5f9;
-  --accent-foreground: #115e5e;
+  --secondary: #A2ABC3;
+  --secondary-foreground: #171A1F;
+  --muted: #DFE1DE;
+  --muted-foreground: #5F6670;
+  --accent: #2552D0;
+  --accent-foreground: #ffffff;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   --success: #10b981;
   --success-foreground: #ffffff;
   --warning: #f59e0b;
   --warning-foreground: #ffffff;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #115e5e;
+  --border: #D7DCE2;
+  --input: #D7DCE2;
+  --ring: #2C52BA;
   
-  --cyan: #06b6d4;
-  --indigo: #6366f1;
-  --emerald: #10b981;
-  --rose: #f43f5e;
-  --amber: #f59e0b;
+  --radius: 0.5rem;
   
-  --radius: 0.5rem; /* Slightly tighter, professional radius */
-  
-  --sidebar: #ffffff;
-  --sidebar-foreground: #0b1120;
-  --sidebar-primary: #115e5e;
+  --sidebar: #ECEDEA;
+  --sidebar-foreground: #171A1F;
+  --sidebar-primary: #2C52BA;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1f5f9;
-  --sidebar-accent-foreground: #115e5e;
-  --sidebar-border: #e2e8f0;
-  --sidebar-ring: #115e5e;
+  --sidebar-accent: #A2ABC3;
+  --sidebar-accent-foreground: #171A1F;
+  --sidebar-border: #D7DCE2;
+  --sidebar-ring: #2C52BA;
 }
 
 .dark {
-  --background: #090e17; /* Deep, solid navy background */
-  --foreground: #f8fafc;
-  --card: #090e17;
-  --card-foreground: #f8fafc;
-  --popover: #090e17;
-  --popover-foreground: #f8fafc;
-  --primary: #14b8a6; /* Brighter teal for dark mode visibility */
-  --primary-foreground: #022c22;
-  --secondary: #131b2c;
-  --secondary-foreground: #f8fafc;
-  --muted: #131b2c;
-  --muted-foreground: #94a3b8;
-  --accent: #131b2c;
-  --accent-foreground: #14b8a6;
+  --background: #0a0a0a; 
+  --foreground: #F7F8F7;
+  --card: #141414;
+  --card-foreground: #F7F8F7;
+  --popover: #141414;
+  --popover-foreground: #F7F8F7;
+  --primary: #4A6FD4;
+  --primary-foreground: #ffffff;
+  --secondary: #3A3F4E;
+  --secondary-foreground: #F7F8F7;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #4B72E0;
+  --accent-foreground: #ffffff;
   --destructive: #f87171;
   --destructive-foreground: #450a0a;
   --success: #34d399;
   --success-foreground: #022c22;
   --warning: #fbbf24;
   --warning-foreground: #451a03;
-  --border: #1e293b;
-  --input: #1e293b;
-  --ring: #14b8a6;
+  --border: #2B2E33;
+  --input: #2B2E33;
+  --ring: #4A6FD4;
   
-  --sidebar: #090e17;
-  --sidebar-foreground: #f8fafc;
-  --sidebar-primary: #14b8a6;
-  --sidebar-primary-foreground: #022c22;
-  --sidebar-accent: #131b2c;
-  --sidebar-accent-foreground: #14b8a6;
-  --sidebar-border: #1e293b;
-  --sidebar-ring: #14b8a6;
+  --sidebar: #141414;
+  --sidebar-foreground: #F7F8F7;
+  --sidebar-primary: #4A6FD4;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #3A3F4E;
+  --sidebar-accent-foreground: #F7F8F7;
+  --sidebar-border: #2B2E33;
+  --sidebar-ring: #4A6FD4;
 }
 
 @theme inline {
@@ -115,11 +109,12 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   
-  --color-cyan: var(--cyan);
-  --color-indigo: var(--indigo);
-  --color-emerald: var(--emerald);
-  --color-rose: var(--rose);
-  --color-amber: var(--amber);
+  /* Semantic utility colors — used for state communication in dashboard */
+  --color-cyan: #06b6d4;
+  --color-indigo: #4f6adb;
+  --color-emerald: #10b981;
+  --color-rose: #f43f5e;
+  --color-amber: #f59e0b;
   
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: calc(var(--radius) - 1px);
@@ -177,7 +172,7 @@
     @apply font-mono font-medium tracking-tight;
   }
 
-  /* Structural elements - NO GRADIENTS, NO GLASSMORPHISM */
+  /* Structural elements */
   .solid-panel {
     @apply bg-card border border-border shadow-sm rounded-lg;
   }
@@ -190,9 +185,18 @@
     @apply bg-background/95 backdrop-blur-md border-b border-border;
   }
 
-  /* Status backgrounds - clean and subtle */
+  /* Status backgrounds */
   .bg-success-subtle { @apply bg-success/10 text-success; }
   .bg-warning-subtle { @apply bg-warning/10 text-warning; }
   .bg-destructive-subtle { @apply bg-destructive/10 text-destructive; }
   .bg-primary-subtle { @apply bg-primary/10 text-primary; }
+
+  /* Marquee animation */
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  .animate-marquee {
+    animation: marquee 40s linear infinite;
+  }
 }
