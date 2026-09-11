@@ -1,85 +1,130 @@
 'use client'
 
-import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion'
 import { useRef } from 'react'
-import { 
-  UserPlus, 
-  FileText, 
-  Share2, 
-  Brain, 
-  CheckCircle,
-} from 'lucide-react'
-
-const orgSteps = [
-  {
-    icon: UserPlus,
-    title: 'Create Account',
-    description: 'Set up your organization profile securely.',
-  },
-  {
-    icon: FileText,
-    title: 'Create Drive',
-    description: 'Define roles, required skills, and deadlines.',
-  },
-  {
-    icon: Share2,
-    title: 'Share Link',
-    description: 'Distribute the unique drive link to candidates.',
-  },
-  {
-    icon: Brain,
-    title: 'AI Evaluates',
-    description: 'AI conducts adaptive interviews automatically.',
-  },
-  {
-    icon: CheckCircle,
-    title: 'Review & Hire',
-    description: 'Review deep evaluations and make final decisions.',
-  },
-]
-
-const applicantSteps = [
-  {
-    icon: Share2,
-    title: 'Open Link',
-    description: 'Access the drive securely without friction.',
-  },
-  {
-    icon: FileText,
-    title: 'Submit Profile',
-    description: 'Upload resume or connect GitHub repositories.',
-  },
-  {
-    icon: Brain,
-    title: 'AI Interview',
-    description: 'Complete the structured technical interview.',
-  },
-  {
-    icon: CheckCircle,
-    title: 'Get Results',
-    description: 'Receive fair, automated evaluation feedback.',
-  },
-]
-
-const interviewStages = [
-  {
-    stage: 'Stage 1',
-    title: 'Contextual Baseline',
-    description: 'Establishes candidate background and verifies identity details.',
-  },
-  {
-    stage: 'Stage 2',
-    title: 'Technical Deep-Dive',
-    description: 'Analyzes past projects, GitHub commits, and architectural decisions.',
-  },
-  {
-    stage: 'Stage 3',
-    title: 'Domain Evaluation',
-    description: 'Tests specific engineering constraints and problem-solving logic.',
-  },
-]
+import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { User, FileText, CheckCircle, Code, MessageSquare, ShieldCheck, CheckSquare, Brain } from 'lucide-react'
 
 const appleEase = [0.25, 0.1, 0.25, 1] as const
+
+// ── Presentation Components (Evidence-based UI) ───────────────────────
+
+function MockCandidate() {
+  return (
+    <Card className="w-full max-w-md mx-auto shadow-xl border-border/60 bg-background/95 backdrop-blur">
+      <CardContent className="p-6">
+        <div className="flex items-start gap-4 mb-6">
+          <div className="w-12 h-12 rounded-full bg-secondary/30 flex items-center justify-center flex-shrink-0">
+            <User className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold">Alex Developer</h3>
+            <p className="text-sm text-muted-foreground mb-2">alex@example.com</p>
+            <div className="flex gap-2">
+              <Badge variant="outline" className="text-xs font-normal">Frontend</Badge>
+              <Badge variant="outline" className="text-xs font-normal">React</Badge>
+            </div>
+          </div>
+        </div>
+        <div className="p-3 rounded-lg border border-border bg-card flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <FileText className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Resume Verified</span>
+          </div>
+          <CheckCircle className="w-4 h-4 text-emerald" />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function MockInterviewResponses() {
+  return (
+    <Card className="w-full max-w-lg mx-auto shadow-xl border-border/60 bg-background/95 backdrop-blur">
+      <CardContent className="p-6">
+        <div className="flex items-center gap-2 mb-6">
+          <MessageSquare className="w-5 h-5 text-primary" />
+          <h3 className="text-sm font-semibold">Interview Transcript</h3>
+        </div>
+        
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Q: Architectural reasoning for custom caching layer</p>
+            <div className="p-3 rounded-lg bg-card border border-border/40 text-sm leading-relaxed opacity-80">
+              "...I chose Redis because the application required cross-instance cache invalidation that the standard built-in mechanisms didn't support robustly at scale..."
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Q: Handling race conditions</p>
+            <div className="p-3 rounded-lg bg-card border border-border/40 text-sm leading-relaxed opacity-80">
+              "...implemented distributed locks to ensure the worker processes wouldn't duplicate the data ingestion..."
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function MockEvidence() {
+  return (
+    <Card className="w-full max-w-md mx-auto shadow-xl border-border/60 bg-background/95 backdrop-blur">
+      <CardContent className="p-6">
+        <div className="flex items-center gap-2 mb-6">
+          <ShieldCheck className="w-5 h-5 text-primary" />
+          <h3 className="text-sm font-semibold">Integrity & Evidence</h3>
+        </div>
+        
+        <div className="space-y-3">
+          <div className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card">
+            <Code className="w-4 h-4 text-muted-foreground mt-0.5" />
+            <div>
+              <p className="text-sm font-medium">GitHub Activity</p>
+              <p className="text-xs text-muted-foreground mt-1">Consistent commit history matching claimed experience.</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card">
+            <User className="w-4 h-4 text-muted-foreground mt-0.5" />
+            <div>
+              <p className="text-sm font-medium">Identity Verification</p>
+              <p className="text-xs text-muted-foreground mt-1">No anomalies detected during video evaluation.</p>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function MockDecision() {
+  return (
+    <Card className="w-full max-w-md mx-auto shadow-xl border-primary/40 bg-background/95 backdrop-blur ring-1 ring-primary/20">
+      <CardContent className="p-6">
+        <div className="flex items-center gap-2 mb-6">
+          <Brain className="w-5 h-5 text-primary" />
+          <h3 className="text-sm font-semibold">Final Decision</h3>
+        </div>
+        
+        <p className="text-sm text-muted-foreground mb-6">
+          Review the evidence and make your hiring decision.
+        </p>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex items-center justify-center p-3 rounded-lg border border-border bg-card text-sm font-medium hover:bg-secondary/20 cursor-pointer transition-colors">
+            Reject
+          </div>
+          <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 cursor-pointer transition-colors">
+            <CheckSquare className="w-4 h-4" />
+            Proceed to Hire
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ── Scene 04 Component ───────────────────────────────────────────────
 
 export function HowItWorksSection() {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -87,186 +132,116 @@ export function HowItWorksSection() {
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ["start center", "end center"]
+    offset: ["start start", "end end"]
   })
 
-  // Scroll-driven progress line
-  const orgLineScale = useTransform(scrollYProgress, [0, 0.4], [0, 1])
-  const appLineScale = useTransform(scrollYProgress, [0.3, 0.7], [0, 1])
+  // 4 steps mapping scroll progress to opacity for text
+  const text1Op = useTransform(scrollYProgress, [0, 0.15, 0.25, 0.4], [1, 1, 0, 0])
+  const text2Op = useTransform(scrollYProgress, [0.25, 0.4, 0.5, 0.65], [0, 1, 1, 0])
+  const text3Op = useTransform(scrollYProgress, [0.5, 0.65, 0.75, 0.9], [0, 1, 1, 0])
+  const text4Op = useTransform(scrollYProgress, [0.75, 0.9, 1, 1], [0, 1, 1, 1])
+
+  // UI mapping (staggered crossfades and subtle y-translations)
+  const ui1Op = useTransform(scrollYProgress, [0, 0.15, 0.25, 0.4], [1, 1, 0, 0])
+  const ui1Sc = useTransform(scrollYProgress, [0, 0.25, 0.4], [1, 1, 0.95])
+  const ui1Y  = useTransform(scrollYProgress, [0, 0.25, 0.4], [0, 0, -20])
+
+  const ui2Op = useTransform(scrollYProgress, [0.25, 0.4, 0.5, 0.65], [0, 1, 1, 0])
+  const ui2Sc = useTransform(scrollYProgress, [0.25, 0.4, 0.5, 0.65], [0.95, 1, 1, 0.95])
+  const ui2Y  = useTransform(scrollYProgress, [0.25, 0.4, 0.5, 0.65], [20, 0, 0, -20])
+
+  const ui3Op = useTransform(scrollYProgress, [0.5, 0.65, 0.75, 0.9], [0, 1, 1, 0])
+  const ui3Sc = useTransform(scrollYProgress, [0.5, 0.65, 0.75, 0.9], [0.95, 1, 1, 0.95])
+  const ui3Y  = useTransform(scrollYProgress, [0.5, 0.65, 0.75, 0.9], [20, 0, 0, -20])
+
+  const ui4Op = useTransform(scrollYProgress, [0.75, 0.9, 1, 1], [0, 1, 1, 1])
+  const ui4Sc = useTransform(scrollYProgress, [0.75, 0.9, 1, 1], [0.95, 1, 1, 1])
+  const ui4Y  = useTransform(scrollYProgress, [0.75, 0.9, 1, 1], [20, 0, 0, 0])
 
   return (
-    <section id="how-it-works" ref={containerRef} className="py-24 lg:py-32 bg-background relative overflow-hidden">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-        {/* Section Header */}
-        <motion.div
-          initial={prefersReducedMotion ? {} : { opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-10%' }}
-          transition={{ duration: 0.7, ease: appleEase }}
-          className="text-center max-w-2xl mx-auto mb-20"
-        >
-          <h2 className="section-title text-4xl mb-6">
-            A precise workflow for both sides of the table.
-          </h2>
-          <p className="body-text text-lg">
-            Every step is designed to reduce friction while maximizing signal.
-          </p>
-        </motion.div>
-
-        {/* Organization Flow */}
-        <div className="mb-24">
-          <div className="text-center mb-12">
-            <motion.span
-              initial={prefersReducedMotion ? {} : { opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, ease: appleEase }}
-              className="inline-flex items-center px-4 py-1.5 rounded bg-primary/8 text-primary text-sm font-semibold tracking-wide uppercase"
-            >
-              For Organizations
-            </motion.span>
-          </div>
-
-          <div className="relative">
-            {/* Scroll-driven progress line */}
-            <div className="absolute top-7 left-[10%] right-[10%] h-px bg-border hidden lg:block overflow-hidden">
-              <motion.div
-                className="h-full bg-primary"
-                style={prefersReducedMotion ? { scaleX: 1 } : { scaleX: orgLineScale, transformOrigin: "left" }}
-              />
-            </div>
-
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
-              {orgSteps.map((step, index) => (
-                <motion.div
-                  key={step.title}
-                  initial={prefersReducedMotion ? {} : { opacity: 0, y: 24 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-8%' }}
-                  transition={{
-                    duration: 0.6,
-                    delay: index * 0.08,
-                    ease: appleEase
-                  }}
-                  className="relative text-center group"
-                >
-                  <div className="relative inline-flex mb-6">
-                    <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-lg bg-background text-muted-foreground transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground border border-border group-hover:border-primary/40 group-hover:shadow-sm">
-                      <step.icon className="h-6 w-6" />
-                    </div>
-                    <div className="absolute -top-2 -right-2 z-20 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background text-[10px] font-bold font-mono">
-                      {index + 1}
-                    </div>
-                  </div>
-                  <h4 className="font-semibold text-foreground text-base mb-2">{step.title}</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {step.description}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
+    <section ref={containerRef} className="relative h-[400vh] bg-background">
+      <div className="sticky top-0 h-screen w-full flex flex-col justify-center overflow-hidden px-4 sm:px-6 lg:px-8 py-12">
+        
+        {/* Massive section title at the top of the viewport */}
+        <div className="w-full max-w-7xl mx-auto mb-16 lg:mb-24 text-center">
+          <motion.h2
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-10%' }}
+            transition={{ duration: 0.8, ease: appleEase }}
+            className="section-title text-foreground"
+          >
+            AI assists. <br className="sm:hidden" />
+            Recruiter decides.
+          </motion.h2>
         </div>
 
-        {/* Applicant Flow */}
-        <div className="mb-28">
-          <div className="text-center mb-12">
-            <motion.span
-              initial={prefersReducedMotion ? {} : { opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, ease: appleEase }}
-              className="inline-flex items-center px-4 py-1.5 rounded bg-foreground/6 text-foreground text-sm font-semibold tracking-wide uppercase"
+        <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-center">
+          
+          {/* Visual UI Column */}
+          <div className="relative h-[300px] lg:h-[400px] w-full max-w-[500px] mx-auto flex items-center justify-center order-2 lg:order-1">
+            {/* UI 1 */}
+            <motion.div
+              style={prefersReducedMotion ? { opacity: 1, zIndex: 10 } : { opacity: ui1Op, scale: ui1Sc, y: ui1Y, zIndex: 40 }}
+              className="absolute w-full"
             >
-              For Applicants
-            </motion.span>
+              <MockCandidate />
+            </motion.div>
+
+            {/* UI 2 */}
+            <motion.div
+              style={prefersReducedMotion ? { opacity: 0, zIndex: 0 } : { opacity: ui2Op, scale: ui2Sc, y: ui2Y, zIndex: 30 }}
+              className="absolute w-full"
+            >
+              <MockInterviewResponses />
+            </motion.div>
+
+            {/* UI 3 */}
+            <motion.div
+              style={prefersReducedMotion ? { opacity: 0, zIndex: 0 } : { opacity: ui3Op, scale: ui3Sc, y: ui3Y, zIndex: 20 }}
+              className="absolute w-full"
+            >
+              <MockEvidence />
+            </motion.div>
+
+            {/* UI 4 */}
+            <motion.div
+              style={prefersReducedMotion ? { opacity: 0, zIndex: 0 } : { opacity: ui4Op, scale: ui4Sc, y: ui4Y, zIndex: 10 }}
+              className="absolute w-full"
+            >
+              <MockDecision />
+            </motion.div>
           </div>
 
-          <div className="relative max-w-4xl mx-auto">
-            <div className="absolute top-7 left-[12%] right-[12%] h-px bg-border hidden md:block overflow-hidden">
-              <motion.div
-                className="h-full bg-foreground"
-                style={prefersReducedMotion ? { scaleX: 1 } : { scaleX: appLineScale, transformOrigin: "left" }}
-              />
-            </div>
-
-            <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
-              {applicantSteps.map((step, index) => (
-                <motion.div
-                  key={step.title}
-                  initial={prefersReducedMotion ? {} : { opacity: 0, y: 24 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-8%' }}
-                  transition={{
-                    duration: 0.6,
-                    delay: index * 0.08,
-                    ease: appleEase
-                  }}
-                  className="relative text-center group"
-                >
-                  <div className="relative inline-flex mb-6">
-                    <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-lg bg-background text-muted-foreground transition-all duration-300 group-hover:bg-foreground group-hover:text-background border border-border group-hover:border-foreground/40 group-hover:shadow-sm">
-                      <step.icon className="h-6 w-6" />
-                    </div>
-                    <div className="absolute -top-2 -right-2 z-20 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold font-mono">
-                      {index + 1}
-                    </div>
-                  </div>
-                  <h4 className="font-semibold text-foreground text-base mb-2">{step.title}</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {step.description}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
+          {/* Narrative Column */}
+          <div className="relative h-[150px] lg:h-[300px] flex flex-col justify-center text-center lg:text-left order-1 lg:order-2">
+            <motion.h3
+              style={prefersReducedMotion ? { opacity: 1 } : { opacity: text1Op }}
+              className="absolute inset-0 flex flex-col justify-center text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-foreground"
+            >
+              Candidate
+            </motion.h3>
+            <motion.h3
+              style={prefersReducedMotion ? { opacity: 0 } : { opacity: text2Op }}
+              className="absolute inset-0 flex flex-col justify-center text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-foreground"
+            >
+              Interview responses
+            </motion.h3>
+            <motion.h3
+              style={prefersReducedMotion ? { opacity: 0 } : { opacity: text3Op }}
+              className="absolute inset-0 flex flex-col justify-center text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-foreground"
+            >
+              Evidence
+            </motion.h3>
+            <motion.h3
+              style={prefersReducedMotion ? { opacity: 0 } : { opacity: text4Op }}
+              className="absolute inset-0 flex flex-col justify-center text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-primary"
+            >
+              Recruiter decision
+            </motion.h3>
           </div>
+          
         </div>
-
-        {/* Inside the AI Interview — open canvas, no dark box */}
-        <motion.div
-          initial={prefersReducedMotion ? {} : { opacity: 0, y: 32 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-10%' }}
-          transition={{ duration: 0.8, ease: appleEase }}
-          className="max-w-5xl mx-auto"
-        >
-          <h3 className="text-2xl sm:text-3xl font-semibold text-center mb-4 text-foreground">
-            Inside the AI Interview
-          </h3>
-          <p className="text-center text-muted-foreground mb-12 max-w-xl mx-auto">
-            Three structured stages designed to evaluate depth, not surface knowledge.
-          </p>
-
-          <div className="grid gap-6 md:grid-cols-3 relative">
-            {/* Connecting line between stages */}
-            <div className="absolute top-1/2 left-[17%] right-[17%] h-px bg-border hidden md:block" />
-
-            {interviewStages.map((round, index) => (
-              <motion.div
-                key={round.stage}
-                initial={prefersReducedMotion ? {} : { opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{
-                  duration: 0.6,
-                  delay: index * 0.1,
-                  ease: appleEase
-                }}
-                className="relative rounded-xl border border-border/60 bg-background p-7 transition-all duration-300 hover:border-primary/30 hover:-translate-y-1"
-              >
-                <div className="mb-4">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-primary font-mono">
-                    {round.stage}
-                  </span>
-                </div>
-                <h4 className="font-semibold text-lg text-foreground mb-2">{round.title}</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {round.description}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
       </div>
     </section>
   )
