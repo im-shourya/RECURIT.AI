@@ -12,8 +12,8 @@ export function CTASection() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   return (
-    <section ref={containerRef} className="relative bg-background overflow-hidden sm:h-[200vh]">
-      <div className="sm:sticky sm:top-0 sm:h-screen w-full flex flex-col items-center justify-center py-32 sm:py-0">
+    <section ref={containerRef} className="relative bg-background sm:h-[200vh]">
+      <div className="sm:sticky sm:top-0 sm:h-screen w-full flex flex-col items-center justify-center overflow-hidden py-32 sm:py-0">
         <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center">
           
           <div className="mb-12">
