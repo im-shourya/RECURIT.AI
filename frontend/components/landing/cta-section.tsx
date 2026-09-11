@@ -14,15 +14,15 @@ export function CTASection() {
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ["start start", "end end"]
+    offset: ["start end", "end end"]
   })
 
   // Fade in elements smoothly as the user scrolls into the sticky section
-  const textOpacity = useTransform(scrollYProgress, [0, 0.4], [0, 1])
-  const textY = useTransform(scrollYProgress, [0, 0.4], [32, 0])
+  const textOpacity = useTransform(scrollYProgress, [0, 0.3], [0, 1])
+  const textY = useTransform(scrollYProgress, [0, 0.3], [32, 0])
   
-  const btnOpacity = useTransform(scrollYProgress, [0.2, 0.6], [0, 1])
-  const btnY = useTransform(scrollYProgress, [0.2, 0.6], [16, 0])
+  const btnOpacity = useTransform(scrollYProgress, [0.3, 0.6], [0, 1])
+  const btnY = useTransform(scrollYProgress, [0.3, 0.6], [16, 0])
 
   return (
     <section ref={containerRef} className="relative bg-background overflow-hidden sm:h-[200vh]">
