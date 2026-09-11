@@ -35,21 +35,6 @@ export function HeroSection() {
           </p>
         </motion.div>
 
-        {/* Value Proposition Merged into Hero */}
-        <motion.div
-          initial={prefersReducedMotion ? {} : { opacity: 0, y: 32 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.3, ease: appleEase }}
-          className="max-w-3xl mx-auto flex flex-col gap-6"
-        >
-          <h2 className="section-title text-foreground">
-            Hire smarter.<br />Interview less.
-          </h2>
-          <p className="text-lg sm:text-xl text-muted-foreground text-balance">
-            Automate screening and technical interviews so your team can focus on the candidates who actually matter. Five minutes per candidate, not five hours.
-          </p>
-        </motion.div>
-        
       </div>
     </section>
   )

@@ -1,6 +1,7 @@
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 import { HeroSection } from '@/components/landing/hero-section'
+import { TrustValueSection } from '@/components/landing/trust-value-section'
 import { ProductStorySection } from '@/components/landing/product-story-section'
 import { CapabilitiesSection } from '@/components/landing/capabilities-section'
 import { OrganizationWorkflowSection } from '@/components/landing/organization-workflow-section'
@@ -14,6 +15,7 @@ export default function HomePage() {
       <Navbar />
       <main>
         <HeroSection />
+        <TrustValueSection />
         <ProductStorySection />
         <CapabilitiesSection />
         <OrganizationWorkflowSection />
