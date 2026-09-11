@@ -12,18 +12,16 @@ export function DecisionMomentSection() {
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ["start start", "end end"]
+    offset: ["start end", "end end"]
   })
 
-  // We map the scroll progress across the 250vh height.
-  // 0 -> 0.3: Fade in text and scale up slightly
-  // 0.3 -> 0.7: Fade in UI
-  // 0.7 -> 1.0: Hold (and eventually scroll past naturally)
+  // 0 -> 0.2: Fade in text as it scrolls into view
+  // 0.2 -> 0.5: Fade in UI while pinned
   
-  const textScale = useTransform(scrollYProgress, [0, 0.3], [0.95, 1])
-  const textOpacity = useTransform(scrollYProgress, [0, 0.3], [0, 1])
-  const uiOpacity = useTransform(scrollYProgress, [0.3, 0.6], [0, 1])
-  const uiY = useTransform(scrollYProgress, [0.3, 0.6], [40, 0])
+  const textScale = useTransform(scrollYProgress, [0, 0.2], [0.95, 1])
+  const textOpacity = useTransform(scrollYProgress, [0, 0.2], [0, 1])
+  const uiOpacity = useTransform(scrollYProgress, [0.2, 0.5], [0, 1])
+  const uiY = useTransform(scrollYProgress, [0.2, 0.5], [40, 0])
 
   return (
     <section ref={containerRef} className="relative bg-background overflow-hidden border-t border-border/30 sm:h-[300vh]">

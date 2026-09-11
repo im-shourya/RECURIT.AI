@@ -11,12 +11,12 @@ export function TrustValueSection() {
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ["start start", "end end"]
+    offset: ["start end", "end end"]
   })
 
-  // Fade in the text early, keep it visible, then fade out at the very end
-  const opacity = useTransform(scrollYProgress, [0, 0.1, 0.9, 1], [0, 1, 1, 0])
-  const y = useTransform(scrollYProgress, [0, 0.1, 0.9, 1], [40, 0, 0, -40])
+  // Fade in the text as it enters the screen, keep it visible while pinned, then fade out
+  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0])
+  const y = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [40, 0, 0, -40])
 
   return (
     <section ref={containerRef} className="relative bg-background sm:h-[300vh]">
