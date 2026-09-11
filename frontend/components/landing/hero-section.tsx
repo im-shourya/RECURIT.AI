@@ -1,9 +1,6 @@
 'use client'
 
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import { motion, useReducedMotion } from 'framer-motion'
-import { ArrowRight } from 'lucide-react'
 
 const appleEase = [0.25, 0.1, 0.25, 1] as const
 
@@ -11,60 +8,48 @@ export function HeroSection() {
   const prefersReducedMotion = useReducedMotion()
 
   return (
-    <section className="relative min-h-[90vh] flex flex-col justify-center items-center pt-32 pb-24 px-4 sm:px-6 lg:px-8 bg-background overflow-hidden">
-      <div className="w-full max-w-5xl mx-auto flex flex-col items-center text-center">
+    <section className="relative min-h-[90vh] flex flex-col justify-center items-center overflow-hidden bg-background">
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center mt-20">
         
-        {/* Eyebrow */}
-        <motion.div
-          initial={prefersReducedMotion ? {} : { opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: appleEase }}
-          className="mb-8"
-        >
-          <span className="eyebrow">Recruiter AI</span>
-        </motion.div>
-
-        {/* Main Headline */}
+        {/* Main Title */}
         <motion.div
           initial={prefersReducedMotion ? {} : { opacity: 0, y: 32, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.9, delay: 0.1, ease: appleEase }}
+          transition={{ duration: 0.9, ease: appleEase }}
           className="mb-8"
         >
           <h1 className="hero-title text-foreground">
-            Hiring,<br />rethought.
+            Hiring, <span className="text-primary">rethought.</span>
           </h1>
         </motion.div>
 
-        {/* Sub-headline */}
+        {/* Subtitle */}
         <motion.div
-          initial={prefersReducedMotion ? {} : { opacity: 0, y: 24 }}
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.2, ease: appleEase }}
-          className="mb-12"
+          transition={{ duration: 0.9, delay: 0.15, ease: appleEase }}
+          className="mb-24"
         >
-          <p className="body-large text-muted-foreground text-balance max-w-2xl mx-auto">
+          <p className="body-large text-muted-foreground text-balance mx-auto max-w-2xl">
             Create drives. Interview candidates. Evaluate with evidence.
           </p>
         </motion.div>
 
-        {/* CTA */}
+        {/* Value Proposition Merged into Hero */}
         <motion.div
-          initial={prefersReducedMotion ? {} : { opacity: 0, y: 16 }}
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 32 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.3, ease: appleEase }}
+          className="max-w-3xl mx-auto flex flex-col gap-6"
         >
-          <Button
-            asChild
-            size="lg"
-            className="h-14 px-8 text-base font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-full transition-transform active:scale-95"
-          >
-            <Link href="/auth/register">
-              Start recruiting
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+          <h2 className="section-title text-foreground">
+            Hire smarter.<br />Interview less.
+          </h2>
+          <p className="text-lg sm:text-xl text-muted-foreground text-balance">
+            Automate screening and technical interviews so your team can focus on the candidates who actually matter. Five minutes per candidate, not five hours.
+          </p>
         </motion.div>
+        
       </div>
     </section>
   )
