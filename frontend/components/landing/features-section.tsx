@@ -43,14 +43,40 @@ const features = [
   },
 ]
 
+// Stagger variant for the container
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.1,
+    }
+  }
+}
+
+// Snappy pop-in variant for items
+const itemVariants = {
+  hidden: { opacity: 0, y: 30, scale: 0.95 },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    scale: 1,
+    transition: { 
+      type: "spring", 
+      stiffness: 100, 
+      damping: 15,
+      mass: 0.8
+    }
+  }
+}
+
 export function FeaturesSection() {
   return (
-    <section id="features" className="py-24 lg:py-32 bg-secondary/30 border-y border-border">
+    <section id="features" className="py-24 lg:py-32 bg-secondary/30 border-y border-border overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-10%' }}
+          viewport={{ once: true, margin: '-20%' }}
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           className="mb-16 md:mb-24 text-center max-w-3xl mx-auto"
         >
@@ -62,21 +88,21 @@ export function FeaturesSection() {
           </p>
         </motion.div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-10%' }}
+          className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+        >
           {features.map((feature, index) => (
             <motion.div
               key={feature.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-10%' }}
-              transition={{ 
-                duration: 0.6, 
-                delay: index * 0.05,
-                ease: [0.16, 1, 0.3, 1] 
-              }}
-              className="group solid-panel p-8 transition-colors hover:border-primary/40"
+              variants={itemVariants}
+              whileHover={{ y: -5, transition: { duration: 0.2 } }}
+              className="group solid-panel p-8 transition-colors hover:border-primary/40 bg-card hover:bg-card/90"
             >
-              <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform group-hover:scale-105">
+              <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground">
                 <feature.icon className="h-6 w-6" />
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-3">
@@ -87,7 +113,7 @@ export function FeaturesSection() {
               </p>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   )

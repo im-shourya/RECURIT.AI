@@ -1,6 +1,7 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useScroll, useTransform } from 'framer-motion'
+import { useRef } from 'react'
 import { 
   UserPlus, 
   FileText, 
@@ -62,9 +63,20 @@ const applicantSteps = [
 ]
 
 export function HowItWorksSection() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  
+  // Create a progress line effect mapped to scroll
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start center", "end center"]
+  })
+  
+  const orgY = useTransform(scrollYProgress, [0, 1], ["0%", "5%"])
+  const appY = useTransform(scrollYProgress, [0, 1], ["0%", "-5%"])
+
   return (
-    <section id="how-it-works" className="py-24 lg:py-32 bg-background">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <section id="how-it-works" ref={containerRef} className="py-24 lg:py-32 bg-background relative overflow-hidden">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -81,7 +93,7 @@ export function HowItWorksSection() {
         </motion.div>
 
         {/* Organization Flow */}
-        <div className="mb-24">
+        <motion.div style={{ y: orgY }} className="mb-24">
           <div className="text-center mb-12">
             <span className="inline-flex items-center px-4 py-1.5 rounded bg-primary/10 text-primary text-sm font-semibold tracking-wide uppercase">
               For Organizations
@@ -89,6 +101,14 @@ export function HowItWorksSection() {
           </div>
 
           <div className="relative">
+            {/* Scroll-driven progress line */}
+            <div className="absolute top-7 left-[10%] right-[10%] h-0.5 bg-border hidden lg:block overflow-hidden">
+              <motion.div 
+                className="h-full bg-primary"
+                style={{ scaleX: scrollYProgress, transformOrigin: "left" }}
+              />
+            </div>
+            
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
               {orgSteps.map((step, index) => (
                 <motion.div
@@ -98,16 +118,16 @@ export function HowItWorksSection() {
                   viewport={{ once: true, margin: '-10%' }}
                   transition={{ 
                     duration: 0.6, 
-                    delay: index * 0.05,
+                    delay: index * 0.1,
                     ease: [0.16, 1, 0.3, 1] 
                   }}
                   className="relative text-center group"
                 >
                   <div className="relative inline-flex mb-6">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-secondary text-secondary-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                    <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-lg bg-secondary text-secondary-foreground transition-colors duration-300 group-hover:bg-primary group-hover:text-primary-foreground border border-border shadow-sm group-hover:shadow-md">
                       <step.icon className="h-6 w-6" />
                     </div>
-                    <div className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background text-[10px] font-bold font-mono">
+                    <div className="absolute -top-2 -right-2 z-20 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background text-[10px] font-bold font-mono">
                       {index + 1}
                     </div>
                   </div>
@@ -119,10 +139,10 @@ export function HowItWorksSection() {
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Applicant Flow */}
-        <div className="mb-24">
+        <motion.div style={{ y: appY }} className="mb-24">
           <div className="text-center mb-12">
             <span className="inline-flex items-center px-4 py-1.5 rounded bg-foreground/10 text-foreground text-sm font-semibold tracking-wide uppercase">
               For Applicants
@@ -130,6 +150,13 @@ export function HowItWorksSection() {
           </div>
 
           <div className="relative max-w-4xl mx-auto">
+             <div className="absolute top-7 left-[12%] right-[12%] h-0.5 bg-border hidden md:block overflow-hidden">
+              <motion.div 
+                className="h-full bg-foreground"
+                style={{ scaleX: scrollYProgress, transformOrigin: "left" }}
+              />
+            </div>
+
             <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
               {applicantSteps.map((step, index) => (
                 <motion.div
@@ -139,16 +166,16 @@ export function HowItWorksSection() {
                   viewport={{ once: true, margin: '-10%' }}
                   transition={{ 
                     duration: 0.6, 
-                    delay: index * 0.05,
+                    delay: index * 0.1,
                     ease: [0.16, 1, 0.3, 1] 
                   }}
                   className="relative text-center group"
                 >
                   <div className="relative inline-flex mb-6">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-secondary text-secondary-foreground transition-colors group-hover:bg-foreground group-hover:text-background">
+                    <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-lg bg-secondary text-secondary-foreground transition-colors duration-300 group-hover:bg-foreground group-hover:text-background border border-border shadow-sm group-hover:shadow-md">
                       <step.icon className="h-6 w-6" />
                     </div>
-                    <div className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold font-mono">
+                    <div className="absolute -top-2 -right-2 z-20 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold font-mono">
                       {index + 1}
                     </div>
                   </div>
@@ -160,16 +187,19 @@ export function HowItWorksSection() {
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Deep Dive Section */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true, margin: '-10%' }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         >
-          <div className="rounded-xl bg-foreground text-background p-8 lg:p-12 relative overflow-hidden">
+          <div className="rounded-2xl bg-foreground text-background p-8 lg:p-12 relative overflow-hidden shadow-xl">
+            {/* Subtle glow effect behind */}
+            <div className="absolute -inset-10 bg-primary/20 blur-3xl rounded-full opacity-50 translate-x-1/2 translate-y-1/2" />
+            
             <div className="relative z-10 max-w-5xl mx-auto">
               <h3 className="text-2xl sm:text-3xl font-semibold text-center mb-12">
                 Inside the AI Interview
@@ -192,9 +222,10 @@ export function HowItWorksSection() {
                     description: 'Tests specific engineering constraints and problem-solving logic.',
                   },
                 ].map((round, index) => (
-                  <div
+                  <motion.div
                     key={round.round}
-                    className="relative rounded-lg border border-background/10 bg-background/5 p-6"
+                    whileHover={{ y: -4 }}
+                    className="relative rounded-xl border border-background/10 bg-background/5 p-6 backdrop-blur-sm transition-transform"
                   >
                     <div className="mb-4">
                       <span className="text-xs font-semibold uppercase tracking-wider text-background/50 font-mono">
@@ -208,7 +239,7 @@ export function HowItWorksSection() {
                     {index < 2 && (
                       <ArrowRight className="absolute -right-5 top-1/2 -translate-y-1/2 h-5 w-5 text-background/20 hidden md:block" />
                     )}
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </div>

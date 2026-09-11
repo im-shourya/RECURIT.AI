@@ -4,35 +4,35 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ══════════════════════════════════════════════
-   Ocean Depths — Refined Professional Theme
-   A solid, authoritative interpretation of the original theme.
-   Prioritizes clarity, high contrast, and crisp borders.
+   Graphite & Indigo — Premium Modern Theme
+   A sleek, high-trust theme emphasizing typography,
+   sharp contrast, and subtle energetic accents.
    ══════════════════════════════════════════════ */
 
 :root {
   --background: #ffffff;
-  --foreground: #0b1120;
+  --foreground: #171717; /* Near black text for strong legibility */
   --card: #ffffff;
-  --card-foreground: #0b1120;
+  --card-foreground: #171717;
   --popover: #ffffff;
-  --popover-foreground: #0b1120;
-  --primary: #115e5e; /* Deep, authoritative teal */
+  --popover-foreground: #171717;
+  --primary: #4f46e5; /* Indigo-600 */
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f8fafc;
-  --muted-foreground: #64748b;
-  --accent: #f1f5f9;
-  --accent-foreground: #115e5e;
+  --secondary: #fafafa; /* Very subtle off-white/gray */
+  --secondary-foreground: #171717;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373; /* Neutral-500 */
+  --accent: #fafafa;
+  --accent-foreground: #4f46e5;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   --success: #10b981;
   --success-foreground: #ffffff;
   --warning: #f59e0b;
   --warning-foreground: #ffffff;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #115e5e;
+  --border: #e5e5e5; /* Neutral-200 */
+  --input: #e5e5e5;
+  --ring: #4f46e5;
   
   --cyan: #06b6d4;
   --indigo: #6366f1;
@@ -40,51 +40,51 @@
   --rose: #f43f5e;
   --amber: #f59e0b;
   
-  --radius: 0.5rem; /* Slightly tighter, professional radius */
+  --radius: 0.5rem;
   
   --sidebar: #ffffff;
-  --sidebar-foreground: #0b1120;
-  --sidebar-primary: #115e5e;
+  --sidebar-foreground: #171717;
+  --sidebar-primary: #4f46e5;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1f5f9;
-  --sidebar-accent-foreground: #115e5e;
-  --sidebar-border: #e2e8f0;
-  --sidebar-ring: #115e5e;
+  --sidebar-accent: #fafafa;
+  --sidebar-accent-foreground: #4f46e5;
+  --sidebar-border: #e5e5e5;
+  --sidebar-ring: #4f46e5;
 }
 
 .dark {
-  --background: #090e17; /* Deep, solid navy background */
-  --foreground: #f8fafc;
-  --card: #090e17;
-  --card-foreground: #f8fafc;
-  --popover: #090e17;
-  --popover-foreground: #f8fafc;
-  --primary: #14b8a6; /* Brighter teal for dark mode visibility */
-  --primary-foreground: #022c22;
-  --secondary: #131b2c;
-  --secondary-foreground: #f8fafc;
-  --muted: #131b2c;
-  --muted-foreground: #94a3b8;
-  --accent: #131b2c;
-  --accent-foreground: #14b8a6;
+  --background: #0a0a0a; /* Deep Graphite */
+  --foreground: #fafafa;
+  --card: #0a0a0a;
+  --card-foreground: #fafafa;
+  --popover: #0a0a0a;
+  --popover-foreground: #fafafa;
+  --primary: #6366f1; /* Indigo-500 for better dark mode visibility */
+  --primary-foreground: #ffffff;
+  --secondary: #171717; /* Neutral-900 */
+  --secondary-foreground: #fafafa;
+  --muted: #171717;
+  --muted-foreground: #a3a3a3; /* Neutral-400 */
+  --accent: #171717;
+  --accent-foreground: #6366f1;
   --destructive: #f87171;
   --destructive-foreground: #450a0a;
   --success: #34d399;
   --success-foreground: #022c22;
   --warning: #fbbf24;
   --warning-foreground: #451a03;
-  --border: #1e293b;
-  --input: #1e293b;
-  --ring: #14b8a6;
+  --border: #262626; /* Neutral-800 */
+  --input: #262626;
+  --ring: #6366f1;
   
-  --sidebar: #090e17;
-  --sidebar-foreground: #f8fafc;
-  --sidebar-primary: #14b8a6;
-  --sidebar-primary-foreground: #022c22;
-  --sidebar-accent: #131b2c;
-  --sidebar-accent-foreground: #14b8a6;
-  --sidebar-border: #1e293b;
-  --sidebar-ring: #14b8a6;
+  --sidebar: #0a0a0a;
+  --sidebar-foreground: #fafafa;
+  --sidebar-primary: #6366f1;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #171717;
+  --sidebar-accent-foreground: #6366f1;
+  --sidebar-border: #262626;
+  --sidebar-ring: #6366f1;
 }
 
 @theme inline {
