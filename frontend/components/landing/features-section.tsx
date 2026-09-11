@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { 
   Brain, 
   Video, 
@@ -43,41 +43,19 @@ const features = [
   },
 ]
 
-// Stagger variant for the container
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.1,
-    }
-  }
-}
-
-// Snappy pop-in variant for items
-const itemVariants = {
-  hidden: { opacity: 0, y: 30, scale: 0.95 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    scale: 1,
-    transition: { 
-      type: "spring", 
-      stiffness: 100, 
-      damping: 15,
-      mass: 0.8
-    }
-  }
-}
+const appleEase = [0.25, 0.1, 0.25, 1] as const
 
 export function FeaturesSection() {
+  const prefersReducedMotion = useReducedMotion()
+
   return (
-    <section id="features" className="py-24 lg:py-32 bg-secondary/30 border-y border-border overflow-hidden">
+    <section id="features" className="py-24 lg:py-32 border-y border-border/40 overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-20%' }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          viewport={{ once: true, margin: '-15%' }}
+          transition={{ duration: 0.7, ease: appleEase }}
           className="mb-16 md:mb-24 text-center max-w-3xl mx-auto"
         >
           <h2 className="section-title text-4xl mb-6">
@@ -88,21 +66,22 @@ export function FeaturesSection() {
           </p>
         </motion.div>
 
-        <motion.div 
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-10%' }}
-          className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
-        >
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, index) => (
             <motion.div
               key={feature.title}
-              variants={itemVariants}
-              whileHover={{ y: -5, transition: { duration: 0.2 } }}
-              className="group solid-panel p-8 transition-colors hover:border-primary/40 bg-card hover:bg-card/90"
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 32, scale: 0.97 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true, margin: '-8%' }}
+              transition={{
+                duration: 0.6,
+                delay: index * 0.08,
+                ease: appleEase
+              }}
+              whileHover={prefersReducedMotion ? {} : { y: -4, transition: { duration: 0.25 } }}
+              className="group p-8 rounded-xl border border-border/40 transition-colors duration-300 hover:border-primary/30 bg-background"
             >
-              <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground">
+              <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/8 text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-105">
                 <feature.icon className="h-6 w-6" />
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-3">
@@ -113,7 +92,7 @@ export function FeaturesSection() {
               </p>
             </motion.div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   )
