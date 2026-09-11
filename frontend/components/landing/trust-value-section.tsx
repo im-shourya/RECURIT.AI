@@ -11,21 +11,8 @@ export function TrustValueSection() {
 
   return (
     <section className="relative py-24 sm:py-32 overflow-hidden bg-background">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center">
         
-        {/* Trust */}
-        <motion.div
-          initial={prefersReducedMotion ? {} : { opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true, margin: '-10%' }}
-          transition={{ duration: 0.8, ease: appleEase }}
-          className="mb-32"
-        >
-          <p className="eyebrow opacity-50 text-muted-foreground">
-            Trusted by 500+ Engineering Teams
-          </p>
-        </motion.div>
-
         {/* Value Proposition */}
         <motion.div
           initial={prefersReducedMotion ? {} : { opacity: 0, y: 32, scale: 0.96 }}
