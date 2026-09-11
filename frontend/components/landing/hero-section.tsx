@@ -28,7 +28,7 @@ export function HeroSection() {
           initial={prefersReducedMotion ? {} : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.15, ease: appleEase }}
-          className="mb-24"
+          className="mb-32 lg:mb-48"
         >
           <p className="body-large text-muted-foreground text-balance mx-auto max-w-2xl">
             Create drives. Interview candidates. Evaluate with evidence.

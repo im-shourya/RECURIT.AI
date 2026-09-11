@@ -63,12 +63,12 @@ export function CapabilitiesSection() {
       <div className="sm:sticky sm:top-0 sm:h-screen w-full flex flex-col justify-center overflow-hidden py-24 sm:py-0 border-t border-border/30">
         
         {/* Section Header */}
-        <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-16 lg:mb-24 flex-shrink-0">
-          <h2 className="section-title text-foreground">
-            Everything you need for <br className="hidden sm:block" />
+        <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-12 flex-shrink-0">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground">
+            Everything you need for <br className="hidden lg:block" />
             modern recruitment.
           </h2>
-          <p className="body-large text-muted-foreground mt-4 max-w-2xl">
+          <p className="text-lg md:text-xl text-muted-foreground mt-4 max-w-2xl">
             From first application to final decision — one unified platform without the spreadsheets, friction, or guesswork.
           </p>
         </div>
@@ -84,15 +84,15 @@ export function CapabilitiesSection() {
               return (
                 <div 
                   key={cap.id} 
-                  className="w-[400px] h-[450px] flex-shrink-0 bg-surface border border-border rounded-2xl shadow-sm flex flex-col p-8"
+                  className="w-[360px] h-[380px] flex-shrink-0 bg-surface border border-border rounded-2xl shadow-sm flex flex-col p-6"
                 >
-                  <div className="w-16 h-16 rounded-xl bg-background border border-border flex items-center justify-center mb-8">
-                    <Icon className="w-8 h-8 text-primary" />
+                  <div className="w-14 h-14 rounded-xl bg-background border border-border flex items-center justify-center mb-6">
+                    <Icon className="w-7 h-7 text-primary" />
                   </div>
                   <div className="mt-auto">
-                    <span className="eyebrow text-primary opacity-60 block mb-3">{cap.id}</span>
-                    <h3 className="text-2xl font-semibold tracking-tight text-foreground mb-4">{cap.title}</h3>
-                    <p className="text-base text-muted-foreground leading-relaxed">
+                    <span className="eyebrow text-primary opacity-60 block mb-2">{cap.id}</span>
+                    <h3 className="text-xl font-semibold tracking-tight text-foreground mb-3">{cap.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                       {cap.description}
                     </p>
                   </div>
