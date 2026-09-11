@@ -19,3 +19,6 @@ venv/
 .venv/
 env/
 .env
+
+
+skill/
