@@ -175,7 +175,7 @@ export function ProductStorySection() {
           
           {/* Narrative Column */}
           <div className="relative h-[200px] flex flex-col justify-center text-left">
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="wait" initial={false}>
               <motion.h2
                 key={`text-${activeScene.id}`}
                 initial={{ opacity: 0, y: 16 }}
@@ -191,7 +191,7 @@ export function ProductStorySection() {
 
           {/* Visual UI Column */}
           <div className="relative h-[400px] w-full flex items-center justify-center">
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={`ui-${activeScene.id}`}
                 initial={{ opacity: 0, y: 24, scale: 0.97 }}

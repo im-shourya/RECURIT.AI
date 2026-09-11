@@ -7,26 +7,13 @@ import { ArrowRight } from 'lucide-react'
 
 export function TrustValueSection() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const prefersReducedMotion = useReducedMotion()
-
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start end", "end end"]
-  })
-
-  // Fade in the text as it enters the screen, keep it visible while pinned, then fade out
-  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0])
-  const y = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [40, 0, 0, -40])
 
   return (
     <section ref={containerRef} className="relative bg-background sm:h-[300vh]">
       <div className="sm:sticky sm:top-0 sm:h-screen w-full flex flex-col justify-center overflow-hidden py-24 sm:py-0">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center">
           
-          <motion.div
-            style={prefersReducedMotion ? {} : { opacity, y }}
-            className="flex flex-col items-center"
-          >
+          <div className="flex flex-col items-center">
             {/* Value Proposition */}
             <div className="mb-8">
               <h2 className="section-title text-foreground">
@@ -50,7 +37,7 @@ export function TrustValueSection() {
                 <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </div>
-          </motion.div>
+          </div>
 
         </div>
       </div>
