@@ -8,20 +8,6 @@ const appleEase = [0.25, 0.1, 0.25, 1] as const
 
 export function DecisionMomentSection() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const prefersReducedMotion = useReducedMotion()
-
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start end", "end end"]
-  })
-
-  // 0 -> 0.2: Fade in text as it scrolls into view
-  // 0.2 -> 0.5: Fade in UI while pinned
-  
-  const textScale = useTransform(scrollYProgress, [0, 0.2], [0.95, 1])
-  const textOpacity = useTransform(scrollYProgress, [0, 0.2], [0, 1])
-  const uiOpacity = useTransform(scrollYProgress, [0.2, 0.5], [0, 1])
-  const uiY = useTransform(scrollYProgress, [0.2, 0.5], [40, 0])
 
   return (
     <section ref={containerRef} className="relative bg-background overflow-hidden border-t border-border/30 sm:h-[300vh]">
@@ -29,21 +15,15 @@ export function DecisionMomentSection() {
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center">
           
           {/* Major Typographic Moment */}
-          <motion.div
-            style={prefersReducedMotion ? {} : { opacity: textOpacity, scale: textScale }}
-            className="mb-16 sm:mb-24"
-          >
+          <div className="mb-16 sm:mb-24">
             <h2 className="section-title text-foreground">
               AI assists.<br />
               <span className="text-primary">Recruiter decides.</span>
             </h2>
-          </motion.div>
+          </div>
 
           {/* Restrained Evaluation UI Reveal */}
-          <motion.div
-            style={prefersReducedMotion ? {} : { opacity: uiOpacity, y: uiY }}
-            className="w-full max-w-2xl bg-surface border border-border rounded-2xl shadow-sm overflow-hidden text-left"
-          >
+          <div className="w-full max-w-2xl bg-surface border border-border rounded-2xl shadow-sm overflow-hidden text-left">
             <div className="p-6 border-b border-border bg-background">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -79,7 +59,7 @@ export function DecisionMomentSection() {
                 </button>
               </div>
             </div>
-          </motion.div>
+          </div>
 
         </div>
       </div>
