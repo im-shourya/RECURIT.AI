@@ -60,22 +60,22 @@ export default function DashboardLayout({
   if (!user) return null
 
   const NavContent = ({ mobile = false }: { mobile?: boolean }) => (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-sidebar">
       <div className={cn(
-        "flex items-center px-4 h-16 border-b border-border/50",
+        "flex items-center px-4 h-16 border-b border-border",
         isCollapsed && !mobile && "justify-center px-3"
       )}>
         {(!isCollapsed || mobile) ? (
-          <span className="text-lg font-extrabold tracking-tight">
-            RECRUIT<span className="text-primary">.</span>AI
+          <span className="text-lg font-bold tracking-tight text-foreground">
+            RECRUIT<span className="text-primary">.AI</span>
           </span>
         ) : (
-          <span className="text-lg font-extrabold text-primary">R</span>
+          <span className="text-lg font-bold text-primary">R.</span>
         )}
       </div>
 
       {/* Nav Items */}
-      <nav className="flex-1 py-4 space-y-1 px-2">
+      <nav className="flex-1 py-6 space-y-1 px-3">
         {navItems.map((item) => {
           const isActive = pathname === item.href || 
             (item.href !== '/dashboard' && pathname.startsWith(item.href))
@@ -86,15 +86,18 @@ export default function DashboardLayout({
               href={item.href}
               onClick={() => mobile && setIsMobileOpen(false)}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all relative",
+                "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors relative",
                 isActive
-                  ? "bg-primary/8 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  ? "bg-secondary text-foreground font-semibold"
+                  : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground font-medium",
                 isCollapsed && !mobile && "justify-center px-2"
               )}
             >
               <item.icon className="h-5 w-5 flex-shrink-0" />
               {(!isCollapsed || mobile) && <span>{item.label}</span>}
+              {isActive && (!isCollapsed || mobile) && (
+                <div className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-primary rounded-r-md" />
+              )}
             </Link>
           )
         })}
@@ -103,13 +106,13 @@ export default function DashboardLayout({
 
       {/* Collapse Toggle - Desktop Only */}
       {!mobile && (
-        <div className="p-2 border-t border-border/50">
+        <div className="p-3 border-t border-border">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsCollapsed(!isCollapsed)}
             className={cn(
-              "w-full",
+              "w-full text-muted-foreground hover:bg-secondary/50",
               isCollapsed ? "justify-center" : "justify-start"
             )}
           >
@@ -132,7 +135,7 @@ export default function DashboardLayout({
       {/* Desktop Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 h-screen border-r border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 hidden lg:block",
+          "fixed left-0 top-0 z-40 h-screen border-r border-border bg-sidebar transition-all duration-300 hidden lg:block",
           isCollapsed ? "w-16" : "w-64"
         )}
       >
@@ -140,7 +143,7 @@ export default function DashboardLayout({
       </aside>
 
       {/* Mobile Header */}
-      <header className="lg:hidden sticky top-0 z-50 flex items-center justify-between h-16 px-4 border-b border-border/50 bg-background/80 backdrop-blur-sm">
+      <header className="lg:hidden sticky top-0 z-50 flex items-center justify-between h-16 px-4 border-b border-border bg-background">
         <div className="flex items-center gap-3">
           <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
             <SheetTrigger asChild>
@@ -153,15 +156,15 @@ export default function DashboardLayout({
               <NavContent mobile />
             </SheetContent>
           </Sheet>
-          <span className="text-base font-extrabold tracking-tight">
-            RECRUIT<span className="text-primary">.</span>AI
+          <span className="text-base font-bold tracking-tight text-foreground">
+            RECRUIT<span className="text-primary">.AI</span>
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="relative">
+          <Button variant="ghost" size="icon" className="relative text-muted-foreground">
             <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
+            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary border-2 border-background" />
           </Button>
           <UserMenu user={user} onLogout={logout} />
         </div>
@@ -175,9 +178,9 @@ export default function DashboardLayout({
         )}
       >
         {/* Desktop Top Bar */}
-        <header className="hidden lg:flex items-center justify-between h-16 px-8 border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-30">
+        <header className="hidden lg:flex items-center justify-between h-16 px-8 border-b border-border bg-background sticky top-0 z-30">
           <div>
-            <h1 className="text-lg font-semibold">
+            <h1 className="text-lg font-semibold text-foreground">
               {(() => {
                 const hour = new Date().getHours()
                 const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
@@ -186,16 +189,16 @@ export default function DashboardLayout({
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="relative">
+            <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:bg-secondary/50">
               <Bell className="h-5 w-5" />
-              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
+              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary border-2 border-background" />
             </Button>
             <UserMenu user={user} onLogout={logout} />
           </div>
         </header>
 
         {/* Page Content */}
-        <div className="p-4 lg:p-8">
+        <div className="p-6 lg:p-10 max-w-7xl mx-auto">
           {children}
         </div>
       </main>
@@ -207,10 +210,10 @@ function UserMenu({ user, onLogout }: { user: { name: string; email: string } | 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+        <Button variant="ghost" className="relative h-9 w-9 rounded-full bg-secondary/50 hover:bg-secondary">
           <Avatar className="h-9 w-9">
             <AvatarImage src="" alt="User" />
-            <AvatarFallback className="bg-primary/10 text-primary">
+            <AvatarFallback className="bg-primary/10 text-primary font-medium">
               {user?.name?.slice(0, 2).toUpperCase() || 'OR'}
             </AvatarFallback>
           </Avatar>
@@ -219,21 +222,21 @@ function UserMenu({ user, onLogout }: { user: { name: string; email: string } | 
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium">{user?.name || 'My Organization'}</p>
-            <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
+            <p className="text-sm font-medium leading-none">{user?.name || 'My Organization'}</p>
+            <p className="text-xs text-muted-foreground mt-1">{user?.email || ''}</p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem className="cursor-pointer">
           <User className="mr-2 h-4 w-4" />
           Profile
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem className="cursor-pointer">
           <Settings className="mr-2 h-4 w-4" />
           Settings
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-destructive" onClick={onLogout}>
+        <DropdownMenuItem className="text-destructive cursor-pointer" onClick={onLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           Log out
         </DropdownMenuItem>
