@@ -1,3 +1,5 @@
+'use client'
+
 import * as React from 'react'
 import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
@@ -36,28 +38,46 @@ const buttonVariants = cva(
   },
 )
 
-function Button({
-  className,
-  variant,
-  size,
-  asChild = false,
-  ...props
-}: React.ComponentProps<'button'> &
-  VariantProps<typeof buttonVariants> & {
-    asChild?: boolean
-  }) {
-  const Comp = asChild ? Slot : 'button'
+import { useSquircle } from './squircle'
 
-  // Apple-like rounded corners for buttons
-  const radiusClass = size === 'sm' || size === 'icon-sm' ? 'rounded-[6px]' : size === 'lg' || size === 'icon-lg' ? 'rounded-[10px]' : 'rounded-[8px]'
+const Button = React.forwardRef<HTMLButtonElement, React.ComponentProps<'button'> & VariantProps<typeof buttonVariants> & { asChild?: boolean }>(
+  ({ className, variant, size, asChild = false, style, children, ...props }, forwardedRef) => {
+    const Comp = asChild ? Slot : 'button'
+    
+    // Determine Squircle border based on variant
+    const borderClassName = variant === 'outline' ? 'stroke-border dark:stroke-input' : undefined
+    const cornerRadius = size === 'sm' || size === 'icon-sm' ? 6 : size === 'lg' || size === 'icon-lg' ? 10 : 8
 
-  return (
-    <Comp
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }), radiusClass)}
-      {...props}
-    />
-  )
-}
+    const { ref: squircleRef, clipStyle, svgOverlay } = useSquircle({
+      cornerRadius,
+      cornerSmoothing: 1,
+      borderClassName
+    })
+
+    const ref = (node: HTMLButtonElement) => {
+      squircleRef(node)
+      if (typeof forwardedRef === 'function') forwardedRef(node)
+      else if (forwardedRef) forwardedRef.current = node
+    }
+
+    return (
+      <Comp
+        ref={ref}
+        data-slot="button"
+        className={cn(buttonVariants({ variant, size, className }), "relative overflow-hidden")}
+        style={{ ...style, ...clipStyle }}
+        {...props}
+      >
+        {asChild ? children : (
+          <>
+            {svgOverlay}
+            {children}
+          </>
+        )}
+      </Comp>
+    )
+  }
+)
+Button.displayName = 'Button'
 
 export { Button, buttonVariants }
