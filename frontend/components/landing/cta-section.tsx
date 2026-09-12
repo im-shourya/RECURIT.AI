@@ -10,39 +10,20 @@ const appleEase = [0.25, 0.1, 0.25, 1] as const
 
 export function CTASection() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const prefersReducedMotion = useReducedMotion()
-
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start end", "end end"]
-  })
-
-  // Fade in elements smoothly as the user scrolls into the sticky section
-  const textOpacity = useTransform(scrollYProgress, [0, 0.3], [0, 1])
-  const textY = useTransform(scrollYProgress, [0, 0.3], [32, 0])
-  
-  const btnOpacity = useTransform(scrollYProgress, [0.3, 0.6], [0, 1])
-  const btnY = useTransform(scrollYProgress, [0.3, 0.6], [16, 0])
 
   return (
     <section ref={containerRef} className="relative bg-background overflow-hidden sm:h-[200vh]">
       <div className="sm:sticky sm:top-0 sm:h-screen w-full flex flex-col items-center justify-center py-32 sm:py-0">
         <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center">
           
-          <motion.div
-            style={prefersReducedMotion ? {} : { opacity: textOpacity, y: textY }}
-            className="mb-12"
-          >
+          <div className="mb-12">
             <h2 className="hero-title text-foreground tracking-tight">
               Ready to recruit with <br className="hidden sm:block" />
               more signal and less noise?
             </h2>
-          </motion.div>
+          </div>
 
-          <motion.div
-            style={prefersReducedMotion ? {} : { opacity: btnOpacity, y: btnY }}
-            className="flex flex-col sm:flex-row items-center gap-6"
-          >
+          <div className="flex flex-col sm:flex-row items-center gap-6">
             <Button
               asChild
               size="lg"
@@ -59,7 +40,7 @@ export function CTASection() {
             >
               See How It Works
             </Link>
-          </motion.div>
+          </div>
 
         </div>
       </div>
