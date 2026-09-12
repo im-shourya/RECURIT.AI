@@ -342,19 +342,29 @@ RECRUIT.AI/
 │   │   ├── interview/[token]/   # AI interview interface
 │   │   ├── privacy/             # Privacy policy
 │   │   ├── terms/               # Terms of service
+│   │   ├── cookies/             # Cookies policy
 │   │   ├── layout.tsx           # Root layout (fonts, SEO, theme)
 │   │   ├── page.tsx             # Landing page
+│   │   ├── error.tsx            # Route error boundary
+│   │   ├── global-error.tsx     # Global error boundary
+│   │   ├── not-found.tsx        # 404 page
 │   │   ├── globals.css          # Global styles & design tokens
 │   │   ├── sitemap.ts           # Dynamic sitemap generation
 │   │   └── robots.ts            # Robots.txt configuration
 │   ├── components/
 │   │   ├── landing/             # Landing page sections
 │   │   │   ├── hero-section.tsx
-│   │   │   ├── features-section.tsx
-│   │   │   ├── how-it-works-section.tsx
-│   │   │   ├── trusted-by-section.tsx
+│   │   │   ├── ai-interview-section.tsx
+│   │   │   ├── applicant-workflow-section.tsx
+│   │   │   ├── capabilities-section.tsx
+│   │   │   ├── decision-moment-section.tsx
+│   │   │   ├── organization-workflow-section.tsx
+│   │   │   ├── product-story-section.tsx
+│   │   │   ├── trust-value-section.tsx
 │   │   │   └── cta-section.tsx
 │   │   ├── ui/                  # shadcn/ui components
+│   │   ├── error-pages.tsx      # Reusable error views
+│   │   ├── product-errors.tsx   # Product-specific error boundaries
 │   │   ├── navbar.tsx
 │   │   ├── footer.tsx
 │   │   └── animated-background.tsx
