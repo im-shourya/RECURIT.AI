@@ -55,7 +55,7 @@ export function useSquircle({ cornerRadius = 16, cornerSmoothing = 1, borderClas
   }
 
   const svgOverlay = borderClassName && isReady ? (
-    <svg className="absolute inset-0 pointer-events-none z-50" width={size.width} height={size.height}>
+    <svg className="absolute inset-0 pointer-events-none z-50 overflow-visible" width="100%" height="100%" viewBox={`0 0 ${size.width} ${size.height}`}>
       <path d={path} className={cn("fill-transparent", borderClassName)} strokeWidth="2" />
     </svg>
   ) : null
