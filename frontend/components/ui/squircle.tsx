@@ -64,18 +64,28 @@ export const Squircle = React.forwardRef<HTMLElement, SquircleProps>(
     ) : null
 
     if (asChild && React.isValidElement(children)) {
-      return React.cloneElement(children as React.ReactElement<any>, {
-        ...props,
-        ref,
-        className: cn("relative overflow-hidden", className, (children.props as any).className),
-        style: { ...style, ...(children.props as any).style, ...clipStyle },
-        children: (
-          <>
-            {svgOverlay}
-            {(children.props as any).children}
-          </>
-        )
-      })
+      const childProps = children.props as any;
+      return (
+        <Slot
+          {...props}
+          ref={ref as React.RefObject<HTMLElement>}
+          className={cn("relative overflow-hidden", className, childProps.className)}
+          style={{ ...style, ...childProps.style, ...clipStyle }}
+        >
+          {svgOverlay ? (
+            React.cloneElement(children, {
+              children: (
+                <>
+                  {svgOverlay}
+                  {childProps.children}
+                </>
+              )
+            })
+          ) : (
+            children
+          )}
+        </Slot>
+      )
     }
     
     return (
