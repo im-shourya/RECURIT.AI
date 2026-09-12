@@ -36,7 +36,7 @@ export function ApplicantWorkflowSection() {
   const ActiveIcon = activeStep.icon
 
   return (
-    <section ref={containerRef} className="relative bg-surface sm:h-[400vh]">
+    <section ref={containerRef} className="relative bg-surface sm:h-[250vh]">
       <div className="sm:sticky sm:top-0 sm:h-screen w-full flex flex-col justify-center overflow-hidden px-4 sm:px-6 lg:px-8 py-24 sm:py-0 border-t border-border/30">
         
         <div className="w-full max-w-5xl mx-auto mb-16 lg:mb-24 text-center">
