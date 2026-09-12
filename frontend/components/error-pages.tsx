@@ -29,7 +29,7 @@ interface ErrorVariant {
   code: number
   title: string
   description: string
-  icon: LucideIcon
+  icon?: LucideIcon
   primary: {
     label: string
     action: 'dashboard' | 'back' | 'signin' | 'retry' | 'support'
@@ -69,7 +69,6 @@ const errorVariants: Record<number, ErrorVariant> = {
     code: 404,
     title: 'Page Not Found',
     description: "This page doesn't exist. It may have been moved or the link may be incorrect.",
-    icon: Search,
     primary: { label: 'Go to Dashboard', action: 'dashboard' },
     secondary: { label: 'Go back', action: 'back' },
   },
@@ -228,16 +227,18 @@ export function ErrorPage({
         </motion.div>
 
         {/* Icon */}
-        <motion.div
-          initial={prefersReducedMotion ? {} : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.08, ease: appleEase }}
-          className="-mt-12 mb-6 flex justify-center"
-        >
-          <div className="h-12 w-12 rounded-xl bg-primary/8 flex items-center justify-center text-primary">
-            <Icon className="h-6 w-6" />
-          </div>
-        </motion.div>
+        {Icon && (
+          <motion.div
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.08, ease: appleEase }}
+            className="-mt-12 mb-6 flex justify-center"
+          >
+            <div className="h-12 w-12 rounded-xl bg-primary/8 flex items-center justify-center text-primary">
+              <Icon className="h-6 w-6" />
+            </div>
+          </motion.div>
+        )}
 
         {/* Title */}
         <motion.h1
