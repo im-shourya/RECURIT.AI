@@ -45,7 +45,7 @@ export default function PrivacyPage() {
           <section className="space-y-3">
             <h2 className="text-2xl font-semibold text-foreground">4. Contact Us</h2>
             <p>
-              If you have any questions about this Privacy Policy, your data, or would like to request account deletion, please consult the organisation you applied to or contact us directly at privacy@recruit-ai.com.
+              If you have any questions about this Privacy Policy, your data, or would like to request account deletion, please consult the organisation you applied to or contact us directly at support@shouryaparashar.in.
             </p>
           </section>
         </div>

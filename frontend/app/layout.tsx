@@ -14,7 +14,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://recuritai.shouryaparashar.in'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://recruitai.shouryaparashar.in'),
   title: 'RECRUIT.AI',
   description: 'Streamline your recruitment process with AI-powered interviews, automated screening, and intelligent candidate evaluation for organizations of every scale.',
   keywords: ['recruitment', 'AI', 'interviews', 'hiring', 'organizations', 'automation', 'AI recruitment platform',
@@ -23,17 +23,17 @@ export const metadata: Metadata = {
     'candidate screening AI',
     'interview automation tool'],
   authors: [
-    { name: 'Shourya Parashar', url: 'https://recuritai.shouryaparashar.in' }
+    { name: 'Shourya Parashar', url: 'https://recruitai.shouryaparashar.in' }
   ],
   creator: 'Shourya Parashar',
   publisher: 'RECRUIT.AI',
   alternates: {
-    canonical: 'https://recuritai.shouryaparashar.in',
+    canonical: 'https://recruitai.shouryaparashar.in',
   },
   openGraph: {
     title: 'RECRUIT.AI – AI Powered Recruitment & Interview Platform',
     description: 'Streamline your recruitment process with AI-powered interviews, automated screening, and intelligent candidate evaluation for organizations of every scale.',
-    url: 'https://recuritai.shouryaparashar.in',
+    url: 'https://recruitai.shouryaparashar.in',
     siteName: 'RECRUIT.AI',
     images: [
       {
@@ -103,8 +103,8 @@ export default function RootLayout({
                   "@context": "https://schema.org",
                   "@type": "Organization",
                   name: "RECRUIT.AI",
-                  url: "https://recuritai.shouryaparashar.in",
-                  logo: "https://recuritai.shouryaparashar.in/icon.png",
+                  url: "https://recruitai.shouryaparashar.in",
+                  logo: "https://recruitai.shouryaparashar.in/icon.png",
                 }),
               }}
             />

@@ -17,7 +17,7 @@
 
 <br/>
 
-[Live Demo](https://recuritai.shouryaparashar.in) · [API Docs](https://recuritai.shouryaparashar.in/docs) · [Report Bug](https://github.com/im-shourya/RECURIT.AI/issues) · [Request Feature](https://github.com/im-shourya/RECURIT.AI/issues)
+[Live Demo](https://recruitai.shouryaparashar.in) · [API Docs](https://recruitai.shouryaparashar.in/docs) · [Report Bug](https://github.com/im-shourya/RECURIT.AI/issues) · [Request Feature](https://github.com/im-shourya/RECURIT.AI/issues)
 
 </div>
 
