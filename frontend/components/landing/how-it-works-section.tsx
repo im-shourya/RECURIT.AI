@@ -160,7 +160,7 @@ export function HowItWorksSection() {
   const ui4Y  = useTransform(scrollYProgress, [0.75, 0.9, 1, 1], [20, 0, 0, 0])
 
   return (
-    <section ref={containerRef} className="relative h-[400vh] bg-[#f5f5f7] dark:bg-black">
+    <section ref={containerRef} id="how-it-works" className="relative h-[250vh] bg-[#f5f5f7] dark:bg-black">
       <div className="sticky top-0 h-screen w-full flex flex-col justify-center overflow-hidden px-4 sm:px-6 lg:px-8 py-12">
         
         {/* Massive section title at the top of the viewport */}
