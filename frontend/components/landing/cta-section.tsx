@@ -27,7 +27,7 @@ export function CTASection() {
             <Button
               asChild
               size="lg"
-              className="h-14 px-8 text-base font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-full transition-transform active:scale-95"
+              className="h-14 px-8 text-base font-medium transition-transform active:scale-95"
             >
               <Link href="/auth/register">
                 Start Hiring Now

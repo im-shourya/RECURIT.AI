@@ -3,11 +3,16 @@
 import { useRef } from 'react'
 import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion'
 import Image from 'next/image'
+import { Squircle } from '@/components/ui/squircle'
 
 import createDriveImg from './assets/creat-drive.png'
 import profileImg from './assets/profile.png'
 import aiInterviewImg from './assets/ai-interview.jpg'
 import evaluateEvidenceImg from './assets/evaluate-evidence.jpg'
+
+const appleEase = [0.25, 0.1, 0.25, 1] as const
+
+// ── Scene 02 Component ───────────────────────────────────────────────
 
 export function FeaturesSection() {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -80,7 +85,7 @@ export function FeaturesSection() {
             <h2 className="text-4xl lg:text-6xl font-bold text-white tracking-tight mb-8 drop-shadow-md">
               AI conducts the interview.
             </h2>
-            <div className="max-w-3xl text-left bg-black/50 p-8 rounded-2xl border border-white/10 backdrop-blur-md shadow-2xl">
+            <Squircle cornerRadius={16} borderClassName="stroke-white/10" className="max-w-3xl text-left bg-black/50 p-8 backdrop-blur-md shadow-2xl">
               <div className="flex items-center gap-3 mb-4">
                 <span className="flex h-3 w-3 relative">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
@@ -92,7 +97,7 @@ export function FeaturesSection() {
               <p className="text-xl lg:text-2xl text-white leading-relaxed">
                 "I noticed you implemented a custom Redis caching layer in your recent Next.js project. Could you explain the architectural reasoning behind bypassing the built-in cache?"
               </p>
-            </div>
+            </Squircle>
           </motion.div>
 
           <motion.div

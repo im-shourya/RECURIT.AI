@@ -2,6 +2,7 @@
 
 import { useRef } from 'react'
 import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion'
+import { Squircle } from '@/components/ui/squircle'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { User, FileText, CheckCircle, Code, MessageSquare, ShieldCheck, CheckSquare, Brain } from 'lucide-react'
@@ -27,13 +28,13 @@ function MockCandidate() {
             </div>
           </div>
         </div>
-        <div className="p-3 rounded-lg border border-border bg-card flex items-center justify-between">
+        <Squircle cornerRadius={8} borderClassName="stroke-border" className="p-3 bg-card flex items-center justify-between">
           <div className="flex items-center gap-3">
             <FileText className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm font-medium">Resume Verified</span>
           </div>
           <CheckCircle className="w-4 h-4 text-emerald" />
-        </div>
+        </Squircle>
       </CardContent>
     </Card>
   )
@@ -51,15 +52,15 @@ function MockInterviewResponses() {
         <div className="space-y-4">
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1">Q: Architectural reasoning for custom caching layer</p>
-            <div className="p-3 rounded-lg bg-card border border-border/40 text-sm leading-relaxed opacity-80">
+            <Squircle cornerRadius={8} borderClassName="stroke-border/40" className="p-3 bg-card text-sm leading-relaxed opacity-80">
               "...I chose Redis because the application required cross-instance cache invalidation that the standard built-in mechanisms didn't support robustly at scale..."
-            </div>
+            </Squircle>
           </div>
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1">Q: Handling race conditions</p>
-            <div className="p-3 rounded-lg bg-card border border-border/40 text-sm leading-relaxed opacity-80">
+            <Squircle cornerRadius={8} borderClassName="stroke-border/40" className="p-3 bg-card text-sm leading-relaxed opacity-80">
               "...implemented distributed locks to ensure the worker processes wouldn't duplicate the data ingestion..."
-            </div>
+            </Squircle>
           </div>
         </div>
       </CardContent>
@@ -77,20 +78,20 @@ function MockEvidence() {
         </div>
         
         <div className="space-y-3">
-          <div className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card">
+          <Squircle cornerRadius={8} borderClassName="stroke-border" className="flex items-start gap-3 p-3 bg-card">
             <Code className="w-4 h-4 text-muted-foreground mt-0.5" />
             <div>
               <p className="text-sm font-medium">GitHub Activity</p>
               <p className="text-xs text-muted-foreground mt-1">Consistent commit history matching claimed experience.</p>
             </div>
-          </div>
-          <div className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card">
+          </Squircle>
+          <Squircle cornerRadius={8} borderClassName="stroke-border" className="flex items-start gap-3 p-3 bg-card">
             <User className="w-4 h-4 text-muted-foreground mt-0.5" />
             <div>
               <p className="text-sm font-medium">Identity Verification</p>
               <p className="text-xs text-muted-foreground mt-1">No anomalies detected during video evaluation.</p>
             </div>
-          </div>
+          </Squircle>
         </div>
       </CardContent>
     </Card>
@@ -111,13 +112,13 @@ function MockDecision() {
         </p>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="flex items-center justify-center p-3 rounded-lg border border-border bg-card text-sm font-medium hover:bg-secondary/20 cursor-pointer transition-colors">
+          <Squircle cornerRadius={8} borderClassName="stroke-border" className="flex items-center justify-center p-3 bg-card text-sm font-medium hover:bg-secondary/20 cursor-pointer transition-colors">
             Reject
-          </div>
-          <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 cursor-pointer transition-colors">
+          </Squircle>
+          <Squircle cornerRadius={8} borderClassName="stroke-primary/20" className="flex items-center justify-center gap-2 p-3 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 cursor-pointer transition-colors">
             <CheckSquare className="w-4 h-4" />
             Proceed to Hire
-          </div>
+          </Squircle>
         </div>
       </CardContent>
     </Card>
