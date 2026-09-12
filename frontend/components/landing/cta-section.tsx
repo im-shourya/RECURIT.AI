@@ -48,7 +48,7 @@ export function CTASection() {
             <Button
               asChild
               size="lg"
-              className="w-full sm:w-auto h-14 px-8 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all rounded-lg"
+              className="w-full sm:w-auto h-14 px-8 text-base font-semibold transition-all"
             >
               <Link href="/auth/register">
                 Get Started Free
@@ -59,7 +59,7 @@ export function CTASection() {
               asChild
               variant="outline"
               size="lg"
-              className="w-full sm:w-auto h-14 px-8 text-base font-medium transition-all rounded-lg hover:bg-secondary/40"
+              className="w-full sm:w-auto h-14 px-8 text-base font-medium transition-all hover:bg-secondary/40"
             >
               <Link href="#how-it-works">
                 See a Demo
