@@ -13,7 +13,7 @@ const appleEase = [0.25, 0.1, 0.25, 1] as const
 
 function MockCandidate() {
   return (
-    <Card className="w-full max-w-md mx-auto shadow-xl border-border/60 bg-background/95 backdrop-blur">
+    <Card className="w-full max-w-md mx-auto shadow-xl border-border/60 bg-card/95 backdrop-blur">
       <CardContent className="p-6">
         <div className="flex items-start gap-4 mb-6">
           <div className="w-12 h-12 rounded-full bg-secondary/30 flex items-center justify-center flex-shrink-0">
@@ -42,7 +42,7 @@ function MockCandidate() {
 
 function MockInterviewResponses() {
   return (
-    <Card className="w-full max-w-lg mx-auto shadow-xl border-border/60 bg-background/95 backdrop-blur">
+    <Card className="w-full max-w-lg mx-auto shadow-xl border-border/60 bg-card/95 backdrop-blur">
       <CardContent className="p-6">
         <div className="flex items-center gap-2 mb-6">
           <MessageSquare className="w-5 h-5 text-primary" />
@@ -70,7 +70,7 @@ function MockInterviewResponses() {
 
 function MockEvidence() {
   return (
-    <Card className="w-full max-w-md mx-auto shadow-xl border-border/60 bg-background/95 backdrop-blur">
+    <Card className="w-full max-w-md mx-auto shadow-xl border-border/60 bg-card/95 backdrop-blur">
       <CardContent className="p-6">
         <div className="flex items-center gap-2 mb-6">
           <ShieldCheck className="w-5 h-5 text-primary" />
@@ -100,7 +100,7 @@ function MockEvidence() {
 
 function MockDecision() {
   return (
-    <Card className="w-full max-w-md mx-auto shadow-xl border-primary/40 bg-background/95 backdrop-blur ring-1 ring-primary/20">
+    <Card className="w-full max-w-md mx-auto shadow-xl border-primary/40 bg-card/95 backdrop-blur ring-1 ring-primary/20">
       <CardContent className="p-6">
         <div className="flex items-center gap-2 mb-6">
           <Brain className="w-5 h-5 text-primary" />
@@ -160,7 +160,7 @@ export function HowItWorksSection() {
   const ui4Y  = useTransform(scrollYProgress, [0.75, 0.9, 1, 1], [20, 0, 0, 0])
 
   return (
-    <section ref={containerRef} className="relative h-[400vh] bg-background">
+    <section ref={containerRef} className="relative h-[400vh] bg-[#f5f5f7] dark:bg-black">
       <div className="sticky top-0 h-screen w-full flex flex-col justify-center overflow-hidden px-4 sm:px-6 lg:px-8 py-12">
         
         {/* Massive section title at the top of the viewport */}
