@@ -148,7 +148,7 @@ function getActionHref(action: string): string | null {
   switch (action) {
     case 'dashboard': return '/'
     case 'signin': return '/auth/login'
-    case 'support': return 'mailto:support@recuritai.shouryaparashar.in'
+    case 'support': return 'mailto:support@shouryaparashar.in'
     default: return null
   }
 }

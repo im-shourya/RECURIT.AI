@@ -69,7 +69,7 @@ export default function CookiesPage() {
           <section className="space-y-3">
             <h2 className="text-2xl font-semibold text-foreground">5. Contact Us</h2>
             <p>
-              If you have any questions about our use of cookies or privacy practices, please contact us at privacy@recruit-ai.com.
+              If you have any questions about our use of cookies or privacy practices, please contact us at support@shouryaparashar.in.
             </p>
           </section>
         </div>
