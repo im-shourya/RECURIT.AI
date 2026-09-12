@@ -4,87 +4,99 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ══════════════════════════════════════════════
-   P0341 — Calm Monochromatic Blue
-   Deep blue primary, saturated blue accent, cool blue-gray neutrals.
-   Strictly blue visual identity. No purple.
+   Apple Design System Foundation
+   High-contrast neutrals, system blue, SF Pro
    ══════════════════════════════════════════════ */
 
 :root {
-  --background: #F7F8F7;
-  --foreground: #171A1F;
-  --card: #ECEDEA;
-  --card-foreground: #171A1F;
-  --popover: #ECEDEA;
-  --popover-foreground: #171A1F;
-  --primary: #2C52BA;
+  --background: #F5F5F7;
+  --foreground: #1d1d1f;
+  --card: #FFFFFF;
+  --card-foreground: #1d1d1f;
+  --popover: #FFFFFF;
+  --popover-foreground: #1d1d1f;
+  --primary: #007AFF;
   --primary-foreground: #ffffff;
-  --secondary: #A2ABC3;
-  --secondary-foreground: #171A1F;
-  --muted: #DFE1DE;
-  --muted-foreground: #5F6670;
-  --accent: #2552D0;
+  --secondary: #e5e5ea;
+  --secondary-foreground: #1d1d1f;
+  --muted: #f2f2f7;
+  --muted-foreground: #86868b;
+  --accent: #007AFF;
   --accent-foreground: #ffffff;
-  --destructive: #ef4444;
+  --destructive: #ff3b30;
   --destructive-foreground: #ffffff;
-  --success: #10b981;
+  --success: #34c759;
   --success-foreground: #ffffff;
-  --warning: #f59e0b;
-  --warning-foreground: #ffffff;
-  --border: #D7DCE2;
-  --input: #D7DCE2;
-  --ring: #2C52BA;
+  --warning: #ffcc00;
+  --warning-foreground: #1d1d1f;
+  --border: #d1d1d6;
+  --input: #d1d1d6;
+  --ring: #007AFF;
   
   --radius: 0.5rem;
   
-  --sidebar: #ECEDEA;
-  --sidebar-foreground: #171A1F;
-  --sidebar-primary: #2C52BA;
+  --sidebar: #F5F5F7;
+  --sidebar-foreground: #1d1d1f;
+  --sidebar-primary: #007AFF;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #A2ABC3;
-  --sidebar-accent-foreground: #171A1F;
-  --sidebar-border: #D7DCE2;
-  --sidebar-ring: #2C52BA;
+  --sidebar-accent: #e5e5ea;
+  --sidebar-accent-foreground: #1d1d1f;
+  --sidebar-border: #d1d1d6;
+  --sidebar-ring: #007AFF;
 }
 
 .dark {
-  --background: #0a0a0a; 
-  --foreground: #F7F8F7;
-  --card: #141414;
-  --card-foreground: #F7F8F7;
-  --popover: #141414;
-  --popover-foreground: #F7F8F7;
-  --primary: #4A6FD4;
+  --background: #000000; 
+  --foreground: #F5F5F7;
+  --card: #1c1c1e;
+  --card-foreground: #F5F5F7;
+  --popover: #1c1c1e;
+  --popover-foreground: #F5F5F7;
+  --primary: #0a84ff;
   --primary-foreground: #ffffff;
-  --secondary: #3A3F4E;
-  --secondary-foreground: #F7F8F7;
-  --muted: #262626;
-  --muted-foreground: #a3a3a3;
-  --accent: #4B72E0;
+  --secondary: #2c2c2e;
+  --secondary-foreground: #F5F5F7;
+  --muted: #1c1c1e;
+  --muted-foreground: #98989d;
+  --accent: #0a84ff;
   --accent-foreground: #ffffff;
-  --destructive: #f87171;
-  --destructive-foreground: #450a0a;
-  --success: #34d399;
-  --success-foreground: #022c22;
-  --warning: #fbbf24;
-  --warning-foreground: #451a03;
-  --border: #2B2E33;
-  --input: #2B2E33;
-  --ring: #4A6FD4;
+  --destructive: #ff453a;
+  --destructive-foreground: #ffffff;
+  --success: #30d158;
+  --success-foreground: #ffffff;
+  --warning: #ffd60a;
+  --warning-foreground: #1c1c1e;
+  --border: #38383a;
+  --input: #38383a;
+  --ring: #0a84ff;
   
-  --sidebar: #141414;
-  --sidebar-foreground: #F7F8F7;
-  --sidebar-primary: #4A6FD4;
+  --sidebar: #000000;
+  --sidebar-foreground: #F5F5F7;
+  --sidebar-primary: #0a84ff;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #3A3F4E;
-  --sidebar-accent-foreground: #F7F8F7;
-  --sidebar-border: #2B2E33;
-  --sidebar-ring: #4A6FD4;
+  --sidebar-accent: #2c2c2e;
+  --sidebar-accent-foreground: #F5F5F7;
+  --sidebar-border: #38383a;
+  --sidebar-ring: #0a84ff;
 }
 
 @theme inline {
-  --font-sans: var(--font-inter, 'Inter'), system-ui, -apple-system, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
   --font-mono: var(--font-jetbrains-mono, 'JetBrains Mono'), monospace;
   
+  /* Apple Type Scale Overrides */
+  --text-xs: 13px;
+  --text-sm: 15px;
+  --text-base: 17px;
+  --text-lg: 19px;
+  --text-xl: 21px;
+  --text-2xl: 28px;
+  --text-3xl: 34px;
+  --text-4xl: 40px;
+  --text-5xl: 48px;
+  --text-6xl: 60px;
+  --text-7xl: 80px;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -110,11 +122,11 @@
   --color-ring: var(--ring);
   
   /* Semantic utility colors — used for state communication in dashboard */
-  --color-cyan: #06b6d4;
-  --color-indigo: #4f6adb;
-  --color-emerald: #10b981;
-  --color-rose: #f43f5e;
-  --color-amber: #f59e0b;
+  --color-cyan: #32ade6;
+  --color-indigo: #5856d6;
+  --color-emerald: #34c759;
+  --color-rose: #ff2d55;
+  --color-amber: #ffcc00;
   
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: calc(var(--radius) - 1px);

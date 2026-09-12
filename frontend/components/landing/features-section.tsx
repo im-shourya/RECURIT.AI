@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Squircle } from '@/components/ui/squircle'
 import { FileText, Github, Share2, CheckCircle, Video, User } from 'lucide-react'
 
 const appleEase = [0.25, 0.1, 0.25, 1] as const
@@ -15,7 +16,7 @@ const appleEase = [0.25, 0.1, 0.25, 1] as const
 
 function MockDriveCreation() {
   return (
-    <Card className="w-full max-w-md mx-auto shadow-xl border-border/60 bg-background/95 backdrop-blur">
+    <Card className="w-full max-w-md mx-auto border-border/60 bg-background/95 backdrop-blur drop-shadow-xl">
       <CardContent className="p-6">
         <div className="space-y-6">
           <div>
@@ -46,9 +47,10 @@ function MockDriveCreation() {
   )
 }
 
+
 function MockDriveShare() {
   return (
-    <Card className="w-full max-w-md mx-auto shadow-xl border-border/60 bg-background/95 backdrop-blur text-center">
+    <Card className="w-full max-w-md mx-auto border-border/60 bg-background/95 backdrop-blur text-center drop-shadow-xl">
       <CardContent className="p-8">
         <div className="mx-auto w-12 h-12 rounded-full bg-emerald/10 text-emerald flex items-center justify-center mb-4">
           <CheckCircle className="w-6 h-6" />
@@ -56,13 +58,13 @@ function MockDriveShare() {
         <h3 className="text-lg font-semibold mb-2">Drive Created Successfully</h3>
         <p className="text-sm text-muted-foreground mb-6">Share this link with candidates to begin.</p>
 
-        <div className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border">
+        <Squircle cornerRadius={8} borderClassName="stroke-border" className="flex items-center gap-2 p-2 bg-card">
           <code className="text-xs truncate flex-1 px-2">recruit.ai/apply/d_7x9Qk2</code>
           <Button size="sm" variant="secondary" className="h-7 px-3 pointer-events-none">
             <Share2 className="w-3 h-3 mr-1.5" />
             Copy
           </Button>
-        </div>
+        </Squircle>
       </CardContent>
     </Card>
   )
@@ -70,7 +72,7 @@ function MockDriveShare() {
 
 function MockCandidateSubmit() {
   return (
-    <Card className="w-full max-w-md mx-auto shadow-xl border-border/60 bg-background/95 backdrop-blur">
+    <Card className="w-full max-w-md mx-auto border-border/60 bg-background/95 backdrop-blur drop-shadow-xl">
       <CardContent className="p-6">
         <div className="flex items-center gap-4 mb-6">
           <div className="w-10 h-10 rounded-full bg-secondary/30 flex items-center justify-center">
@@ -83,25 +85,25 @@ function MockCandidateSubmit() {
         </div>
 
         <div className="space-y-3 mb-6">
-          <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
+          <Squircle cornerRadius={8} borderClassName="stroke-border" className="flex items-center gap-3 p-3 bg-card">
             <Github className="w-5 h-5 text-muted-foreground" />
             <div className="flex-1">
               <p className="text-sm font-medium">github.com/alexdev</p>
               <p className="text-xs text-emerald">Connected</p>
             </div>
             <CheckCircle className="w-4 h-4 text-emerald" />
-          </div>
-          <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
+          </Squircle>
+          <Squircle cornerRadius={8} borderClassName="stroke-border" className="flex items-center gap-3 p-3 bg-card">
             <FileText className="w-5 h-5 text-muted-foreground" />
             <div className="flex-1">
               <p className="text-sm font-medium">resume_2026.pdf</p>
               <p className="text-xs text-emerald">Uploaded</p>
             </div>
             <CheckCircle className="w-4 h-4 text-emerald" />
-          </div>
+          </Squircle>
         </div>
 
-        <Button className="w-full h-9 bg-primary text-primary-foreground pointer-events-none">
+        <Button className="w-full h-9 pointer-events-none">
           Start Technical Interview
         </Button>
       </CardContent>
@@ -111,7 +113,7 @@ function MockCandidateSubmit() {
 
 function MockAIInterview() {
   return (
-    <Card className="w-full max-w-lg mx-auto shadow-xl border-border/60 bg-background/95 backdrop-blur overflow-hidden">
+    <Card className="w-full max-w-lg mx-auto border-border/60 bg-background/95 backdrop-blur overflow-hidden drop-shadow-xl">
       <div className="flex items-center justify-between p-4 border-b border-border/50 bg-card/50">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-rose animate-pulse" />
@@ -124,21 +126,21 @@ function MockAIInterview() {
       <CardContent className="p-6">
         <div className="mb-6">
           <p className="text-sm font-medium text-foreground mb-2">Recruiter AI</p>
-          <div className="p-4 rounded-lg bg-secondary/10 border border-border/40 text-sm leading-relaxed">
+          <Squircle cornerRadius={12} borderClassName="stroke-border/40" className="p-4 bg-secondary/10 text-sm leading-relaxed">
             I noticed in your recent Next.js repository, you chose to implement a custom caching layer using Redis instead of relying on the built-in Data Cache. Could you walk me through the architectural reasoning behind that decision?
-          </div>
+          </Squircle>
         </div>
         <div className="flex justify-end">
           <div className="w-3/4">
             <p className="text-sm font-medium text-foreground mb-2 text-right">Alex Developer</p>
-            <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 text-primary text-sm leading-relaxed">
+            <Squircle cornerRadius={12} borderClassName="stroke-primary/20" className="p-4 bg-primary/10 text-primary text-sm leading-relaxed">
               <div className="flex gap-1 items-center justify-end mb-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }} />
                 <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms' }} />
                 <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
               <span className="opacity-70">Speaking...</span>
-            </div>
+            </Squircle>
           </div>
         </div>
       </CardContent>

@@ -1,6 +1,7 @@
 'use client'
 
 import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion'
+import { Squircle } from '@/components/ui/squircle'
 import { useRef } from 'react'
 import { 
   UserPlus, 
@@ -151,9 +152,9 @@ export function HowItWorksSection() {
                   className="relative text-center group"
                 >
                   <div className="relative inline-flex mb-6">
-                    <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-lg bg-background text-muted-foreground transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground border border-border group-hover:border-primary/40 group-hover:shadow-sm">
+                    <Squircle cornerRadius={10} cornerSmoothing={1} borderClassName="stroke-border group-hover:stroke-primary/40" className="relative z-10 flex h-14 w-14 items-center justify-center bg-background text-muted-foreground transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground group-hover:drop-shadow-sm">
                       <step.icon className="h-6 w-6" />
-                    </div>
+                    </Squircle>
                     <div className="absolute -top-2 -right-2 z-20 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background text-[10px] font-bold font-mono">
                       {index + 1}
                     </div>
@@ -205,9 +206,9 @@ export function HowItWorksSection() {
                   className="relative text-center group"
                 >
                   <div className="relative inline-flex mb-6">
-                    <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-lg bg-background text-muted-foreground transition-all duration-300 group-hover:bg-foreground group-hover:text-background border border-border group-hover:border-foreground/40 group-hover:shadow-sm">
+                    <Squircle cornerRadius={10} cornerSmoothing={1} borderClassName="stroke-border group-hover:stroke-foreground/40" className="relative z-10 flex h-14 w-14 items-center justify-center bg-background text-muted-foreground transition-all duration-300 group-hover:bg-foreground group-hover:text-background group-hover:drop-shadow-sm">
                       <step.icon className="h-6 w-6" />
-                    </div>
+                    </Squircle>
                     <div className="absolute -top-2 -right-2 z-20 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold font-mono">
                       {index + 1}
                     </div>
@@ -242,28 +243,29 @@ export function HowItWorksSection() {
             <div className="absolute top-1/2 left-[17%] right-[17%] h-px bg-border hidden md:block" />
 
             {interviewStages.map((round, index) => (
-              <motion.div
-                key={round.stage}
-                initial={prefersReducedMotion ? {} : { opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{
-                  duration: 0.6,
-                  delay: index * 0.1,
-                  ease: appleEase
-                }}
-                className="relative rounded-xl border border-border/60 bg-background p-7 transition-all duration-300 hover:border-primary/30 hover:-translate-y-1"
-              >
-                <div className="mb-4">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-primary font-mono">
-                    {round.stage}
-                  </span>
-                </div>
-                <h4 className="font-semibold text-lg text-foreground mb-2">{round.title}</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {round.description}
-                </p>
-              </motion.div>
+              <Squircle key={round.stage} cornerRadius={16} cornerSmoothing={1} borderClassName="stroke-border/60 hover:stroke-primary/30" className="bg-background transition-all duration-300">
+                <motion.div
+                  initial={prefersReducedMotion ? {} : { opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{
+                    duration: 0.6,
+                    delay: index * 0.1,
+                    ease: appleEase
+                  }}
+                  className="relative p-7 hover:-translate-y-1 transition-transform duration-300"
+                >
+                  <div className="mb-4">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-primary font-mono">
+                      {round.stage}
+                    </span>
+                  </div>
+                  <h4 className="font-semibold text-lg text-foreground mb-2">{round.title}</h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {round.description}
+                  </p>
+                </motion.div>
+              </Squircle>
             ))}
           </div>
         </motion.div>
