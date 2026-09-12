@@ -36,7 +36,7 @@ export function FeaturesSection() {
   const img4Op = useTransform(scrollYProgress, [0.7, 0.8, 1, 1], [0, 1, 1, 1])
 
   return (
-    <section ref={containerRef} id="features" className="relative h-[250vh] bg-[#f5f5f7] dark:bg-black">
+    <section ref={containerRef} className="relative h-[250vh] bg-[#f5f5f7] dark:bg-black">
       <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
         
         {/* Background Images Layer */}
