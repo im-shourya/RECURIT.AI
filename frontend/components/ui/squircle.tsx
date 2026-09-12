@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { getSvgPath } from 'figma-squircle'
 import { cn } from '@/lib/utils'
 import { Slot } from '@radix-ui/react-slot'
@@ -13,12 +13,12 @@ export interface SquircleProps extends React.HTMLAttributes<HTMLElement> {
 }
 
 export function useSquircle({ cornerRadius = 16, cornerSmoothing = 1, borderClassName }: Omit<SquircleProps, 'asChild'>) {
-  const internalRef = useRef<HTMLElement>(null)
+  const internalRef = useRef<HTMLElement | null>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
 
-  const ref = (node: HTMLElement | null) => {
+  const ref = useCallback((node: HTMLElement | null) => {
     internalRef.current = node
-  }
+  }, [])
 
   useEffect(() => {
     if (!internalRef.current) return
@@ -49,7 +49,7 @@ export function useSquircle({ cornerRadius = 16, cornerSmoothing = 1, borderClas
     : ''
 
   const isReady = path !== ''
-  const clipStyle = {
+  const clipStyle: React.CSSProperties = {
     clipPath: isReady ? `path('${path}')` : undefined,
     WebkitClipPath: isReady ? `path('${path}')` : undefined,
   }
@@ -66,28 +66,31 @@ export function useSquircle({ cornerRadius = 16, cornerSmoothing = 1, borderClas
 export const Squircle = React.forwardRef<HTMLElement, SquircleProps>(
   ({ className, cornerRadius = 16, cornerSmoothing = 1, borderClassName, asChild, children, style, ...props }, forwardedRef) => {
     const { ref: hookRef, clipStyle, svgOverlay } = useSquircle({ cornerRadius, cornerSmoothing, borderClassName })
-    
-    const ref = (node: HTMLElement) => {
-      hookRef(node)
-      if (typeof forwardedRef === 'function') forwardedRef(node)
-      else if (forwardedRef) forwardedRef.current = node
-    }
+
+    const combinedRef = useCallback(
+      (node: HTMLElement | null) => {
+        hookRef(node)
+        if (typeof forwardedRef === 'function') forwardedRef(node)
+        else if (forwardedRef) (forwardedRef as React.MutableRefObject<HTMLElement | null>).current = node
+      },
+      [hookRef, forwardedRef]
+    )
 
     if (asChild && React.isValidElement(children)) {
-      const childProps = children.props as any;
+      const childProps = children.props as Record<string, unknown>;
       return (
         <Slot
           {...props}
-          ref={ref as React.RefObject<HTMLElement>}
-          className={cn("relative overflow-hidden", className, childProps.className)}
-          style={{ ...style, ...childProps.style, ...clipStyle }}
+          ref={combinedRef}
+          className={cn("relative overflow-hidden", className, childProps.className as string | undefined)}
+          style={{ ...style, ...(childProps.style as React.CSSProperties | undefined), ...clipStyle }}
         >
           {svgOverlay ? (
-            React.cloneElement(children, {
+            React.cloneElement(children as React.ReactElement<{ children?: React.ReactNode }>, {
               children: (
                 <>
                   {svgOverlay}
-                  {childProps.children}
+                  {childProps.children as React.ReactNode}
                 </>
               )
             })
@@ -97,10 +100,10 @@ export const Squircle = React.forwardRef<HTMLElement, SquircleProps>(
         </Slot>
       )
     }
-    
+
     return (
       <div
-        ref={ref as React.RefObject<HTMLDivElement>}
+        ref={combinedRef as React.Ref<HTMLDivElement>}
         className={cn("relative overflow-hidden", className)}
         style={{ ...style, ...clipStyle }}
         {...props}
@@ -113,3 +116,4 @@ export const Squircle = React.forwardRef<HTMLElement, SquircleProps>(
 )
 
 Squircle.displayName = 'Squircle'
+
