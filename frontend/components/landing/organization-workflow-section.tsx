@@ -25,7 +25,7 @@ export function OrganizationWorkflowSection() {
   const x = useTransform(scrollYProgress, [0, 1], ["0%", "-70%"])
 
   return (
-    <section ref={containerRef} className="relative bg-background sm:h-[350vh]">
+    <section ref={containerRef} id="trusted" className="relative bg-background sm:h-[220vh]">
       <div className="sm:sticky sm:top-0 sm:h-screen w-full flex flex-col justify-center overflow-hidden py-24 sm:py-0 border-t border-border/30">
         
         {/* Section Header */}
