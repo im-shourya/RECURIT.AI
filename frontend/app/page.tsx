@@ -8,6 +8,11 @@ import { OrganizationWorkflowSection } from '@/components/landing/organization-w
 import { ApplicantWorkflowSection } from '@/components/landing/applicant-workflow-section'
 import { DecisionMomentSection } from '@/components/landing/decision-moment-section'
 import { CTASection } from '@/components/landing/cta-section'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Home | RECRUIT.AI',
+}
 
 export default function HomePage() {
   return (
