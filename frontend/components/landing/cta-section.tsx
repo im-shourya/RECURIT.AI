@@ -1,48 +1,45 @@
 'use client'
 
-import { useRef } from 'react'
 import Link from 'next/link'
-import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion'
-import { Button } from '@/components/ui/button'
 import { ArrowRight } from 'lucide-react'
 
-const appleEase = [0.25, 0.1, 0.25, 1] as const
+import { Reveal } from './motion'
 
 export function CTASection() {
-  const containerRef = useRef<HTMLDivElement>(null)
-
+  // Deliberately not pinned. This is the last beat before the footer, so
+  // holding it for extra viewport-heights only delays the footer, and tying
+  // its opacity to scroll progress left the primary CTA invisible at the ends
+  // of the pin. A plain section with a single on-view reveal is calmer and
+  // reliable.
   return (
-    <section ref={containerRef} className="relative bg-background sm:h-[200vh]">
-      <div className="sm:sticky sm:top-0 sm:h-screen w-full flex flex-col items-center justify-center overflow-hidden py-32 sm:py-0">
-        <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center">
-          
-          <div className="mb-12">
-            <h2 className="hero-title text-foreground tracking-tight">
-              Ready to recruit with <br className="hidden sm:block" />
-              more signal and less noise?
-            </h2>
-          </div>
+    <section className="relative bg-background overflow-hidden py-32 sm:py-48">
+      <div aria-hidden className="pointer-events-none absolute inset-0 ambient-glow opacity-60" />
 
-          <div className="flex flex-col sm:flex-row items-center gap-6">
-            <Button
-              asChild
-              size="lg"
-              className="h-14 px-8 text-base font-medium transition-transform active:scale-95"
+      <div className="relative w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center">
+        <Reveal>
+          <h2 className="section-title text-foreground text-balance mb-12">
+            Ready to recruit with <br className="hidden sm:block" />
+            more signal and less noise?
+          </h2>
+        </Reveal>
+
+        <Reveal delay={0.12}>
+          <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
+            <Link
+              href="/auth/register"
+              className="press group inline-flex h-14 items-center justify-center rounded-full bg-primary px-8 text-base font-medium text-primary-foreground shadow-elevation-2 transition-colors hover:bg-primary/90"
             >
-              <Link href="/auth/register">
-                Start Hiring Now
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Link 
-              href="/#how-it-works" 
-              className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors"
+              Start Hiring Now
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+            </Link>
+            <Link
+              href="/#how-it-works"
+              className="text-base font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               See How It Works
             </Link>
           </div>
-
-        </div>
+        </Reveal>
       </div>
     </section>
   )
