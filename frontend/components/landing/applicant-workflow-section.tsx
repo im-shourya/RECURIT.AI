@@ -1,10 +1,11 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { motion, useScroll, useMotionValueEvent, useReducedMotion, AnimatePresence } from 'framer-motion'
+import { motion, useScroll, useMotionValueEvent, AnimatePresence } from 'framer-motion'
 import { Link2, Upload, Brain, FileCheck } from 'lucide-react'
 
-const appleEase = [0.25, 0.1, 0.25, 1] as const
+import { useStickyStage } from '@/hooks/use-sticky-stage'
+import { Reveal, appleOut } from './motion'
 
 const steps = [
   { id: '01', title: 'Open Link', desc: 'Access the drive securely without friction.', icon: Link2 },
@@ -15,7 +16,7 @@ const steps = [
 
 export function ApplicantWorkflowSection() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const prefersReducedMotion = useReducedMotion()
+  const pinned = useStickyStage()
   const [activeIndex, setActiveIndex] = useState(0)
 
   const { scrollYProgress } = useScroll({
@@ -24,10 +25,10 @@ export function ApplicantWorkflowSection() {
   })
 
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
-    if (prefersReducedMotion) return
+    if (!pinned) return
     const index = Math.min(
       steps.length - 1,
-      Math.floor(latest * steps.length)
+      Math.max(0, Math.floor(latest * steps.length))
     )
     setActiveIndex(index)
   })
@@ -39,32 +40,25 @@ export function ApplicantWorkflowSection() {
     <section ref={containerRef} className="relative bg-surface sm:h-[250vh]">
       <div className="sm:sticky sm:top-0 sm:h-screen w-full flex flex-col justify-center overflow-hidden px-4 sm:px-6 lg:px-8 py-24 sm:py-0 border-t border-border/30">
         
-        <div className="w-full max-w-5xl mx-auto mb-16 lg:mb-24 text-center">
-          <motion.div
-            initial={prefersReducedMotion ? {} : { opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-10%' }}
-            transition={{ duration: 0.8, ease: appleEase }}
-          >
-            <span className="eyebrow text-muted-foreground opacity-70 mb-4 block">For Applicants</span>
-            <h2 className="section-title text-foreground">
-              A frictionless experience.
-            </h2>
-          </motion.div>
-        </div>
+        <Reveal className="w-full max-w-5xl mx-auto mb-16 lg:mb-24 text-center">
+          <span className="eyebrow text-muted-foreground/70 mb-4 block">For Applicants</span>
+          <h2 className="section-title text-foreground">
+            A frictionless experience.
+          </h2>
+        </Reveal>
 
         {/* Desktop Sticky Narrative */}
         <div className="hidden sm:flex w-full max-w-5xl mx-auto flex-col items-center">
           
           {/* Visual Presentation Area - Top */}
-          <div className="relative h-[240px] w-full max-w-2xl flex items-center justify-center bg-background border border-border rounded-2xl mb-12 shadow-sm">
+          <div className="panel relative h-[240px] w-full max-w-2xl flex items-center justify-center mb-12">
             <AnimatePresence mode="wait">
               <motion.div
                 key={`visual-${activeStep.id}`}
                 initial={{ opacity: 0, scale: 0.97, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.985, y: -10 }}
-                transition={{ duration: 0.3, ease: appleEase }}
+                transition={{ duration: 0.35, ease: appleOut }}
                 className="absolute flex items-center justify-center gap-6 p-8"
               >
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
@@ -87,9 +81,12 @@ export function ApplicantWorkflowSection() {
               return (
                 <div 
                   key={step.id}
-                  className={`transition-all duration-500 flex flex-col items-center text-center p-4 rounded-xl border ${
-                    isActive ? 'bg-background border-border shadow-sm' : 
-                    isPast ? 'opacity-40 border-transparent' : 'opacity-40 border-transparent'
+                  className={`transition-all duration-500 flex flex-col items-center text-center p-4 rounded-2xl border ${
+                    isActive
+                      ? 'bg-surface border-border/70 shadow-elevation-1 opacity-100'
+                      : isPast
+                        ? 'border-transparent opacity-60'
+                        : 'border-transparent opacity-35'
                   }`}
                 >
                   <h3 className={`text-base font-semibold tracking-tight mb-2 transition-colors duration-500 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
@@ -108,8 +105,8 @@ export function ApplicantWorkflowSection() {
         {/* Mobile Static Narrative */}
         <div className="sm:hidden flex flex-col gap-8 w-full">
           {steps.map((step) => (
-            <div key={`mobile-${step.id}`} className="flex items-start gap-4 p-4 bg-background border border-border rounded-xl shadow-sm">
-              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+            <div key={`mobile-${step.id}`} className="panel flex items-start gap-4 p-5">
+              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <step.icon className="w-5 h-5" />
               </div>
               <div>
