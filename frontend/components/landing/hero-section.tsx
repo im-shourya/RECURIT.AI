@@ -1,56 +1,110 @@
 'use client'
 
-import { motion, useReducedMotion } from 'framer-motion'
+import { useRef } from 'react'
+import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
+import { ArrowRight, ChevronDown } from 'lucide-react'
 
-const appleEase = [0.25, 0.1, 0.25, 1] as const
+import { appleOut } from './motion'
 
 export function HeroSection() {
   const prefersReducedMotion = useReducedMotion()
+  const sectionRef = useRef<HTMLElement>(null)
+
+  // The hero recedes as you scroll past it — fades and settles back slightly,
+  // so the next section feels like it rises over the top of it.
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start start', 'end start'],
+  })
+  const opacity = useTransform(scrollYProgress, [0, 0.6], [1, 0])
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.94])
+  const y = useTransform(scrollYProgress, [0, 1], [0, 60])
+
+  const stage = prefersReducedMotion ? {} : { opacity, scale, y }
 
   return (
-    <section className="relative h-screen flex flex-col justify-center items-center overflow-hidden bg-background">
-      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        
-        {/* Main Title */}
+    <section
+      ref={sectionRef}
+      className="relative h-screen flex flex-col justify-center items-center overflow-hidden bg-background"
+    >
+      {/* Ambient wash behind the headline */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 ambient-glow opacity-70"
+      />
+
+      <motion.div
+        style={stage}
+        className="relative w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
+      >
+        {/* Eyebrow pill */}
         <motion.div
-          initial={prefersReducedMotion ? {} : { opacity: 0, y: 32, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.9, ease: appleEase }}
-          className="mb-8"
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: appleOut }}
+          className="mb-8 flex justify-center"
         >
-          <h1 className="hero-title text-foreground">
-            Hiring, <span className="text-primary">rethought.</span>
-          </h1>
+          <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-surface/70 px-4 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+            </span>
+            AI interviews, live now
+          </span>
         </motion.div>
+
+        {/* Main Title */}
+        <motion.h1
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 28, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 1, delay: 0.08, ease: appleOut }}
+          className="hero-title text-foreground mb-8"
+        >
+          Hiring, <span className="text-gradient">rethought.</span>
+        </motion.h1>
 
         {/* Subtitle */}
-        <motion.div
-          initial={prefersReducedMotion ? {} : { opacity: 0, y: 16 }}
+        <motion.p
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.15, ease: appleEase }}
-          className="mb-10"
+          transition={{ duration: 0.9, delay: 0.22, ease: appleOut }}
+          className="body-large text-muted-foreground text-balance mx-auto max-w-2xl mb-10"
         >
-          <p className="body-large text-muted-foreground text-balance mx-auto max-w-2xl">
-            Create drives. Interview candidates. Evaluate with evidence.
-          </p>
-        </motion.div>
+          Create drives. Interview candidates. Evaluate with evidence.
+        </motion.p>
 
-        {/* Action */}
+        {/* Actions */}
         <motion.div
-          initial={prefersReducedMotion ? {} : { opacity: 0, y: 16 }}
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.25, ease: appleEase }}
+          transition={{ duration: 0.9, delay: 0.32, ease: appleOut }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6"
         >
           <Link
             href="/auth/register"
-            className="inline-flex items-center justify-center h-10 px-6 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-transform active:scale-95 shadow-sm"
+            className="press group inline-flex h-12 items-center justify-center rounded-full bg-primary px-7 text-[15px] font-medium text-primary-foreground shadow-elevation-2 transition-colors hover:bg-primary/90"
           >
             Start Recruiting
+            <ArrowRight className="ml-1.5 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+          </Link>
+          <Link
+            href="/#how-it-works"
+            className="text-[15px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            See how it works
           </Link>
         </motion.div>
+      </motion.div>
 
-      </div>
+      {/* Scroll cue */}
+      <motion.div
+        style={prefersReducedMotion ? {} : { opacity }}
+        className="absolute bottom-10 left-1/2 -translate-x-1/2"
+        aria-hidden
+      >
+        <ChevronDown className="h-5 w-5 text-muted-foreground animate-scroll-cue" />
+      </motion.div>
     </section>
   )
 }

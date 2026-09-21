@@ -24,17 +24,18 @@ export function Navbar() {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10)
     }
-    window.addEventListener('scroll', handleScroll)
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
   return (
     <header
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 h-14 transition-all duration-300',
+        'fixed top-0 left-0 right-0 z-50 h-14 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
         isScrolled
-          ? 'glass-nav border-b border-border'
-          : 'bg-transparent'
+          ? 'glass-nav border-b border-border/60'
+          : 'bg-transparent border-b border-transparent'
       )}
     >
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full">
@@ -51,16 +52,16 @@ export function Navbar() {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  'text-[13px] font-medium transition-colors duration-200',
+                  'rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors duration-200',
                   pathname === link.href
                     ? 'text-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
+                    : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'
                 )}
               >
                 {link.label}
@@ -78,7 +79,7 @@ export function Navbar() {
             </Link>
             <Button
               asChild
-              className="h-8 px-4 text-[13px] font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-full"
+              className="press h-8 px-4 text-[13px] font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-full"
             >
               <Link href="/auth/register">
                 Get Started
