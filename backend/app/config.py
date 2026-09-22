@@ -26,22 +26,18 @@ class Settings(BaseSettings):
     # ── Redis ──
     REDIS_URL: str = "redis://localhost:6379/0"
 
-    # ── EmailJS — Service 1 (Applied + Task) ──
-    EMAILJS_SERVICE_1_ID: str = ""
-    EMAILJS_SERVICE_1_PUBLIC_KEY: str = ""
-    EMAILJS_SERVICE_1_PRIVATE_KEY: str = ""
-    EMAILJS_TEMPLATE_APPLIED: str = "template_hqwiwda"
-    EMAILJS_TEMPLATE_TASK: str = "template_n6wwvck"
+    # ── Email (Resend) ──
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = ""
+    RESEND_FROM_NAME: str = "RECRUIT.AI"
+    SUPPORT_EMAIL: str = "support@shouryaparashar.in"
 
-    # ── EmailJS — Service 2 (Interview + Result) ──
-    EMAILJS_SERVICE_2_ID: str = ""
-    EMAILJS_SERVICE_2_PUBLIC_KEY: str = ""
-    EMAILJS_SERVICE_2_PRIVATE_KEY: str = ""
-    EMAILJS_TEMPLATE_INTERVIEW: str = "template_2ff11hc"
-    EMAILJS_TEMPLATE_RESULT: str = "template_lvd2m7p"
+    # Public base URL used for logo and footer links inside emails. Mail
+    # clients cannot resolve relative paths, so these must be absolute.
+    APP_URL: str = "https://recruitai.shouryaparashar.in"
+    EMAIL_LOGO_URL: str = ""
 
     # ── Password reset ──
-    EMAILJS_TEMPLATE_PASSWORD_RESET: str = ""
     PASSWORD_RESET_TOKEN_TTL_MINUTES: int = 60
 
     # ── Frontend URL ──
@@ -53,6 +49,11 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        # Ignore unrecognised variables rather than refusing to start. A
+        # deployed .env almost always outlives the settings that read it — the
+        # EmailJS keys this replaced being the immediate example — and a
+        # retired setting should not take the service down on boot.
+        extra = "ignore"
 
 
 @lru_cache()
