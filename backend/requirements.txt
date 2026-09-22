@@ -16,5 +16,7 @@ boto3>=1.34.0
 # imported by the application; see the rate limiting note in README.
 redis>=5.0.0
 httpx>=0.27.0
+# Optional: only used when SENTRY_DSN is set.
+sentry-sdk[fastapi]>=2.0.0
 aiofiles>=24.1.0
 python-dateutil>=2.9.0

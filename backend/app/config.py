@@ -54,6 +54,12 @@ class Settings(BaseSettings):
     # forwarded should stop working at some point.
     INTERVIEW_TOKEN_TTL_DAYS: int = 14
 
+    # ── Error tracking ──
+    # Empty disables Sentry entirely; nothing is sent and the SDK is not even
+    # imported, so local development needs no account.
+    SENTRY_DSN: str = ""
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.0
+
     # ── Logging ──
     LOG_LEVEL: str = "INFO"
 
