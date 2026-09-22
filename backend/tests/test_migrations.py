@@ -27,9 +27,51 @@ def _baseline_tree() -> ast.AST:
 
 
 def _created_tables() -> dict[str, set[str]]:
-    """Map table name -> column names, as declared by op.create_table calls."""
+    """
+    Map table name -> column names across *every* revision.
+
+    Reads create_table and add_column from all migrations, not just the
+    baseline: a column introduced by a later revision is still migrated, and
+    checking the baseline alone would report it as drift.
+    """
     tables: dict[str, set[str]] = {}
-    for node in ast.walk(_baseline_tree()):
+    trees = [
+        ast.parse(path.read_text())
+        for path in sorted(MIGRATIONS_DIR.glob("*.py"))
+        if path.name != "__init__.py"
+    ]
+    for tree in trees:
+        _collect_create_table(tree, tables)
+    for tree in trees:
+        _collect_add_column(tree, tables)
+    return tables
+
+
+def _collect_add_column(tree: ast.AST, tables: dict[str, set[str]]) -> None:
+    """op.add_column('table', sa.Column('name', ...))"""
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if not (isinstance(func, ast.Attribute) and func.attr == "add_column"):
+            continue
+        if len(node.args) < 2 or not isinstance(node.args[0], ast.Constant):
+            continue
+
+        table = node.args[0].value
+        col = node.args[1]
+        if (
+            isinstance(col, ast.Call)
+            and isinstance(col.func, ast.Attribute)
+            and col.func.attr == "Column"
+            and col.args
+            and isinstance(col.args[0], ast.Constant)
+        ):
+            tables.setdefault(table, set()).add(col.args[0].value)
+
+
+def _collect_create_table(tree: ast.AST, tables: dict[str, set[str]]) -> None:
+    for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
         func = node.func
@@ -50,7 +92,6 @@ def _created_tables() -> dict[str, set[str]]:
             ):
                 columns.add(arg.args[0].value)
         tables[name] = columns
-    return tables
 
 
 # ──────────────────────────────────────────────
