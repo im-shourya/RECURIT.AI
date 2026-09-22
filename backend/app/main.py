@@ -49,12 +49,25 @@ app = FastAPI(
 
 
 # ── CORS ──
+# "*" cannot be combined with allow_credentials: the CORS spec forbids a
+# wildcard on a credentialed response, so browsers reject every such request.
+# The previous config paired them, which meant the permissive setting did not
+# even work — it only looked permissive.
+_origins = [o.strip() for o in settings.CORS_ALLOWED_ORIGINS.split(",") if o.strip()]
+
+if "*" in _origins:
+    raise RuntimeError(
+        "CORS_ALLOWED_ORIGINS cannot be '*': a wildcard origin is invalid on "
+        "credentialed requests and browsers will reject it. List the exact "
+        "origins instead, comma-separated."
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for now; restrict in production
+    allow_origins=_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 
