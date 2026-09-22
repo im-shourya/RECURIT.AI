@@ -1,3 +1,6 @@
 # Development-only dependencies
 pytest>=8.0.0
+pytest-asyncio>=0.23.0
+# In-process MongoDB stand-in, so tests run real queries without a server.
+mongomock-motor>=0.0.36
 httpx>=0.27.0
