@@ -80,8 +80,8 @@ backend/
 | DELETE | `/api/drives/{id}` | JWT | Delete drive (`?confirm=true` if it has applicants) |
 | GET | `/api/apply/{token}` | — | Fetch drive info for form |
 | POST | `/api/apply/{token}` | — | Submit application |
-| POST | `/api/submit/{applicant_id}` | — | Task/GitHub submission |
-| POST | `/api/submit/{applicant_id}/upload` | — | Upload a submission file (max 10MB) |
+| POST | `/api/submit/{submit_token}` | token | Task/GitHub submission |
+| POST | `/api/submit/{submit_token}/upload` | token | Upload a submission file (max 10MB) |
 | GET | `/api/applicants` | JWT | List applicants (filter by drive / status / search) |
 | GET | `/api/applicants/export` | JWT | CSV export (same filters as list) |
 | GET | `/api/applicants/{id}` | JWT | Applicant profile + submission + interview |
@@ -93,7 +93,7 @@ backend/
 | POST | `/api/interview/{token}/start` | — | Begin interview |
 | POST | `/api/interview/{token}/answer` | — | Submit answer, get next Q |
 | POST | `/api/interview/{token}/end` | — | End & score interview |
-| GET | `/api/interview/{token}/detail` | — | Full interview detail |
+| GET | `/api/interview/{token}/detail` | JWT | Full interview detail (org only) |
 
 ## Tests
 
@@ -153,6 +153,20 @@ alembic stamp baseline_0001
 data matters means a changed column is silently skipped and the app runs
 against a schema it does not have. Turn it on only for a throwaway local
 database.
+
+## Security notes
+
+- Public candidate routes are reached by **unguessable token**, never by a
+  database id. `submit_token` guards submission; `link_token` guards apply;
+  interview links carry their own token and expire after
+  `INTERVIEW_TOKEN_TTL_DAYS` (default 14).
+- `/api/interview/{token}/detail` requires a signed-in organisation and is
+  scoped to that organisation's drives.
+- `CORS_ALLOWED_ORIGINS` must list exact origins. `*` is rejected at startup:
+  a wildcard is invalid on credentialed requests and browsers reject it.
+- Sign-in, registration, password reset and public application are rate
+  limited. Counters are per-process, so with multiple workers the effective
+  limit is that much higher; moving them to Redis is the next step.
 
 ## Database
 

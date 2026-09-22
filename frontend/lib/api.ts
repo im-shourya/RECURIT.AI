@@ -265,11 +265,12 @@ export const api = {
   }) => request<ApplicantResponse>(`/api/apply/${token}`, { method: 'POST', body: JSON.stringify(data) }),
 
   // ── Submit (public) ──
-  submitTask: (applicantId: string, data: {
+  // Keyed on the submission token from the emailed link, never an applicant id.
+  submitTask: (submitToken: string, data: {
     file_url?: string;
     github_url?: string;
     description?: string;
-  }) => request<SubmissionResponse>(`/api/submit/${applicantId}`, { method: 'POST', body: JSON.stringify(data) }),
+  }) => request<SubmissionResponse>(`/api/submit/${submitToken}`, { method: 'POST', body: JSON.stringify(data) }),
 
   // ── Interview (public) ──
   getInterviewConfig: (token: string) =>

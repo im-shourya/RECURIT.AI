@@ -36,6 +36,7 @@ from app.services.auth_service import (
     hash_reset_token,
 )
 from app.services.email_service import send_password_reset_email
+from app.services.rate_limit import RateLimit
 
 settings = get_settings()
 
@@ -45,7 +46,12 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 # ──────────────────────────────────────────────
 # REGISTER
 # ──────────────────────────────────────────────
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    response_model=TokenResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(RateLimit("register", limit=5, window_seconds=3600))],
+)
 def register(body: OrgRegisterRequest, db: Session = Depends(get_db)):
     # Check if email already exists
     existing = db.query(Organisation).filter(Organisation.email == body.email).first()
@@ -71,7 +77,12 @@ def register(body: OrgRegisterRequest, db: Session = Depends(get_db)):
 # ──────────────────────────────────────────────
 # LOGIN
 # ──────────────────────────────────────────────
-@router.post("/login", response_model=TokenResponse)
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    # Sign-in is the brute-force target; keep this tight.
+    dependencies=[Depends(RateLimit("login", limit=10, window_seconds=300))],
+)
 def login(body: OrgLoginRequest, db: Session = Depends(get_db)):
     org = db.query(Organisation).filter(Organisation.email == body.email).first()
     if not org or not verify_password(body.password, org.password_hash):
@@ -144,7 +155,12 @@ def change_password(
 # ──────────────────────────────────────────────
 # FORGOT PASSWORD
 # ──────────────────────────────────────────────
-@router.post("/forgot-password", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/forgot-password",
+    status_code=status.HTTP_204_NO_CONTENT,
+    # Each call sends mail to a third party, so this doubles as abuse control.
+    dependencies=[Depends(RateLimit("forgot_password", limit=5, window_seconds=3600))],
+)
 def forgot_password(
     body: ForgotPasswordRequest,
     background_tasks: BackgroundTasks,
@@ -195,7 +211,11 @@ def forgot_password(
 # ──────────────────────────────────────────────
 # RESET PASSWORD
 # ──────────────────────────────────────────────
-@router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/reset-password",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(RateLimit("reset_password", limit=10, window_seconds=3600))],
+)
 def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
     """
     Consume a reset token and set a new password.
