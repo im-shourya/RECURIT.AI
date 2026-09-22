@@ -17,7 +17,7 @@ from app.error_tracking import configure_error_tracking
 from app.logging_config import configure_logging
 from app.services import email_outbox
 from app.routers import (
-    auth, drives, applicants, applicant_admin, interviews, analytics, audit,
+    auth, drives, applicants, applicant_admin, interviews, analytics, audit, team,
 )
 
 
@@ -110,6 +110,7 @@ app.include_router(applicant_admin.router, prefix="/api")
 app.include_router(interviews.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(audit.router, prefix="/api")
+app.include_router(team.router, prefix="/api")
 
 
 # ── Health Check ──

@@ -72,6 +72,10 @@ backend/
 | POST | `/api/auth/change-password` | JWT | Change org password |
 | POST | `/api/auth/forgot-password` | — | Request a reset link (always 204) |
 | POST | `/api/auth/reset-password` | — | Consume a reset token, set new password |
+| GET | `/api/team` | JWT | List organisation members |
+| POST | `/api/team` | owner | Invite a member |
+| PATCH | `/api/team/{id}` | owner | Change a member's role |
+| DELETE | `/api/team/{id}` | owner | Remove a member |
 | POST | `/api/drives` | JWT | Create drive (returns link + QR) |
 | GET | `/api/drives` | JWT | List org drives |
 | GET | `/api/drives/{id}` | JWT | Drive detail + applicants |
@@ -201,6 +205,28 @@ never imported, advertising a guarantee the code did not provide.
 
 `redis` stays in requirements for moving rate-limit counters out of process
 memory, which is the next step for exact, shared limits.
+
+## Accounts and roles
+
+People sign in as **users**, not as the organisation. The organisation used to
+be the login — one shared email and password — which forced password sharing,
+made it impossible to tell who decided what, and meant revoking one person's
+access changed it for everybody.
+
+| Role | Can |
+|------|-----|
+| `owner` | Everything, including managing members. Exactly one per org. |
+| `admin` | Create and edit drives, decide on candidates. |
+| `member` | Read-only: review candidates and evidence, but not decide. |
+
+Invited members are created **without a password** and receive a reset link,
+so a password is never chosen for them or sent by email. They cannot sign in
+until they set one. Ownership is **transferred**, never granted by invitation:
+promoting someone demotes the previous owner in the same operation.
+
+**Existing accounts are unaffected.** The migration gives every organisation
+one owner user carrying the same email and the same password hash, so current
+passwords keep working.
 
 ## Audit and data rights
 

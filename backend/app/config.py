@@ -85,6 +85,9 @@ class Settings(BaseSettings):
 
     # ── Password reset ──
     PASSWORD_RESET_TOKEN_TTL_MINUTES: int = 60
+    # Invitations get longer than an ordinary reset: one may sit unread for a
+    # day or two, and expiry means re-inviting.
+    INVITE_TOKEN_TTL_MINUTES: int = 60 * 24 * 7
 
     # ── Frontend URL ──
     # Used to build every link emailed to a candidate (apply, task,

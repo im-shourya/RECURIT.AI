@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import get_db
-from app.models.database import Organisation, PasswordResetToken, AuditAction
+from app.models.database import Organisation, PasswordResetToken, AuditAction, User, UserRole
 from app.models.schemas import (
     OrgRegisterRequest,
     OrgLoginRequest,
@@ -32,6 +32,7 @@ from app.services.auth_service import (
     verify_password,
     create_access_token,
     get_current_org,
+    get_current_user,
     generate_reset_token,
     hash_reset_token,
 )
@@ -55,10 +56,13 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 )
 def register(body: OrgRegisterRequest, db: Session = Depends(get_db)):
     # Check if email already exists
-    existing = db.query(Organisation).filter(Organisation.email == body.email).first()
-    if existing:
+    # Checked against users, not organisations: the user table holds the
+    # unique constraint that actually governs sign-in.
+    if db.query(User).filter(User.email == body.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    # The organisation still carries an email for display and contact, but the
+    # credential now lives on the owner user created alongside it.
     org = Organisation(
         name=body.name,
         email=body.email,
@@ -68,10 +72,20 @@ def register(body: OrgRegisterRequest, db: Session = Depends(get_db)):
         logo_url=body.logo_url,
     )
     db.add(org)
-    db.commit()
-    db.refresh(org)
+    db.flush()
 
-    token = create_access_token(data={"sub": str(org.id)})
+    owner = User(
+        org_id=org.id,
+        name=body.name,
+        email=body.email,
+        password_hash=org.password_hash,
+        role=UserRole.OWNER,
+    )
+    db.add(owner)
+    db.commit()
+    db.refresh(owner)
+
+    token = create_access_token(data={"sub": str(owner.id)})
     return TokenResponse(access_token=token)
 
 
@@ -85,11 +99,21 @@ def register(body: OrgRegisterRequest, db: Session = Depends(get_db)):
     dependencies=[Depends(RateLimit("login", limit=10, window_seconds=300))],
 )
 def login(body: OrgLoginRequest, db: Session = Depends(get_db)):
-    org = db.query(Organisation).filter(Organisation.email == body.email).first()
-    if not org or not verify_password(body.password, org.password_hash):
+    user = db.query(User).filter(User.email == body.email).first()
+
+    # An invited member who has not set a password yet has no hash. Treated
+    # exactly like a wrong password so the response cannot be used to work out
+    # which addresses have pending invitations.
+    if not user or not user.password_hash or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    token = create_access_token(data={"sub": str(org.id)})
+    if not user.is_active:
+        raise HTTPException(status_code=401, detail="This account is disabled")
+
+    user.last_login_at = datetime.now(timezone.utc)
+    db.commit()
+
+    token = create_access_token(data={"sub": str(user.id)})
     return TokenResponse(access_token=token)
 
 
@@ -127,7 +151,7 @@ def update_me(
 @router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
 def change_password(
     body: PasswordChangeRequest,
-    org: Organisation = Depends(get_current_org),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
@@ -137,7 +161,7 @@ def change_password(
     authenticated, so a leaked or borrowed token alone cannot lock the owner
     out of their account.
     """
-    if not verify_password(body.current_password, org.password_hash):
+    if not verify_password(body.current_password, user.password_hash or ""):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
 
     if body.current_password == body.new_password:
@@ -145,10 +169,10 @@ def change_password(
             status_code=400, detail="New password must differ from the current password"
         )
 
-    org.password_hash = hash_password(body.new_password)
+    user.password_hash = hash_password(body.new_password)
     audit.record(
-        db, org_id=org.id, action=AuditAction.PASSWORD_CHANGED,
-        entity_type="organisation", entity_id=org.id, entity_label=org.name,
+        db, org_id=user.org_id, action=AuditAction.PASSWORD_CHANGED,
+        entity_type="user", entity_id=user.id, entity_label=user.email,
     )
     db.commit()
 
@@ -178,15 +202,16 @@ def forgot_password(
     "no such account" here would turn this endpoint into an account
     enumeration oracle for anyone probing addresses.
     """
-    org = db.query(Organisation).filter(Organisation.email == body.email).first()
+    user = db.query(User).filter(User.email == body.email).first()
 
-    if org:
+    if user:
+        org_id = user.org_id
         # Invalidate any outstanding tokens so only the newest link works.
         now = datetime.now(timezone.utc)
         (
             db.query(PasswordResetToken)
             .filter(
-                PasswordResetToken.org_id == org.id,
+                PasswordResetToken.user_id == user.id,
                 PasswordResetToken.used_at.is_(None),
             )
             .update({PasswordResetToken.used_at: now}, synchronize_session=False)
@@ -195,7 +220,8 @@ def forgot_password(
         plaintext, token_hash = generate_reset_token()
         db.add(
             PasswordResetToken(
-                org_id=org.id,
+                org_id=org_id,
+                user_id=user.id,
                 token_hash=token_hash,
                 expires_at=now + timedelta(minutes=settings.PASSWORD_RESET_TOKEN_TTL_MINUTES),
             )
@@ -205,8 +231,8 @@ def forgot_password(
         reset_link = f"{settings.FRONTEND_URL}/auth/reset-password?token={plaintext}"
         background_tasks.add_task(
             send_password_reset_email,
-            to_email=org.email,
-            to_name=org.name,
+            to_email=user.email,
+            to_name=user.name or user.email,
             reset_link=reset_link,
         )
 
@@ -241,13 +267,16 @@ def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
             status_code=400, detail="This reset link is invalid or has expired"
         )
 
-    org = db.query(Organisation).filter(Organisation.id == record.org_id).first()
-    if not org:
+    user = db.query(User).filter(User.id == record.user_id).first()
+    if not user:
         raise HTTPException(
             status_code=400, detail="This reset link is invalid or has expired"
         )
 
-    org.password_hash = hash_password(body.new_password)
+    user.password_hash = hash_password(body.new_password)
+    # Setting a password is also how an invited member activates, so this is
+    # the point at which the invitation is accepted.
+    user.is_active = True
     # Burn the token before returning, so a replayed link cannot set the
     # password a second time.
     record.used_at = now
