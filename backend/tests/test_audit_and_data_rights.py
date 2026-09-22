@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.models.database import AuditAction, AuditLog
+from app.models.documents import AuditAction, AuditLog
 from app.models.schemas import ApplicantStatusView
 from app.services import storage_service
 
@@ -20,17 +20,19 @@ APPLICANT_ID = uuid.uuid4()
 # ──────────────────────────────────────────────
 # Audit trail
 # ──────────────────────────────────────────────
-def test_audit_survives_deletion_of_its_subject():
+def test_audit_holds_no_reference_that_could_cascade():
     """
-    The table must outlive the rows it describes, or erasing a candidate would
-    also erase the record that they were erased. A foreign key to applicants
-    would cascade exactly that away.
+    The collection must outlive the documents it describes, or erasing a
+    candidate would also erase the record that they were erased.
+
+    Under PostgreSQL the risk was a foreign key cascading it away. Here there
+    is no database-level relationship at all, so the equivalent risk is a
+    future change embedding entries in the applicant document. Behaviour is
+    verified for real in test_documents.py.
     """
-    fk_targets = {
-        fk.column.table.name for fk in AuditLog.__table__.foreign_keys
-    }
-    assert "applicants" not in fk_targets
-    assert "organisations" in fk_targets, "still scoped to an organisation"
+    fields = set(AuditLog.model_fields)
+    assert "org_id" in fields, "still scoped to an organisation"
+    assert "entity_id" in fields and "entity_label" in fields
 
 
 def test_audit_captures_a_label_not_just_an_id():
@@ -38,12 +40,17 @@ def test_audit_captures_a_label_not_just_an_id():
     After the subject is deleted the id resolves to nothing, so the entry
     needs a human-readable label recorded at the time.
     """
-    assert "entity_label" in AuditLog.__table__.c
+    assert "entity_label" in AuditLog.model_fields
 
 
 def test_audit_is_indexed_for_the_queries_it_serves():
-    for column in ("org_id", "action", "created_at"):
-        assert AuditLog.__table__.c[column].index is True, f"{column} not indexed"
+    declared = [
+        index.document for index in AuditLog.Settings.indexes
+        if hasattr(index, "document")
+    ]
+    indexed = {field for d in declared for field in d["key"]}
+    for field in ("org_id", "action", "created_at"):
+        assert field in indexed, f"{field} not indexed"
 
 
 def test_audit_endpoint_requires_authentication():
@@ -115,7 +122,7 @@ def test_audit_is_recorded_before_the_row_is_deleted():
     from app.routers import applicant_admin
 
     source = inspect.getsource(applicant_admin.delete_applicant)
-    assert source.index("audit.record") < source.index("db.delete(applicant)")
+    assert source.index("audit.record") < source.index("await applicant.delete()")
 
 
 def test_storage_delete_refuses_paths_that_are_not_ours():

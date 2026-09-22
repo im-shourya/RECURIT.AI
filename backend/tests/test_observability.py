@@ -1,10 +1,9 @@
 """
 Tests for logging configuration and the health check.
 
-The health endpoint touches the database, so every test here patches that out:
-DATABASE_URL points at a hosted Postgres that is unreachable from a developer
-machine, and letting a test reach it turns a millisecond check into a
-multi-minute timeout.
+The health endpoint pings the database, so these patch db.ping directly
+rather than standing up a connection: what is being tested is how the endpoint
+reports success and failure, not the driver.
 """
 
 import json
@@ -21,32 +20,14 @@ client = TestClient(main.app)
 settings = get_settings()
 
 
-class _FakeConnection:
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc):
-        return False
-
-    def execute(self, *a, **k):
-        return None
-
-
-class _HealthyEngine:
-    def connect(self):
-        return _FakeConnection()
-
-
-class _BrokenEngine:
-    def connect(self):
-        raise OSError("connection refused")
-
-
 # ──────────────────────────────────────────────
 # Health check
 # ──────────────────────────────────────────────
 def test_health_reports_healthy_when_the_database_answers(monkeypatch):
-    monkeypatch.setattr(main, "engine", _HealthyEngine())
+    async def _ok():
+        return True
+
+    monkeypatch.setattr(main.db, "ping", _ok)
     response = client.get("/health")
 
     assert response.status_code == 200
@@ -61,7 +42,10 @@ def test_health_reports_503_when_the_database_is_unreachable(monkeypatch):
     stayed green while the database was down — exactly when an orchestrator
     most needs to know.
     """
-    monkeypatch.setattr(main, "engine", _BrokenEngine())
+    async def _fail():
+        raise OSError("connection refused")
+
+    monkeypatch.setattr(main.db, "ping", _fail)
     response = client.get("/health")
 
     assert response.status_code == 503
@@ -75,11 +59,12 @@ def test_health_does_not_leak_connection_details(monkeypatch):
     /health is unauthenticated, so the failure reason must not come back in
     the response body where a prober could read hostnames or credentials.
     """
-    class _LeakyEngine:
-        def connect(self):
-            raise OSError("could not connect to host db.internal user=admin password=hunter2")
+    async def _leaky():
+        raise OSError(
+            "could not connect to mongodb://admin:hunter2@db.internal:27017"
+        )
 
-    monkeypatch.setattr(main, "engine", _LeakyEngine())
+    monkeypatch.setattr(main.db, "ping", _leaky)
     body = client.get("/health").text
 
     assert "hunter2" not in body

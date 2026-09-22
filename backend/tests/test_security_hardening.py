@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 
 from app.config import get_settings
 from app.main import app
-from app.models.database import Applicant, Interview
+from app.models.documents import Applicant, Interview
 from app.services import rate_limit
 
 client = TestClient(app)
@@ -45,14 +45,21 @@ def test_submit_route_takes_a_token_not_an_applicant_id():
 
 
 def test_applicant_model_has_a_submit_token():
-    column = Applicant.__table__.c.submit_token
-    assert column.unique is True
-    assert column.index is True
+    assert "submit_token" in Applicant.model_fields
+    declared = [
+        index.document for index in Applicant.Settings.indexes
+        if hasattr(index, "document")
+    ]
+    assert any(
+        set(d["key"]) == {"submit_token"} and d.get("unique") for d in declared
+    ), "submit_token must be uniquely indexed"
 
 
-def test_submit_token_column_is_wide_enough_for_the_generated_value():
+def test_submit_token_is_long_enough_to_be_unguessable():
     """secrets.token_urlsafe(32) renders as 43 characters."""
-    assert Applicant.__table__.c.submit_token.type.length >= 43
+    import secrets
+
+    assert len(secrets.token_urlsafe(32)) >= 43
 
 
 # ──────────────────────────────────────────────
@@ -94,17 +101,17 @@ def test_candidate_interview_endpoints_stay_public():
 # ──────────────────────────────────────────────
 # Interview expiry
 # ──────────────────────────────────────────────
-def test_interview_has_an_expiry_column():
-    assert "expires_at" in Interview.__table__.c
+def test_interview_has_an_expiry_field():
+    assert "expires_at" in Interview.model_fields
 
 
-def test_expiry_is_nullable_so_existing_links_keep_working():
+def test_expiry_is_optional_so_existing_links_keep_working():
     """
-    A row created before this column existed has NULL, which must read as "no
-    expiry set" rather than "expired", or every in-flight interview breaks on
-    deploy.
+    An interview created before expiry existed has none, which must read as
+    "no expiry set" rather than "expired", or every in-flight interview breaks
+    on deploy.
     """
-    assert Interview.__table__.c.expires_at.nullable is True
+    assert Interview.model_fields["expires_at"].default is None
 
 
 def test_interview_ttl_is_configured():
