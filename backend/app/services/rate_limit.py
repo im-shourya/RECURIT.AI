@@ -5,17 +5,21 @@ A fixed-window limiter used as a FastAPI dependency on the endpoints worth
 protecting: sign-in (brute force), password reset (mail spam to a known
 address), registration and public application submission.
 
-Scope, stated plainly: counters live in this process's memory. They are not
-shared between workers and they reset on restart, so with N workers the
-effective limit is roughly N times the configured one. That is a real
-weakening, but it still turns an unbounded credential-stuffing loop into a
-throttled one, and it needs no new infrastructure. REDIS_URL is already
-configured and unused — moving these counters there is the obvious next step
-and would make the limit exact and shared.
+Two backends:
+
+  - Redis when REDIS_URL is reachable, which makes the limit exact and shared
+    across every worker and survives a restart
+  - process memory otherwise, which is approximate (with N workers the
+    effective limit is roughly N times configured) but needs no infrastructure
+
+The backend is chosen once at startup. If Redis is configured but unreachable
+the limiter falls back to memory rather than failing closed: a rate limiter
+that cannot reach its store should degrade, not take sign-in down with it.
 """
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from collections import defaultdict
@@ -29,6 +33,64 @@ settings = get_settings()
 # key -> (window_started_at, count)
 _buckets: dict[str, tuple[float, int]] = defaultdict(lambda: (0.0, 0))
 _lock = threading.Lock()
+
+# Lazily resolved Redis client; False means "checked and unavailable", so the
+# probe runs once rather than on every request.
+_redis_client = None
+
+
+def _redis():
+    """Return a working Redis client, or None."""
+    global _redis_client
+
+    if _redis_client is False:
+        return None
+    if _redis_client is not None:
+        return _redis_client
+
+    if not settings.REDIS_URL:
+        _redis_client = False
+        return None
+
+    try:
+        import redis  # imported lazily: optional dependency
+
+        client = redis.Redis.from_url(
+            settings.REDIS_URL, socket_connect_timeout=1, socket_timeout=1
+        )
+        client.ping()
+        _redis_client = client
+        logging.getLogger("recruit.ratelimit").info("rate limiting backed by Redis")
+        return client
+    except Exception as exc:
+        # Degrade to memory rather than failing closed. A limiter that cannot
+        # reach its store must not take authentication down with it.
+        logging.getLogger("recruit.ratelimit").warning(
+            "Redis unavailable, rate limiting falls back to process memory",
+            extra={"error": type(exc).__name__},
+        )
+        _redis_client = False
+        return None
+
+
+def _check_redis(client, key: str, limit: int, window_seconds: int) -> tuple[bool, int]:
+    """
+    Fixed window via INCR plus an expiry set on first use.
+
+    INCR and EXPIRE go in one pipeline so a crash between them cannot leave a
+    key without a TTL, which would otherwise block that caller forever.
+    """
+    redis_key = f"ratelimit:{key}"
+    pipeline = client.pipeline()
+    pipeline.incr(redis_key)
+    pipeline.ttl(redis_key)
+    count, ttl = pipeline.execute()
+
+    if ttl is None or ttl < 0:
+        client.expire(redis_key, window_seconds)
+        ttl = window_seconds
+
+    return (count <= limit), int(ttl)
 
 
 def client_identifier(request: Request) -> str:
@@ -69,8 +131,10 @@ def _check(key: str, limit: int, window_seconds: int) -> tuple[bool, int]:
 
 def reset() -> None:
     """Clear all counters. Used by tests."""
+    global _redis_client
     with _lock:
         _buckets.clear()
+    _redis_client = None
 
 
 class RateLimit:
@@ -90,7 +154,18 @@ class RateLimit:
             return
 
         key = f"{self.name}:{client_identifier(request)}"
-        allowed, retry_after = _check(key, self.limit, self.window_seconds)
+
+        client = _redis()
+        if client is not None:
+            try:
+                allowed, retry_after = _check_redis(
+                    client, key, self.limit, self.window_seconds
+                )
+            except Exception:
+                # A Redis blip must not block a legitimate sign-in.
+                allowed, retry_after = _check(key, self.limit, self.window_seconds)
+        else:
+            allowed, retry_after = _check(key, self.limit, self.window_seconds)
 
         if not allowed:
             raise HTTPException(
