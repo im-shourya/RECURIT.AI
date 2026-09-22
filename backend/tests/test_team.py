@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from fastapi import HTTPException
 
 from app.main import app
-from app.models.database import ROLE_RANK, User, UserRole, PasswordResetToken
+from app.models.documents import ROLE_RANK, User, UserRole, PasswordResetToken
 from app.models.schemas import TeamInviteRequest, TeamRoleUpdate
 from app.services.auth_service import require_role
 from pydantic import ValidationError
@@ -39,66 +39,52 @@ def test_roles_are_ordered_by_capability():
         (UserRole.MEMBER, UserRole.MEMBER, True),
     ],
 )
-def test_require_role_compares_by_rank(actor, required, allowed):
+async def test_require_role_compares_by_rank(actor, required, allowed, db):
     """
     Rank rather than equality, so OWNER satisfies an ADMIN requirement without
     every call site having to list both.
     """
+    import uuid
+
     guard = require_role(required)
-    user = User(role=actor)
+    user = User(org_id=uuid.uuid4(), email="x@example.com", role=actor)
 
     if allowed:
-        assert guard(user) is user
+        assert await guard(user) is user
     else:
         with pytest.raises(HTTPException) as exc:
-            guard(user)
+            await guard(user)
         assert exc.value.status_code == 403
 
 
 # ──────────────────────────────────────────────
 # Existing logins must survive
 # ──────────────────────────────────────────────
-def test_password_hash_is_nullable_for_pending_invites():
+def test_password_hash_is_optional_for_pending_invites():
     """An invited member has no password until they set one."""
-    assert User.__table__.c.password_hash.nullable is True
+    assert User.model_fields["password_hash"].default is None
 
 
 def test_email_is_globally_unique():
-    """Email is the sign-in identifier, so it cannot repeat across orgs."""
-    assert User.__table__.c.email.unique is True
-
-
-def test_migration_copies_the_existing_password_hash():
     """
-    The backfill must copy the hash, never regenerate it — regenerating would
-    lock every existing account out.
+    Email is the sign-in identifier, so it cannot repeat across orgs.
+
+    Enforced by a unique index rather than a column constraint now. The
+    in-process stand-in does not enforce indexes, so this asserts the index is
+    declared; real enforcement is noted as unverified in the PR.
     """
-    import pathlib
-
-    migration = (
-        pathlib.Path(__file__).resolve().parents[1]
-        / "alembic" / "versions" / "0007_users_and_roles.py"
-    ).read_text()
-
-    assert "o.password_hash" in migration, "must copy the existing hash"
-    assert "'owner'::user_role_enum" in migration
-    assert "NOT EXISTS" in migration, "backfill must be re-runnable"
-
-
-def test_migration_reattaches_outstanding_reset_tokens():
-    """A reset link already in someone's inbox should still work afterwards."""
-    import pathlib
-
-    migration = (
-        pathlib.Path(__file__).resolve().parents[1]
-        / "alembic" / "versions" / "0007_users_and_roles.py"
-    ).read_text()
-    assert "UPDATE password_reset_tokens" in migration
+    declared = [
+        index.document for index in User.Settings.indexes
+        if hasattr(index, "document")
+    ]
+    assert any(
+        set(d["key"]) == {"email"} and d.get("unique") for d in declared
+    )
 
 
 def test_reset_tokens_can_point_at_a_user():
-    assert "user_id" in PasswordResetToken.__table__.c
-    assert PasswordResetToken.__table__.c.user_id.nullable is True
+    assert "user_id" in PasswordResetToken.model_fields
+    assert PasswordResetToken.model_fields["user_id"].default is None
 
 
 # ──────────────────────────────────────────────
