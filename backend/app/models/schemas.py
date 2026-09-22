@@ -280,6 +280,10 @@ class InterviewAnswerResponse(BaseModel):
 
 
 class InterviewEndRequest(BaseModel):
+    # recording_url was previously accepted here and stored verbatim, so the
+    # client decided what the "recording" pointed at. Recordings now go
+    # through POST /interview/{token}/recording instead; this field is kept
+    # so existing clients do not break, but it is ignored.
     recording_url: str = ""
 
 
