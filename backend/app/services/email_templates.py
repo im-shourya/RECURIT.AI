@@ -431,3 +431,42 @@ def password_reset(*, to_name: str, reset_link: str, ttl_minutes: int) -> tuple[
         "stays unchanged.",
     ])
     return "Reset your RECRUIT.AI password", html, text
+
+
+def interview_completed_for_recruiter(
+    *, to_name: str, applicant_name: str, drive_name: str,
+    total_score: int, review_url: str,
+) -> tuple[str, str, str]:
+    """
+    Sent to the recruiting organisation, not the candidate.
+
+    Every other template here talks to applicants; without this one a
+    recruiter only learns an interview finished by opening the dashboard and
+    looking.
+    """
+    heading = "Interview completed"
+    intro = (
+        f"Hi {escape(to_name)}, "
+        f"<strong style='color:{TEXT};'>{escape(applicant_name)}</strong> has finished "
+        f"their interview for <strong style='color:{TEXT};'>{escape(drive_name)}</strong>."
+    )
+    body = _detail_rows([
+        ("Candidate", applicant_name),
+        ("Role", drive_name),
+        ("Score", f"{total_score}/100"),
+    ])
+    body += _p("Review the transcript and evidence before making a decision.")
+
+    html = _layout(
+        preheader=f"{applicant_name} finished their interview for {drive_name}.",
+        heading=heading, intro=intro, body_html=body,
+        cta_label="Review candidate", cta_url=review_url,
+        fallback_note="If the button does not work, paste this link into your browser:",
+    )
+    text = _text([
+        heading, "",
+        f"{applicant_name} has finished their interview for {drive_name}.",
+        "", f"Score: {total_score}/100",
+        "", f"Review the candidate: {review_url}",
+    ])
+    return f"{applicant_name} completed their interview — {drive_name}", html, text
