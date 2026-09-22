@@ -68,6 +68,8 @@ backend/
 | POST | `/api/auth/register` | — | Org registration |
 | POST | `/api/auth/login` | — | Returns JWT |
 | GET | `/api/auth/me` | JWT | Current org profile |
+| PATCH | `/api/auth/me` | JWT | Update org profile |
+| POST | `/api/auth/change-password` | JWT | Change org password |
 | POST | `/api/drives` | JWT | Create drive (returns link + QR) |
 | GET | `/api/drives` | JWT | List org drives |
 | GET | `/api/drives/{id}` | JWT | Drive detail + applicants |
@@ -75,11 +77,24 @@ backend/
 | GET | `/api/apply/{token}` | — | Fetch drive info for form |
 | POST | `/api/apply/{token}` | — | Submit application |
 | POST | `/api/submit/{applicant_id}` | — | Task/GitHub submission |
+| GET | `/api/applicants` | JWT | List applicants (filter by drive / status / search) |
+| GET | `/api/applicants/{id}` | JWT | Applicant profile + submission + interview |
+| POST | `/api/applicants/{id}/decision` | JWT | Record hire / reject, email the result |
 | GET | `/api/interview/{token}` | — | Get interview config |
 | POST | `/api/interview/{token}/start` | — | Begin interview |
 | POST | `/api/interview/{token}/answer` | — | Submit answer, get next Q |
 | POST | `/api/interview/{token}/end` | — | End & score interview |
 | GET | `/api/interview/{token}/detail` | — | Full interview detail |
+
+## Tests
+
+```bash
+./venv/bin/python -m pytest tests/ -q
+```
+
+The suite runs without a database. It covers the authentication boundary, the
+organisation-scoping filter (asserted against the compiled SQL) and request
+validation. End-to-end behaviour against PostgreSQL is not yet covered.
 
 ## Database
 
