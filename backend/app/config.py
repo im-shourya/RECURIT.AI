@@ -8,6 +8,18 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
+    # ── Environment ──
+    ENVIRONMENT: str = "development"
+
+    # Create tables directly from the models on startup.
+    #
+    # Off by default. create_all() only ever creates missing tables: it never
+    # alters an existing one, so on a database that is already populated a
+    # changed column is silently ignored and the code then runs against a
+    # schema it does not match. Alembic owns the schema; this is a convenience
+    # for a throwaway local database only.
+    AUTO_CREATE_TABLES: bool = False
+
     # ── Database ──
     DATABASE_URL: str = "postgresql://recruit_user:recruit_pass@localhost:5432/recruit_ai"
 
