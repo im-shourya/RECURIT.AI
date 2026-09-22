@@ -12,7 +12,8 @@ pydantic-settings>=2.3.0
 python-dotenv>=1.0.1
 qrcode[pil]>=7.4.2
 boto3>=1.34.0
-celery[redis]>=5.4.0
+# Reserved for moving rate-limit counters out of process memory. Not yet
+# imported by the application; see the rate limiting note in README.
 redis>=5.0.0
 httpx>=0.27.0
 aiofiles>=24.1.0
