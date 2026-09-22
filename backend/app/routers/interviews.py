@@ -6,15 +6,24 @@ POST /interview/{token}/answer  — Submit answer turn, get next question
 POST /interview/{token}/end     — End session, compute score, upload recording
 """
 
+import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status,
+)
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models.database import Interview, Applicant, ApplicantStatus, Drive, Organisation
 from app.services.auth_service import get_current_org
+from app.services.email_service import send_interview_completed_email
+from app.services import storage_service
+from app.config import get_settings
+
+settings = get_settings()
+log = logging.getLogger("recruit.interviews")
 from app.models.schemas import (
     InterviewConfigResponse,
     InterviewStartResponse,
@@ -181,6 +190,7 @@ def submit_answer(
 def end_interview(
     token: str,
     body: InterviewEndRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     interview = db.query(Interview).filter(Interview.token == token).first()
@@ -191,7 +201,9 @@ def end_interview(
         raise HTTPException(status_code=400, detail="Interview already ended")
 
     interview.ended_at = datetime.now(timezone.utc)
-    interview.recording_url = body.recording_url
+    # body.recording_url is deliberately ignored: it let the client decide
+    # what the recording pointed at. Recordings arrive via
+    # POST /interview/{token}/recording, which stores them server-side.
 
     # ── Compute scores ──
     # In production, this calls the AI scoring engine (BERT embeddings, rubric evaluation).
@@ -209,6 +221,21 @@ def end_interview(
 
     db.commit()
     db.refresh(interview)
+
+    # Tell the recruiter. Without this they only learn an interview finished
+    # by opening the dashboard and looking.
+    applicant = interview.applicant
+    org = applicant.drive.organisation
+    if org.notify_on_interview and org.email:
+        background_tasks.add_task(
+            send_interview_completed_email,
+            to_email=org.email,
+            to_name=org.name,
+            applicant_name=applicant.name,
+            drive_name=applicant.drive.name,
+            total_score=interview.total_score or 0,
+            review_url=f"{settings.FRONTEND_URL}/dashboard/drives/{applicant.drive_id}",
+        )
 
     return InterviewEndResponse(
         total_score=interview.total_score,
@@ -266,3 +293,57 @@ def get_interview_detail(
         applicant_name=applicant.name,
         drive_name=drive.name,
     )
+
+
+# ──────────────────────────────────────────────
+# UPLOAD THE RECORDING
+# ──────────────────────────────────────────────
+@router.post("/{token}/recording", status_code=status.HTTP_204_NO_CONTENT)
+async def upload_recording(
+    token: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """
+    Store the interview recording.
+
+    Previously `recording_url` was accepted as a string on /end and saved
+    verbatim, so the client decided what the recording pointed at — it could
+    be any URL, or nothing. The file now goes to object storage under a
+    server-generated key and the stored value is that key.
+
+    Deliberately not gated on the expiry check: a candidate finishing right on
+    the boundary must still be able to upload what they just recorded.
+    """
+    interview = db.query(Interview).filter(Interview.token == token).first()
+    if not interview:
+        raise HTTPException(status_code=404, detail="Interview not found")
+
+    if not storage_service.is_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Recording upload is unavailable: object storage is not configured",
+        )
+
+    try:
+        key = storage_service.upload_recording(
+            interview_id=interview.id,
+            filename=file.filename or "",
+            stream=file.file,
+        )
+    except storage_service.UnsupportedFileType as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except storage_service.UploadTooLarge as exc:
+        raise HTTPException(status_code=413, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except storage_service.StorageError as exc:
+        log.error(
+            "recording upload failed",
+            extra={"interview_id": str(interview.id), "error": str(exc)},
+        )
+        raise HTTPException(status_code=502, detail="Upload failed, please try again")
+
+    interview.recording_url = key
+    db.commit()
+    return None
