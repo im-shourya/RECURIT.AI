@@ -1,68 +1,108 @@
 """
 RECRUIT.AI — Email Service
-Sends transactional emails via EmailJS REST API.
+Sends transactional email through the Resend API.
 
-Two separate EmailJS services:
-  - Service 1: Applied + Task emails
-  - Service 2: Interview + Result emails
+Replaces EmailJS. EmailJS is a browser-oriented service whose templates lived
+in a third-party dashboard, which meant the message content was neither in
+version control nor reviewable, and its "private key" had to be shipped
+server-side to send at all. Templates now live in email_templates.py and ship
+with the code.
+
+The public helpers keep the signatures the routers already call, so changing
+transport required no edits at any call site.
+
+httpx rather than the official `resend` SDK: the SDK is synchronous, and these
+run inside FastAPI background tasks on the event loop, where a blocking HTTP
+call would stall the worker. httpx is already a dependency.
 """
 
+from typing import Optional
+
 import httpx
+
 from app.config import get_settings
+from app.services import email_templates
 
 settings = get_settings()
 
-EMAILJS_API_URL = "https://api.emailjs.com/api/v1.0/email/send"
-
-# ── Map templates to their service credentials ──
-SERVICE_MAP = {
-    settings.EMAILJS_TEMPLATE_APPLIED: {
-        "service_id": settings.EMAILJS_SERVICE_1_ID,
-        "public_key": settings.EMAILJS_SERVICE_1_PUBLIC_KEY,
-        "private_key": settings.EMAILJS_SERVICE_1_PRIVATE_KEY,
-    },
-    settings.EMAILJS_TEMPLATE_TASK: {
-        "service_id": settings.EMAILJS_SERVICE_1_ID,
-        "public_key": settings.EMAILJS_SERVICE_1_PUBLIC_KEY,
-        "private_key": settings.EMAILJS_SERVICE_1_PRIVATE_KEY,
-    },
-    settings.EMAILJS_TEMPLATE_INTERVIEW: {
-        "service_id": settings.EMAILJS_SERVICE_2_ID,
-        "public_key": settings.EMAILJS_SERVICE_2_PUBLIC_KEY,
-        "private_key": settings.EMAILJS_SERVICE_2_PRIVATE_KEY,
-    },
-    settings.EMAILJS_TEMPLATE_RESULT: {
-        "service_id": settings.EMAILJS_SERVICE_2_ID,
-        "public_key": settings.EMAILJS_SERVICE_2_PUBLIC_KEY,
-        "private_key": settings.EMAILJS_SERVICE_2_PRIVATE_KEY,
-    },
-}
+RESEND_API_URL = "https://api.resend.com/emails"
+REQUEST_TIMEOUT_SECONDS = 15.0
 
 
-async def send_email(template_id: str, template_params: dict) -> str:
+def is_configured() -> bool:
+    """True when Resend has enough configuration to actually send."""
+    return bool(settings.RESEND_API_KEY and settings.RESEND_FROM_EMAIL)
+
+
+def _from_header() -> str:
+    name = settings.RESEND_FROM_NAME.strip()
+    email = settings.RESEND_FROM_EMAIL.strip()
+    return f"{name} <{email}>" if name else email
+
+
+async def send_email(
+    *,
+    to_email: str,
+    subject: str,
+    html: str,
+    text: str,
+    reply_to: Optional[str] = None,
+) -> str:
     """
-    Send an email using the correct EmailJS service based on the template.
-    Routes applied/task → Service 1, interview/result → Service 2.
+    Deliver one message.
+
+    Returns the Resend message id, or a marker string when sending is skipped
+    or fails. This never raises: every caller is a fire-and-forget background
+    task, and a mail problem must not take down the request that queued it or
+    appear to undo work that already committed.
     """
-    creds = SERVICE_MAP.get(template_id)
-    if not creds or not creds["service_id"]:
-        print(f"[EMAIL SKIP] template={template_id}, params={template_params}")
+    if not is_configured():
+        print(f"[EMAIL SKIP] not configured - to={to_email} subject={subject!r}")
         return "skipped-no-config"
 
     payload = {
-        "service_id": creds["service_id"],
-        "template_id": template_id,
-        "user_id": creds["public_key"],
-        "template_params": template_params,
-        "accessToken": creds["private_key"],
+        "from": _from_header(),
+        "to": [to_email],
+        "subject": subject,
+        "html": html,
+        # A plain-text part alongside the HTML: html-only mail is a strong spam
+        # signal, and some clients render text by preference.
+        "text": text,
     }
+    reply = reply_to or settings.SUPPORT_EMAIL
+    if reply:
+        payload["reply_to"] = reply
 
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        response = await client.post(EMAILJS_API_URL, json=payload)
-        response.raise_for_status()
-        return response.text
+    try:
+        async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT_SECONDS) as client:
+            response = await client.post(
+                RESEND_API_URL,
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+            )
+            response.raise_for_status()
+            return response.json().get("id", "sent")
+    except httpx.HTTPStatusError as exc:
+        # Log the status and Resend's message, never the payload or the key.
+        print(
+            f"[EMAIL ERROR] to={to_email} subject={subject!r} "
+            f"status={exc.response.status_code} body={exc.response.text[:300]}"
+        )
+        return "failed"
+    except (httpx.HTTPError, ValueError) as exc:
+        print(f"[EMAIL ERROR] to={to_email} subject={subject!r} error={type(exc).__name__}")
+        return "failed"
 
 
+# ══════════════════════════════════════════════
+# Templated senders
+#
+# Signatures are unchanged from the EmailJS implementation, so no router needed
+# touching during the switch.
+# ══════════════════════════════════════════════
 async def send_application_email(
     to_email: str,
     to_name: str,
@@ -71,16 +111,15 @@ async def send_application_email(
     task_link: str = "",
     submission_link: str = "",
 ):
-    """Send the 'You have applied' confirmation email via Service 1."""
-    params = {
-        "to_email": to_email,
-        "to_name": to_name,
-        "drive_name": drive_name,
-        "org_name": org_name,
-        "task_link": task_link,
-        "submission_link": submission_link,
-    }
-    return await send_email(settings.EMAILJS_TEMPLATE_APPLIED, params)
+    """Confirm that an application was received."""
+    subject, html, text = email_templates.application_received(
+        to_name=to_name,
+        drive_name=drive_name,
+        org_name=org_name,
+        task_link=task_link,
+        submission_link=submission_link,
+    )
+    return await send_email(to_email=to_email, subject=subject, html=html, text=text)
 
 
 async def send_task_email(
@@ -92,17 +131,16 @@ async def send_task_email(
     submission_link: str,
     deadline: str,
 ):
-    """Send the task assignment email via Service 1."""
-    params = {
-        "to_email": to_email,
-        "to_name": to_name,
-        "drive_name": drive_name,
-        "task_description": task_description,
-        "task_link": task_link,
-        "submission_link": submission_link,
-        "deadline": deadline,
-    }
-    return await send_email(settings.EMAILJS_TEMPLATE_TASK, params)
+    """Send the assigned task and the submission link."""
+    subject, html, text = email_templates.task_assigned(
+        to_name=to_name,
+        drive_name=drive_name,
+        task_description=task_description,
+        task_link=task_link,
+        submission_link=submission_link,
+        deadline=deadline,
+    )
+    return await send_email(to_email=to_email, subject=subject, html=html, text=text)
 
 
 async def send_interview_email(
@@ -111,14 +149,13 @@ async def send_interview_email(
     drive_name: str,
     interview_link: str,
 ):
-    """Send the interview invitation email via Service 2."""
-    params = {
-        "to_email": to_email,
-        "to_name": to_name,
-        "drive_name": drive_name,
-        "interview_link": interview_link,
-    }
-    return await send_email(settings.EMAILJS_TEMPLATE_INTERVIEW, params)
+    """Invite a candidate to the AI interview."""
+    subject, html, text = email_templates.interview_invitation(
+        to_name=to_name,
+        drive_name=drive_name,
+        interview_link=interview_link,
+    )
+    return await send_email(to_email=to_email, subject=subject, html=html, text=text)
 
 
 async def send_result_email(
@@ -128,22 +165,21 @@ async def send_result_email(
     result_status: str,
     score: int,
 ):
-    """Send the result notification email via Service 2."""
-    params = {
-        "to_email": to_email,
-        "to_name": to_name,
-        "drive_name": drive_name,
-        "result_status": result_status,
-        "score": str(score),
-    }
-    return await send_email(settings.EMAILJS_TEMPLATE_RESULT, params)
+    """Tell a candidate the outcome of their application."""
+    subject, html, text = email_templates.decision_result(
+        to_name=to_name,
+        drive_name=drive_name,
+        result_status=result_status,
+        score=score,
+    )
+    return await send_email(to_email=to_email, subject=subject, html=html, text=text)
 
 
 async def send_password_reset_email(to_email: str, to_name: str, reset_link: str):
-    """Send the password reset link via Service 2."""
-    params = {
-        "to_email": to_email,
-        "to_name": to_name,
-        "reset_link": reset_link,
-    }
-    return await send_email(settings.EMAILJS_TEMPLATE_PASSWORD_RESET, params)
+    """Send an organisation's password reset link."""
+    subject, html, text = email_templates.password_reset(
+        to_name=to_name,
+        reset_link=reset_link,
+        ttl_minutes=settings.PASSWORD_RESET_TOKEN_TTL_MINUTES,
+    )
+    return await send_email(to_email=to_email, subject=subject, html=html, text=text)
