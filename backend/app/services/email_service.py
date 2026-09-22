@@ -54,7 +54,7 @@ async def send_durable(*, to_email: str, subject: str, html: str, text: str) -> 
     from app.services import email_outbox
 
     try:
-        row = email_outbox.enqueue(
+        row = await email_outbox.enqueue(
             to_email=to_email, subject=subject, html=html, text=text
         )
     except Exception as exc:
