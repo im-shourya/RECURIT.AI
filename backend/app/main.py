@@ -12,6 +12,7 @@ from sqlalchemy import text
 
 from app.config import get_settings
 from app.db import create_tables, engine
+from app.error_tracking import configure_error_tracking
 from app.logging_config import configure_logging
 from app.routers import auth, drives, applicants, applicant_admin, interviews, analytics
 
@@ -20,6 +21,7 @@ from app.routers import auth, drives, applicants, applicant_admin, interviews, a
 settings = get_settings()
 
 configure_logging()
+configure_error_tracking()
 log = logging.getLogger("recruit.startup")
 
 

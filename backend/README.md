@@ -166,8 +166,13 @@ database.
 - `CORS_ALLOWED_ORIGINS` must list exact origins. `*` is rejected at startup:
   a wildcard is invalid on credentialed requests and browsers reject it.
 - Sign-in, registration, password reset and public application are rate
-  limited. Counters are per-process, so with multiple workers the effective
-  limit is that much higher; moving them to Redis is the next step.
+  limited. Counters use Redis when `REDIS_URL` is reachable, which makes the
+  limit exact and shared across workers; otherwise they fall back to process
+  memory, which is approximate. If Redis is configured but unreachable the
+  limiter degrades to memory rather than failing closed.
+- Set `SENTRY_DSN` to enable error tracking. It is off by default, sends no
+  PII, drops request bodies and redacts credential headers before anything
+  leaves the process.
 
 ## Logging and health
 
