@@ -12,6 +12,7 @@ from datetime import date, datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, UploadFile, File
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -127,7 +128,16 @@ async def submit_application(
         submit_token=secrets.token_urlsafe(32),
     )
     db.add(applicant)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Lost the race against a concurrent duplicate submit. The unique
+        # constraint did its job; report it the same way the pre-check does so
+        # a double-click is indistinguishable from applying twice.
+        db.rollback()
+        raise HTTPException(
+            status_code=400, detail="You have already applied to this drive"
+        )
     db.refresh(applicant)
 
     # ── Determine next steps based on task_type ──

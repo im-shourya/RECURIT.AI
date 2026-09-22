@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import (
     Column, String, Text, Boolean, Integer, Date, DateTime,
-    ForeignKey, Enum as SAEnum, JSON
+    ForeignKey, Enum as SAEnum, JSON, UniqueConstraint
 )
 from sqlalchemy.dialects.postgresql import UUID, ARRAY, JSONB
 from sqlalchemy.orm import relationship, DeclarativeBase
@@ -112,6 +112,13 @@ class Drive(Base):
 # ──────────────────────────────────────────────
 class Applicant(Base):
     __tablename__ = "applicants"
+    __table_args__ = (
+        # The duplicate check in the apply handler reads before it writes, so
+        # two requests arriving together could both pass it and create two
+        # applicants for the same person. The database is the only place that
+        # race can actually be closed.
+        UniqueConstraint("drive_id", "email", name="uq_applicant_drive_email"),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     drive_id = Column(UUID(as_uuid=True), ForeignKey("drives.id", ondelete="CASCADE"), nullable=False)
