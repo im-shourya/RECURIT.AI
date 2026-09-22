@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.db import create_tables
-from app.routers import auth, drives, applicants, interviews, analytics
+from app.routers import auth, drives, applicants, applicant_admin, interviews, analytics
 
 
 # ── Lifespan: create tables on startup ──
@@ -47,6 +47,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api")
 app.include_router(drives.router, prefix="/api")
 app.include_router(applicants.router, prefix="/api")
+app.include_router(applicant_admin.router, prefix="/api")
 app.include_router(interviews.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 
