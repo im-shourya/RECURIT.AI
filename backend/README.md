@@ -168,6 +168,28 @@ database.
   limited. Counters are per-process, so with multiple workers the effective
   limit is that much higher; moving them to Redis is the next step.
 
+## Logging and health
+
+Logs are structured: readable text when `ENVIRONMENT=development`, one JSON
+object per line otherwise, so hosted log viewers can index the fields.
+Level via `LOG_LEVEL`.
+
+`GET /health` runs `SELECT 1` and returns **503** when the database is
+unreachable. It previously returned healthy unconditionally, so it stayed
+green through an outage.
+
+## Background work
+
+Emails are queued with FastAPI `BackgroundTasks`, which run **in the same
+process**. If the process restarts between the response and the send, that
+email is lost, and there is no retry. This is acceptable for the current
+volume but is the reason `celery` was removed from requirements: it was
+declared and never imported, so it advertised a durability guarantee the code
+does not provide. A real queue is the fix when that matters.
+
+`redis` stays in requirements for moving rate-limit counters out of process
+memory, which is the next step for exact, shared limits.
+
 ## Database
 
 7 PostgreSQL tables: `organisations`, `drives`, `applicants`, `submissions`, `interviews`, `email_logs`, `password_reset_tokens`
