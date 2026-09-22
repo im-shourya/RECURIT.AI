@@ -27,6 +27,7 @@ from app.models.schemas import (
     SubmissionCreateRequest,
     SubmissionResponse,
     FileUploadResponse,
+    ApplicantStatusView,
 )
 from app.services.email_service import send_application_email, send_interview_email
 from app.services import storage_service
@@ -365,3 +366,37 @@ async def upload_submission_file(
         raise HTTPException(status_code=502, detail="Upload failed, please try again")
 
     return FileUploadResponse(file_url=key, filename=file.filename or "")
+
+
+# ──────────────────────────────────────────────
+# CANDIDATE SELF-SERVICE STATUS
+# ──────────────────────────────────────────────
+@router.get("/status/{submit_token}", response_model=ApplicantStatusView)
+def get_own_status(submit_token: str, db: Session = Depends(get_db)):
+    """
+    Let a candidate check their own application.
+
+    Candidates previously had no way to see where they stood — they only ever
+    received email, so a lost or filtered message left them with nothing.
+
+    Reuses the submission token they already hold, so no new credential is
+    introduced. The response is deliberately narrow: progress, deadlines and
+    the final outcome, but never the interview score, the transcript or the
+    malpractice flags, which are the recruiter's evidence and not the
+    candidate's to read mid-process.
+    """
+    applicant = _applicant_by_submit_token(submit_token, db)
+    drive = applicant.drive
+    decided = applicant.status in (ApplicantStatus.SELECTED, ApplicantStatus.REJECTED)
+
+    return ApplicantStatusView(
+        name=applicant.name,
+        drive_name=drive.name,
+        organisation_name=drive.organisation.name,
+        status=applicant.status.value,
+        applied_at=applicant.applied_at,
+        task_deadline=drive.task_deadline,
+        has_submitted=applicant.submission is not None,
+        interview_completed=bool(applicant.interview and applicant.interview.ended_at),
+        decision=applicant.status.value if decided else None,
+    )
