@@ -1,8 +1,10 @@
 """
 RECRUIT.AI — Auth Router
-POST /auth/register   — Organisation registration
-POST /auth/login      — Returns JWT
-GET  /auth/me         — Current org profile
+POST /auth/register          — Organisation registration
+POST /auth/login             — Returns JWT
+GET  /auth/me                — Current org profile
+PATCH /auth/me               — Update org profile
+POST /auth/change-password   — Change the organisation password
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -16,6 +18,7 @@ from app.models.schemas import (
     TokenResponse,
     OrgProfileResponse,
     OrgProfileUpdate,
+    PasswordChangeRequest,
 )
 from app.services.auth_service import (
     hash_password,
@@ -92,3 +95,35 @@ def update_me(
     db.commit()
     db.refresh(org)
     return org
+
+
+# ──────────────────────────────────────────────
+# CHANGE PASSWORD
+# ──────────────────────────────────────────────
+@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    body: PasswordChangeRequest,
+    org: Organisation = Depends(get_current_org),
+    db: Session = Depends(get_db),
+):
+    """
+    Change the calling organisation's password.
+
+    Requires the current password even though the caller is already
+    authenticated, so a leaked or borrowed token alone cannot lock the owner
+    out of their account.
+    """
+    if not verify_password(body.current_password, org.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    if body.current_password == body.new_password:
+        raise HTTPException(
+            status_code=400, detail="New password must differ from the current password"
+        )
+
+    org.password_hash = hash_password(body.new_password)
+    db.commit()
+
+    # Returns 204. Existing JWTs stay valid: tokens carry no password state and
+    # there is no revocation list yet, which is noted in the PR.
+    return None
