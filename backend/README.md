@@ -74,6 +74,8 @@ backend/
 | GET | `/api/drives` | JWT | List org drives |
 | GET | `/api/drives/{id}` | JWT | Drive detail + applicants |
 | PATCH | `/api/drives/{id}/status` | JWT | Open / close drive |
+| PATCH | `/api/drives/{id}` | JWT | Edit drive details |
+| DELETE | `/api/drives/{id}` | JWT | Delete drive (`?confirm=true` if it has applicants) |
 | GET | `/api/apply/{token}` | — | Fetch drive info for form |
 | POST | `/api/apply/{token}` | — | Submit application |
 | POST | `/api/submit/{applicant_id}` | — | Task/GitHub submission |
