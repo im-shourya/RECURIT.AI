@@ -172,6 +172,25 @@ class ApplicantResponse(BaseModel):
         from_attributes = True
 
 
+class ApplicantStatusView(BaseModel):
+    """
+    What a candidate may see about their own application.
+
+    Intentionally excludes scores, transcript and malpractice flags: those are
+    the recruiter's evidence, and showing them mid-process would also let a
+    candidate learn how they are being graded while still being graded.
+    """
+    name: str
+    drive_name: str
+    organisation_name: str
+    status: str
+    applied_at: datetime
+    task_deadline: Optional[date]
+    has_submitted: bool
+    interview_completed: bool
+    decision: Optional[str]
+
+
 class ApplicantStatusUpdate(BaseModel):
     status: str = Field(
         ...,
@@ -326,6 +345,22 @@ class EmailLogResponse(BaseModel):
     type: str
     sent_at: datetime
     emailjs_msg_id: str
+
+    class Config:
+        from_attributes = True
+
+
+# ══════════════════════════════════════════════
+# AUDIT
+# ══════════════════════════════════════════════
+class AuditEntryResponse(BaseModel):
+    id: UUID
+    action: str
+    entity_type: str
+    entity_id: Optional[UUID]
+    entity_label: str
+    detail: dict
+    created_at: datetime
 
     class Config:
         from_attributes = True
