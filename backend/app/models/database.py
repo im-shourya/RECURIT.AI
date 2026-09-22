@@ -75,6 +75,7 @@ class Organisation(Base):
 
     # Relationships
     drives = relationship("Drive", back_populates="organisation", cascade="all, delete-orphan")
+    reset_tokens = relationship("PasswordResetToken", back_populates="organisation", cascade="all, delete-orphan")
 
 
 # ──────────────────────────────────────────────
@@ -168,6 +169,32 @@ class Interview(Base):
 
     # Relationships
     applicant = relationship("Applicant", back_populates="interview")
+
+
+# ──────────────────────────────────────────────
+# Password Reset Tokens
+# ──────────────────────────────────────────────
+class PasswordResetToken(Base):
+    """
+    A single-use, short-lived password reset grant.
+
+    Only the SHA-256 hash of the token is stored. The plaintext exists solely
+    in the emailed link, so a database leak cannot be replayed to take over
+    accounts. Kept in its own table rather than as columns on `organisations`
+    so that `create_all()` provisions it on existing databases — adding
+    columns to an existing table would need a migration, and this project has
+    none yet.
+    """
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("organisations.id", ondelete="CASCADE"), nullable=False)
+    token_hash = Column(String(64), unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    organisation = relationship("Organisation", back_populates="reset_tokens")
 
 
 # ──────────────────────────────────────────────
