@@ -6,8 +6,9 @@ POST /submit/{applicant_id}        — Submit task/GitHub → triggers RepoLens 
 POST /submit/{applicant_id}/upload — Upload a submission file to object storage
 """
 
+import logging
 import secrets
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, UploadFile, File
@@ -28,11 +29,28 @@ from app.models.schemas import (
 )
 from app.services.email_service import send_application_email, send_interview_email
 from app.services import storage_service
+from app.services.rate_limit import RateLimit
 from app.services.qr_service import generate_apply_link
 from app.config import get_settings
 
 settings = get_settings()
+log = logging.getLogger("recruit.applicants")
 router = APIRouter(tags=["Applicants (Public)"])
+
+
+def _applicant_by_submit_token(submit_token: str, db: Session) -> Applicant:
+    """
+    Resolve the submission capability token.
+
+    An unknown token returns 404 with the same wording as a missing applicant,
+    so the endpoint cannot be used to probe which tokens exist.
+    """
+    applicant = (
+        db.query(Applicant).filter(Applicant.submit_token == submit_token).first()
+    )
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Submission link is invalid")
+    return applicant
 
 
 # ──────────────────────────────────────────────
@@ -66,7 +84,12 @@ def get_drive_for_apply(link_token: str, db: Session = Depends(get_db)):
 # ──────────────────────────────────────────────
 # SUBMIT APPLICATION
 # ──────────────────────────────────────────────
-@router.post("/apply/{link_token}", response_model=ApplicantResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/apply/{link_token}",
+    response_model=ApplicantResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(RateLimit("apply", limit=10, window_seconds=3600))],
+)
 async def submit_application(
     link_token: str,
     body: ApplyRequest,
@@ -99,6 +122,9 @@ async def submit_application(
         primary_domain=body.primary_domain,
         github_url=body.github_url,
         status=ApplicantStatus.APPLIED,
+        # Capability token for the submission endpoint. Issued to every
+        # applicant so the public route never keys off a bare UUID.
+        submit_token=secrets.token_urlsafe(32),
     )
     db.add(applicant)
     db.commit()
@@ -113,7 +139,7 @@ async def submit_application(
         db.commit()
 
         task_link = f"{settings.FRONTEND_URL}/task/{drive.link_token}"
-        submission_link = f"{settings.FRONTEND_URL}/submit/{applicant.id}"
+        submission_link = f"{settings.FRONTEND_URL}/submit/{applicant.submit_token}"
 
         background_tasks.add_task(
             send_application_email,
@@ -132,6 +158,8 @@ async def submit_application(
             interview = Interview(
                 applicant_id=applicant.id,
                 token=interview_token,
+                expires_at=datetime.now(timezone.utc)
+                + timedelta(days=settings.INTERVIEW_TOKEN_TTL_DAYS),
             )
             db.add(interview)
             applicant.status = ApplicantStatus.INTERVIEW_SENT
@@ -191,16 +219,21 @@ async def submit_application(
 # ──────────────────────────────────────────────
 # SUBMIT TASK / GITHUB PROJECT
 # ──────────────────────────────────────────────
-@router.post("/submit/{applicant_id}", response_model=SubmissionResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/submit/{submit_token}", response_model=SubmissionResponse, status_code=status.HTTP_201_CREATED)
 async def submit_task(
-    applicant_id: UUID,
+    submit_token: str,
     body: SubmissionCreateRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    applicant = db.query(Applicant).filter(Applicant.id == applicant_id).first()
-    if not applicant:
-        raise HTTPException(status_code=404, detail="Applicant not found")
+    """
+    Submit a task or project.
+
+    Keyed on an unguessable token rather than the applicant's UUID. The old
+    route accepted a bare id, so anyone holding or guessing one could submit
+    on another candidate's behalf.
+    """
+    applicant = _applicant_by_submit_token(submit_token, db)
 
     # Check applicant hasn't already submitted
     if applicant.submission:
@@ -231,6 +264,8 @@ async def submit_task(
     interview = Interview(
         applicant_id=applicant.id,
         token=interview_token,
+        expires_at=datetime.now(timezone.utc)
+        + timedelta(days=settings.INTERVIEW_TOKEN_TTL_DAYS),
     )
     db.add(interview)
     applicant.status = ApplicantStatus.INTERVIEW_SENT
@@ -270,9 +305,9 @@ async def submit_task(
 # ──────────────────────────────────────────────
 # UPLOAD A SUBMISSION FILE
 # ──────────────────────────────────────────────
-@router.post("/submit/{applicant_id}/upload", response_model=FileUploadResponse)
+@router.post("/submit/{submit_token}/upload", response_model=FileUploadResponse)
 async def upload_submission_file(
-    applicant_id: UUID,
+    submit_token: str,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
@@ -287,9 +322,7 @@ async def upload_submission_file(
     enforced while streaming, the object key is built only from server-side
     values, and the stored object is private.
     """
-    applicant = db.query(Applicant).filter(Applicant.id == applicant_id).first()
-    if not applicant:
-        raise HTTPException(status_code=404, detail="Applicant not found")
+    applicant = _applicant_by_submit_token(submit_token, db)
 
     if applicant.submission:
         raise HTTPException(status_code=400, detail="You have already submitted")
@@ -315,7 +348,10 @@ async def upload_submission_file(
     except storage_service.StorageError as exc:
         # Do not surface the backend error verbatim; it can carry bucket names
         # and credentials detail.
-        print(f"[UPLOAD ERROR] applicant={applicant_id}: {exc}")
+        log.error(
+            "submission upload failed",
+            extra={"applicant_id": str(applicant.id), "error": str(exc)},
+        )
         raise HTTPException(status_code=502, detail="Upload failed, please try again")
 
     return FileUploadResponse(file_url=key, filename=file.filename or "")

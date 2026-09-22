@@ -3,23 +3,29 @@ RECRUIT.AI — Main Application Entry Point
 Registers all routers, configures CORS, and creates database tables on startup.
 """
 
+import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from app.config import get_settings
-from app.db import create_tables
+from app.db import create_tables, engine
+from app.logging_config import configure_logging
 from app.routers import auth, drives, applicants, applicant_admin, interviews, analytics
 
 
 # ── Lifespan: create tables on startup ──
 settings = get_settings()
 
+configure_logging()
+log = logging.getLogger("recruit.startup")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print(f"🚀 RECRUIT.AI Backend starting up (env: {settings.ENVIRONMENT})...")
+    log.info("starting up", extra={"environment": settings.ENVIRONMENT})
 
     if settings.AUTO_CREATE_TABLES:
         # Convenience for a throwaway local database. create_all() only ever
@@ -28,13 +34,15 @@ async def lifespan(app: FastAPI):
         # silently skipped and the app runs against a schema it expects but
         # does not have.
         create_tables()
-        print("⚠️  AUTO_CREATE_TABLES is on: tables created from models.")
-        print("    Do not use this where data matters; run migrations instead.")
+        log.warning(
+            "AUTO_CREATE_TABLES is on: tables created from models. "
+            "Do not use this where data matters; run migrations instead."
+        )
     else:
-        print("📦 Schema is managed by Alembic. Apply with: alembic upgrade head")
+        log.info("schema managed by Alembic (alembic upgrade head)")
 
     yield
-    print("👋 RECRUIT.AI Backend shutting down...")
+    log.info("shutting down")
 
 
 # ── FastAPI App ──
@@ -49,12 +57,25 @@ app = FastAPI(
 
 
 # ── CORS ──
+# "*" cannot be combined with allow_credentials: the CORS spec forbids a
+# wildcard on a credentialed response, so browsers reject every such request.
+# The previous config paired them, which meant the permissive setting did not
+# even work — it only looked permissive.
+_origins = [o.strip() for o in settings.CORS_ALLOWED_ORIGINS.split(",") if o.strip()]
+
+if "*" in _origins:
+    raise RuntimeError(
+        "CORS_ALLOWED_ORIGINS cannot be '*': a wildcard origin is invalid on "
+        "credentialed requests and browsers will reject it. List the exact "
+        "origins instead, comma-separated."
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for now; restrict in production
+    allow_origins=_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 
@@ -79,5 +100,31 @@ def root():
 
 
 @app.get("/health", tags=["Health"])
-def health_check():
-    return {"status": "healthy"}
+def health_check(response: Response):
+    """
+    Liveness plus a real dependency check.
+
+    This used to return {"status": "healthy"} unconditionally, so it stayed
+    green while the database was unreachable — exactly when an orchestrator
+    most needs to know. It now runs SELECT 1 and reports 503 if that fails,
+    so a failed deploy is caught rather than rolled out.
+    """
+    checks = {"database": "ok"}
+    healthy = True
+
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except Exception as exc:
+        # The reason is logged; the response stays generic so an unauthenticated
+        # probe cannot read connection strings or internal hostnames back.
+        healthy = False
+        checks["database"] = "unavailable"
+        logging.getLogger("recruit.health").error(
+            "database health check failed", extra={"error": type(exc).__name__}
+        )
+
+    if not healthy:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
+    return {"status": "healthy" if healthy else "degraded", "checks": checks}
