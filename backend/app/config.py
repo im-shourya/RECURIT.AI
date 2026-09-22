@@ -41,7 +41,10 @@ class Settings(BaseSettings):
     PASSWORD_RESET_TOKEN_TTL_MINUTES: int = 60
 
     # ── Frontend URL ──
-    FRONTEND_URL: str = "http://localhost:5173"
+    # Used to build every link emailed to a candidate (apply, task,
+    # submission, interview, password reset). Must match where the Next.js
+    # app is actually served.
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # ── AI Service URL ──
     AI_SERVICE_URL: str = "http://localhost:8001"
