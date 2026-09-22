@@ -51,6 +51,25 @@ class ApplicantStatus(str, enum.Enum):
     REJECTED = "rejected"
 
 
+class UserRole(str, enum.Enum):
+    """
+    Roles are ordered by capability: OWNER > ADMIN > MEMBER.
+
+    OWNER  — everything, including managing members and deleting the account.
+             Exactly one per organisation, and it cannot be removed.
+    ADMIN  — run recruitment: create and edit drives, decide on candidates.
+    MEMBER — read-only. Review candidates and evidence without being able to
+             decide, which is the common case for an interviewer who advises
+             but does not own the outcome.
+    """
+    OWNER = "owner"
+    ADMIN = "admin"
+    MEMBER = "member"
+
+
+ROLE_RANK = {UserRole.MEMBER: 0, UserRole.ADMIN: 1, UserRole.OWNER: 2}
+
+
 class EmailType(str, enum.Enum):
     APPLIED = "applied"
     TASK = "task"
@@ -80,6 +99,44 @@ class Organisation(Base):
     # Relationships
     drives = relationship("Drive", back_populates="organisation", cascade="all, delete-orphan")
     reset_tokens = relationship("PasswordResetToken", back_populates="organisation", cascade="all, delete-orphan")
+    users = relationship("User", back_populates="organisation", cascade="all, delete-orphan")
+
+
+# ──────────────────────────────────────────────
+# Users (members of an organisation)
+# ──────────────────────────────────────────────
+class User(Base):
+    """
+    A person who signs in, as distinct from the organisation they belong to.
+
+    The organisation used to be the login: one email, one password, shared by
+    everyone who needed access. That forced password sharing, made it
+    impossible to tell who made a decision, and meant removing someone's
+    access required changing it for everybody.
+
+    Existing organisations are migrated to a single OWNER user carrying the
+    same email and password hash, so every current login keeps working
+    unchanged.
+    """
+    __tablename__ = "users"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("organisations.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(255), nullable=False, default="")
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    # Null until an invited member sets their password. Such a user cannot
+    # sign in, because no password can hash to NULL.
+    password_hash = Column(Text, nullable=True)
+    role = Column(
+        SAEnum(UserRole, name="user_role_enum", values_callable=lambda obj: [e.value for e in obj]),
+        nullable=False,
+        default=UserRole.MEMBER,
+    )
+    is_active = Column(Boolean, nullable=False, default=True, server_default="true")
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
+
+    organisation = relationship("Organisation", back_populates="users")
 
 
 # ──────────────────────────────────────────────
@@ -207,6 +264,9 @@ class PasswordResetToken(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     org_id = Column(UUID(as_uuid=True), ForeignKey("organisations.id", ondelete="CASCADE"), nullable=False)
+    # Nullable so tokens issued before users existed still resolve. New tokens
+    # always carry one, since the password now lives on the user.
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     token_hash = Column(String(64), unique=True, nullable=False, index=True)
     expires_at = Column(DateTime(timezone=True), nullable=False)
     used_at = Column(DateTime(timezone=True), nullable=True)
@@ -216,6 +276,9 @@ class PasswordResetToken(Base):
 
 
 class AuditAction(str, enum.Enum):
+    MEMBER_INVITED = "member.invited"
+    MEMBER_ROLE_CHANGED = "member.role_changed"
+    MEMBER_REMOVED = "member.removed"
     APPLICANT_SELECTED = "applicant.selected"
     APPLICANT_REJECTED = "applicant.rejected"
     APPLICANT_DELETED = "applicant.deleted"
