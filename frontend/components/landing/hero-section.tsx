@@ -38,27 +38,11 @@ export function HeroSection() {
         style={stage}
         className="relative w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
       >
-        {/* Eyebrow pill */}
-        <motion.div
-          initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: appleOut }}
-          className="mb-8 flex justify-center"
-        >
-          <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-surface/70 px-4 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
-            </span>
-            AI interviews, live now
-          </span>
-        </motion.div>
-
         {/* Main Title */}
         <motion.h1
           initial={prefersReducedMotion ? false : { opacity: 0, y: 28, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 1, delay: 0.08, ease: appleOut }}
+          transition={{ duration: 1, ease: appleOut }}
           className="hero-title text-foreground mb-8"
         >
           Hiring, <span className="text-gradient">rethought.</span>
@@ -68,7 +52,7 @@ export function HeroSection() {
         <motion.p
           initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.22, ease: appleOut }}
+          transition={{ duration: 0.9, delay: 0.12, ease: appleOut }}
           className="body-large text-muted-foreground text-balance mx-auto max-w-2xl mb-10"
         >
           Create drives. Interview candidates. Evaluate with evidence.
@@ -78,7 +62,7 @@ export function HeroSection() {
         <motion.div
           initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.32, ease: appleOut }}
+          transition={{ duration: 0.9, delay: 0.22, ease: appleOut }}
           className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6"
         >
           <Link
