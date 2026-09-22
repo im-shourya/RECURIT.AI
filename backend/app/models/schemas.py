@@ -95,6 +95,22 @@ class DriveDetailResponse(DriveResponse):
     applicants: list["ApplicantResponse"] = []
 
 
+class DriveUpdateRequest(BaseModel):
+    """
+    Partial update of a drive. Every field is optional; only the ones sent are
+    applied. `link_token`, `qr_code_url` and `org_id` are deliberately absent —
+    rotating the public link would silently break every share and QR code
+    already handed out.
+    """
+    name: Optional[str] = Field(None, min_length=2, max_length=255)
+    domain: Optional[str] = Field(None, min_length=2, max_length=255)
+    task_description: Optional[str] = None
+    question_level: Optional[str] = Field(None, pattern="^(beginner|intermediate|advanced)$")
+    apply_deadline: Optional[date] = None
+    task_deadline: Optional[date] = None
+    status: Optional[str] = Field(None, pattern="^(active|closed)$")
+
+
 class DriveStatusUpdate(BaseModel):
     status: str = Field(..., pattern="^(active|closed)$")
 
