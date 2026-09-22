@@ -77,8 +77,10 @@ backend/
 | GET | `/api/apply/{token}` | — | Fetch drive info for form |
 | POST | `/api/apply/{token}` | — | Submit application |
 | POST | `/api/submit/{applicant_id}` | — | Task/GitHub submission |
+| POST | `/api/submit/{applicant_id}/upload` | — | Upload a submission file (max 10MB) |
 | GET | `/api/applicants` | JWT | List applicants (filter by drive / status / search) |
 | GET | `/api/applicants/{id}` | JWT | Applicant profile + submission + interview |
+| GET | `/api/applicants/{id}/submission-file` | JWT | Short-lived download link |
 | POST | `/api/applicants/{id}/decision` | JWT | Record hire / reject, email the result |
 | GET | `/api/interview/{token}` | — | Get interview config |
 | POST | `/api/interview/{token}/start` | — | Begin interview |
@@ -95,6 +97,17 @@ backend/
 The suite runs without a database. It covers the authentication boundary, the
 organisation-scoping filter (asserted against the compiled SQL) and request
 validation. End-to-end behaviour against PostgreSQL is not yet covered.
+
+## File uploads
+
+Submission files go to S3 (or any S3-compatible endpoint, e.g. MinIO via
+`S3_ENDPOINT_URL`). Uploads need `S3_BUCKET_NAME` plus either AWS credentials
+or an endpoint URL; without them the upload endpoint returns a clear `503`
+rather than failing obscurely.
+
+Objects are stored **private**. Recruiters read them through short-lived
+presigned URLs from `/api/applicants/{id}/submission-file`, so the bucket never
+needs public access. Allowed types: pdf, zip, doc, docx, png, jpg, txt, md.
 
 ## Database
 
