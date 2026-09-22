@@ -3,6 +3,7 @@ RECRUIT.AI — Main Application Entry Point
 Registers all routers, configures CORS, and creates database tables on startup.
 """
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -14,6 +15,7 @@ from app.config import get_settings
 from app.db import create_tables, engine
 from app.error_tracking import configure_error_tracking
 from app.logging_config import configure_logging
+from app.services import email_outbox
 from app.routers import auth, drives, applicants, applicant_admin, interviews, analytics
 
 
@@ -43,7 +45,24 @@ async def lifespan(app: FastAPI):
     else:
         log.info("schema managed by Alembic (alembic upgrade head)")
 
+    # Retry mail that was queued but never delivered — for example because a
+    # previous process died between writing the row and sending it.
+    sweeper_stop = asyncio.Event()
+    sweeper_task = None
+    if settings.OUTBOX_SWEEPER_ENABLED:
+        sweeper_task = asyncio.create_task(email_outbox.run_sweeper(sweeper_stop))
+        log.info("email outbox sweeper started")
+
     yield
+
+    if sweeper_task is not None:
+        sweeper_stop.set()
+        try:
+            # Bounded so a stuck sweep cannot hold shutdown open indefinitely.
+            await asyncio.wait_for(sweeper_task, timeout=5)
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            sweeper_task.cancel()
+
     log.info("shutting down")
 
 
