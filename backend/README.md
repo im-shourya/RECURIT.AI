@@ -4,7 +4,7 @@ FastAPI-powered backend for the AI recruitment platform.
 
 ## Quick Start
 
-### 1. Start PostgreSQL & Redis
+### 1. Start MongoDB & Redis
 ```bash
 # From the project root
 docker-compose up -d
@@ -38,24 +38,34 @@ uvicorn app.main:app --reload --port 8000
 ```
 backend/
 ├── app/
-│   ├── __init__.py
-│   ├── main.py              # FastAPI app entry point
-│   ├── config.py             # Pydantic settings from .env
-│   ├── db.py                 # SQLAlchemy session management
+│   ├── main.py                 # FastAPI app, CORS, lifespan, /health
+│   ├── config.py               # Pydantic settings from .env
+│   ├── db.py                   # Motor client + Beanie initialisation
+│   ├── logging_config.py       # Structured (JSON) logging
+│   ├── error_tracking.py       # Optional Sentry wiring
 │   ├── models/
-│   │   ├── database.py       # ORM models (6 tables)
-│   │   └── schemas.py        # Pydantic request/response schemas
+│   │   ├── documents.py        # Beanie documents (7 collections)
+│   │   └── schemas.py          # Pydantic request/response schemas
 │   ├── routers/
-│   │   ├── auth.py           # /api/auth/*
-│   │   ├── drives.py         # /api/drives/*
-│   │   ├── applicants.py     # /api/apply/*, /api/submit/*
-│   │   └── interviews.py     # /api/interview/*
+│   │   ├── auth.py             # /api/auth/*
+│   │   ├── team.py             # /api/team/*
+│   │   ├── drives.py           # /api/drives/*
+│   │   ├── applicants.py       # /api/apply/*, /api/submit/*, /api/status/*
+│   │   ├── applicant_admin.py  # /api/applicants/*
+│   │   ├── interviews.py       # /api/interview/*
+│   │   ├── analytics.py        # /api/analytics/*
+│   │   └── audit.py            # /api/audit
 │   └── services/
-│       ├── auth_service.py   # JWT + password hashing
-│       ├── email_service.py  # EmailJS integration
-│       └── qr_service.py     # QR code generation
-├── alembic/                  # Database migrations
-├── alembic.ini
+│       ├── auth_service.py     # JWT, password + reset-token hashing
+│       ├── cascade.py          # Deletion cascades (no FKs in MongoDB)
+│       ├── audit.py            # Append-only audit writes
+│       ├── email_service.py    # Resend transport
+│       ├── email_templates.py  # Branded HTML + text templates
+│       ├── email_outbox.py     # Durable queue + retry sweeper
+│       ├── storage_service.py  # S3 uploads and presigned reads
+│       ├── rate_limit.py       # Redis or in-process limiting
+│       └── qr_service.py       # QR code generation
+├── tests/                      # 300 tests, real queries via mongomock-motor
 ├── requirements.txt
 ├── .env / .env.example
 └── .gitignore
@@ -138,115 +148,37 @@ decision result (selected / rejected), password reset. Each is sent as HTML
 plus a plain-text alternative, with the logo and a footer carrying support and
 policy links.
 
-## Migrations
+## Schema and indexes
 
-Alembic owns the schema.
+MongoDB is schemaless, so there are no migrations. Document shape is defined
+in `app/models/documents.py` and validated by Pydantic on the way in and out.
 
-```bash
-alembic upgrade head          # apply
-alembic revision --autogenerate -m "describe change"
-alembic upgrade head --sql    # preview SQL without touching a database
-```
+The indexes declared on each model — including every uniqueness rule that used
+to be a table constraint — are created by `init_beanie` on every startup. That
+is the closest thing to a migration step here, and it is not optional: without
+it, nothing stops two applications to the same drive from the same email.
 
-**On a database that already has these tables** (they were created by
-`create_all` on startup before Alembic was wired up), do not run the baseline
-— mark it as already applied:
-
-```bash
-alembic stamp baseline_0001
-```
-
-`AUTO_CREATE_TABLES` is off by default. `create_all()` only ever creates
-*missing* tables — it never alters an existing one — so relying on it where
-data matters means a changed column is silently skipped and the app runs
-against a schema it does not have. Turn it on only for a throwaway local
-database.
-
-## Security notes
-
-- Public candidate routes are reached by **unguessable token**, never by a
-  database id. `submit_token` guards submission; `link_token` guards apply;
-  interview links carry their own token and expire after
-  `INTERVIEW_TOKEN_TTL_DAYS` (default 14).
-- `/api/interview/{token}/detail` requires a signed-in organisation and is
-  scoped to that organisation's drives.
-- `CORS_ALLOWED_ORIGINS` must list exact origins. `*` is rejected at startup:
-  a wildcard is invalid on credentialed requests and browsers reject it.
-- Sign-in, registration, password reset and public application are rate
-  limited. Counters use Redis when `REDIS_URL` is reachable, which makes the
-  limit exact and shared across workers; otherwise they fall back to process
-  memory, which is approximate. If Redis is configured but unreachable the
-  limiter degrades to memory rather than failing closed.
-- Set `SENTRY_DSN` to enable error tracking. It is off by default, sends no
-  PII, drops request bodies and redacts credential headers before anything
-  leaves the process.
-
-## Logging and health
-
-Logs are structured: readable text when `ENVIRONMENT=development`, one JSON
-object per line otherwise, so hosted log viewers can index the fields.
-Level via `LOG_LEVEL`.
-
-`GET /health` runs `SELECT 1` and returns **503** when the database is
-unreachable. It previously returned healthy unconditionally, so it stayed
-green through an outage.
-
-## Background work
-
-Outbound email is written to the `email_outbox` table before delivery is
-attempted, so the intent to send survives a restart. A sweeper retries
-anything left pending every `OUTBOX_SWEEP_INTERVAL_SECONDS`, giving up after
-five attempts and leaving the row as `failed` for inspection.
-
-This is not a distributed queue — one sweeper per process, no lock — but it
-closes the failure that mattered: an email vanishing with no record it was
-ever attempted. `celery` remains out of requirements; it was declared and
-never imported, advertising a guarantee the code did not provide.
-
-`redis` stays in requirements for moving rate-limit counters out of process
-memory, which is the next step for exact, shared limits.
-
-## Accounts and roles
-
-People sign in as **users**, not as the organisation. The organisation used to
-be the login — one shared email and password — which forced password sharing,
-made it impossible to tell who decided what, and meant revoking one person's
-access changed it for everybody.
-
-| Role | Can |
-|------|-----|
-| `owner` | Everything, including managing members. Exactly one per org. |
-| `admin` | Create and edit drives, decide on candidates. |
-| `member` | Read-only: review candidates and evidence, but not decide. |
-
-Invited members are created **without a password** and receive a reset link,
-so a password is never chosen for them or sent by email. They cannot sign in
-until they set one. Ownership is **transferred**, never granted by invitation:
-promoting someone demotes the previous owner in the same operation.
-
-**Existing accounts are unaffected.** The migration gives every organisation
-one owner user carrying the same email and the same password hash, so current
-passwords keep working.
-
-## Audit and data rights
-
-Consequential actions — hiring decisions, candidate deletion, drive
-create/delete, password change — are appended to `audit_log`, scoped to the
-organisation and readable at `GET /api/audit`. There is no endpoint to edit or
-delete an entry: a trail that can be rewritten answers nothing.
-
-The table has **no foreign key to applicants** on purpose. It must outlive the
-rows it describes, so erasing a candidate cannot also erase the record that
-they were erased; the subject is stored as an id plus a label captured at the
-time.
-
-`DELETE /api/applicants/{id}` erases a candidate, their submission, interview,
-transcript and email log, and removes their stored files from object storage.
-This is what makes a deletion request answerable — the service stores names,
-email addresses, transcripts, scores and recordings of identifiable people.
+Adding a field is a code change alone. **Removing or renaming one leaves the
+old key on existing documents**, so a rename needs a one-off backfill script;
+nothing will warn you.
 
 ## Database
 
-7 PostgreSQL tables: `organisations`, `drives`, `applicants`, `submissions`, `interviews`, `email_logs`, `password_reset_tokens`
+7 MongoDB collections: `organisations`, `users`, `drives`, `applicants`,
+`password_reset_tokens`, `audit_log`, `email_outbox`.
 
-See `../database/init.sql` for the raw SQL schema.
+`submissions`, `interviews` and `email_logs` are no longer separate: each was
+either 1:1 with an applicant or an append-only list only ever read through
+one, so they are **embedded in the applicant document**. That removes three
+collections, three joins and three cascade rules.
+
+`audit_log` is deliberately *not* embedded. It has to outlive the documents it
+describes, or erasing a candidate would also erase the record that they were
+erased.
+
+### Referential integrity
+
+There is none at the database level. Every cascade PostgreSQL used to enforce
+now lives in `app/services/cascade.py`, deliberately in one file: a delete
+added elsewhere that skips it leaves orphans, and MongoDB will not object.
+`cascade.count_orphans()` is the diagnostic for exactly that.
