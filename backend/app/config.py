@@ -11,17 +11,12 @@ class Settings(BaseSettings):
     # ── Environment ──
     ENVIRONMENT: str = "development"
 
-    # Create tables directly from the models on startup.
-    #
-    # Off by default. create_all() only ever creates missing tables: it never
-    # alters an existing one, so on a database that is already populated a
-    # changed column is silently ignored and the code then runs against a
-    # schema it does not match. Alembic owns the schema; this is a convenience
-    # for a throwaway local database only.
-    AUTO_CREATE_TABLES: bool = False
-
-    # ── Database ──
-    DATABASE_URL: str = "postgresql://recruit_user:recruit_pass@localhost:5432/recruit_ai"
+    # ── Database (MongoDB) ──
+    MONGODB_URL: str = "mongodb://localhost:27017"
+    MONGODB_DB: str = "recruit_ai"
+    # Kept short so an unreachable database surfaces as a fast error rather
+    # than a request that hangs for the driver's 30s default.
+    MONGODB_TIMEOUT_MS: int = 5000
 
     # ── JWT ──
     SECRET_KEY: str = "change-me-to-a-random-secret-key-in-production"

@@ -1,6 +1,6 @@
 """
 RECRUIT.AI — Main Application Entry Point
-Registers all routers, configures CORS, and creates database tables on startup.
+Registers routers, configures CORS, and manages the MongoDB connection.
 """
 
 import asyncio
@@ -9,19 +9,16 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
 
+from app import db
 from app.config import get_settings
-from app.db import create_tables, engine
 from app.error_tracking import configure_error_tracking
 from app.logging_config import configure_logging
-from app.services import email_outbox
 from app.routers import (
-    auth, drives, applicants, applicant_admin, interviews, analytics, audit, team,
+    analytics, applicant_admin, applicants, audit, auth, drives, interviews, team,
 )
+from app.services import email_outbox
 
-
-# ── Lifespan: create tables on startup ──
 settings = get_settings()
 
 configure_logging()
@@ -33,22 +30,12 @@ log = logging.getLogger("recruit.startup")
 async def lifespan(app: FastAPI):
     log.info("starting up", extra={"environment": settings.ENVIRONMENT})
 
-    if settings.AUTO_CREATE_TABLES:
-        # Convenience for a throwaway local database. create_all() only ever
-        # creates missing tables — it never alters an existing one — so
-        # relying on it in a deployed environment means a changed column is
-        # silently skipped and the app runs against a schema it expects but
-        # does not have.
-        create_tables()
-        log.warning(
-            "AUTO_CREATE_TABLES is on: tables created from models. "
-            "Do not use this where data matters; run migrations instead."
-        )
-    else:
-        log.info("schema managed by Alembic (alembic upgrade head)")
+    # Opens the connection pool and creates the indexes declared on each
+    # document. Those indexes are what still enforce the uniqueness rules that
+    # used to be table constraints, so this is not optional setup.
+    await db.connect()
+    log.info("database ready; indexes applied")
 
-    # Retry mail that was queued but never delivered — for example because a
-    # previous process died between writing the row and sending it.
     sweeper_stop = asyncio.Event()
     sweeper_task = None
     if settings.OUTBOX_SWEEPER_ENABLED:
@@ -65,14 +52,14 @@ async def lifespan(app: FastAPI):
         except (asyncio.TimeoutError, asyncio.CancelledError):
             sweeper_task.cancel()
 
+    await db.disconnect()
     log.info("shutting down")
 
 
-# ── FastAPI App ──
 app = FastAPI(
     title="RECRUIT.AI",
     description="AI-powered recruitment platform for college clubs and organisations",
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -82,8 +69,6 @@ app = FastAPI(
 # ── CORS ──
 # "*" cannot be combined with allow_credentials: the CORS spec forbids a
 # wildcard on a credentialed response, so browsers reject every such request.
-# The previous config paired them, which meant the permissive setting did not
-# even work — it only looked permissive.
 _origins = [o.strip() for o in settings.CORS_ALLOWED_ORIGINS.split(",") if o.strip()]
 
 if "*" in _origins:
@@ -102,7 +87,7 @@ app.add_middleware(
 )
 
 
-# ── Register Routers ──
+# ── Routers ──
 app.include_router(auth.router, prefix="/api")
 app.include_router(drives.router, prefix="/api")
 app.include_router(applicants.router, prefix="/api")
@@ -113,36 +98,34 @@ app.include_router(audit.router, prefix="/api")
 app.include_router(team.router, prefix="/api")
 
 
-# ── Health Check ──
+# ── Health ──
 @app.get("/", tags=["Health"])
 def root():
     return {
         "service": "RECRUIT.AI Backend",
         "status": "running",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "docs": "/docs",
     }
 
 
 @app.get("/health", tags=["Health"])
-def health_check(response: Response):
+async def health_check(response: Response):
     """
     Liveness plus a real dependency check.
 
-    This used to return {"status": "healthy"} unconditionally, so it stayed
-    green while the database was unreachable — exactly when an orchestrator
-    most needs to know. It now runs SELECT 1 and reports 503 if that fails,
-    so a failed deploy is caught rather than rolled out.
+    This used to return healthy unconditionally, so it stayed green while the
+    database was unreachable — exactly when an orchestrator most needs to
+    know.
     """
     checks = {"database": "ok"}
     healthy = True
 
     try:
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
+        await db.ping()
     except Exception as exc:
-        # The reason is logged; the response stays generic so an unauthenticated
-        # probe cannot read connection strings or internal hostnames back.
+        # The reason is logged; the response stays generic so an
+        # unauthenticated probe cannot read connection strings back.
         healthy = False
         checks["database"] = "unavailable"
         logging.getLogger("recruit.health").error(
