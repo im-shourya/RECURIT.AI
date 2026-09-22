@@ -82,7 +82,7 @@ backend/
 | POST | `/api/apply/{token}` | — | Submit application |
 | POST | `/api/submit/{submit_token}` | token | Task/GitHub submission |
 | POST | `/api/submit/{submit_token}/upload` | token | Upload a submission file (max 10MB) |
-| GET | `/api/applicants` | JWT | List applicants (filter by drive / status / search) |
+| GET | `/api/applicants` | JWT | List applicants (filter / search; `X-Total-Count` header) |
 | GET | `/api/applicants/export` | JWT | CSV export (same filters as list) |
 | GET | `/api/applicants/{id}` | JWT | Applicant profile + submission + interview |
 | GET | `/api/applicants/{id}/submission-file` | JWT | Short-lived download link |
@@ -93,6 +93,7 @@ backend/
 | POST | `/api/interview/{token}/start` | — | Begin interview |
 | POST | `/api/interview/{token}/answer` | — | Submit answer, get next Q |
 | POST | `/api/interview/{token}/end` | — | End & score interview |
+| POST | `/api/interview/{token}/recording` | token | Upload the interview recording |
 | GET | `/api/interview/{token}/detail` | JWT | Full interview detail (org only) |
 
 ## Tests
