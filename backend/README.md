@@ -186,12 +186,15 @@ green through an outage.
 
 ## Background work
 
-Emails are queued with FastAPI `BackgroundTasks`, which run **in the same
-process**. If the process restarts between the response and the send, that
-email is lost, and there is no retry. This is acceptable for the current
-volume but is the reason `celery` was removed from requirements: it was
-declared and never imported, so it advertised a durability guarantee the code
-does not provide. A real queue is the fix when that matters.
+Outbound email is written to the `email_outbox` table before delivery is
+attempted, so the intent to send survives a restart. A sweeper retries
+anything left pending every `OUTBOX_SWEEP_INTERVAL_SECONDS`, giving up after
+five attempts and leaving the row as `failed` for inspection.
+
+This is not a distributed queue — one sweeper per process, no lock — but it
+closes the failure that mattered: an email vanishing with no record it was
+ever attempted. `celery` remains out of requirements; it was declared and
+never imported, advertising a guarantee the code did not provide.
 
 `redis` stays in requirements for moving rate-limit counters out of process
 memory, which is the next step for exact, shared limits.

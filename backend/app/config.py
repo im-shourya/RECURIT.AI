@@ -54,6 +54,14 @@ class Settings(BaseSettings):
     # forwarded should stop working at some point.
     INTERVIEW_TOKEN_TTL_DAYS: int = 14
 
+    # ── Email outbox ──
+    # Retry loop for queued mail. Disable to send inline only.
+    OUTBOX_SWEEPER_ENABLED: bool = True
+    OUTBOX_SWEEP_INTERVAL_SECONDS: int = 60
+    # Grace period before a pending row is retried, so the inline attempt that
+    # just queued it is not immediately duplicated by the sweeper.
+    OUTBOX_RETRY_DELAY_SECONDS: int = 120
+
     # ── Error tracking ──
     # Empty disables Sentry entirely; nothing is sent and the SDK is not even
     # imported, so local development needs no account.
