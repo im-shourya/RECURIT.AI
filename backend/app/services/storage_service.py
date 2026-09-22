@@ -218,6 +218,27 @@ def upload_recording(interview_id, filename: str, stream: BinaryIO) -> str:
     return key
 
 
+def delete_object(key: str) -> bool:
+    """
+    Remove a stored object.
+
+    Used when erasing a candidate: leaving their recording or submission in
+    the bucket would make the deletion only partial. Refuses anything that is
+    not one of our own keys, so a legacy row holding a plain URL cannot be
+    turned into a delete against an arbitrary path.
+    """
+    if not key or not key.startswith(("submissions/", "recordings/")):
+        return False
+    if not is_configured():
+        raise StorageError("Object storage is not configured")
+
+    try:
+        _client().delete_object(Bucket=settings.S3_BUCKET_NAME, Key=key)
+        return True
+    except (BotoCoreError, ClientError) as exc:
+        raise StorageError(f"Delete failed: {exc}") from exc
+
+
 def presigned_get_url(key: str, expires_in: int = PRESIGNED_URL_TTL_SECONDS) -> Optional[str]:
     """
     Return a short-lived read URL for a stored object.

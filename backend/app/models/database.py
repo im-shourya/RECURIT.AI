@@ -215,10 +215,52 @@ class PasswordResetToken(Base):
     organisation = relationship("Organisation", back_populates="reset_tokens")
 
 
+class AuditAction(str, enum.Enum):
+    APPLICANT_SELECTED = "applicant.selected"
+    APPLICANT_REJECTED = "applicant.rejected"
+    APPLICANT_DELETED = "applicant.deleted"
+    DRIVE_CREATED = "drive.created"
+    DRIVE_UPDATED = "drive.updated"
+    DRIVE_DELETED = "drive.deleted"
+    PASSWORD_CHANGED = "org.password_changed"
+
+
 class EmailStatus(str, enum.Enum):
     PENDING = "pending"
     SENT = "sent"
     FAILED = "failed"
+
+
+# ──────────────────────────────────────────────
+# Audit Log
+# ──────────────────────────────────────────────
+class AuditLog(Base):
+    """
+    An append-only record of consequential actions.
+
+    Hiring decisions previously left no trace: nothing recorded who rejected a
+    candidate or when, which matters both for resolving internal disputes and
+    for answering a candidate who asks why.
+
+    Deliberately not a foreign key to applicants: the whole point of this
+    table is to outlive the rows it describes, so a deletion cannot erase the
+    record that the deletion happened. The subject is stored by id plus a
+    human-readable label captured at the time.
+    """
+    __tablename__ = "audit_log"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("organisations.id", ondelete="CASCADE"), nullable=False, index=True)
+    action = Column(
+        SAEnum(AuditAction, name="audit_action_enum", values_callable=lambda obj: [e.value for e in obj]),
+        nullable=False,
+        index=True,
+    )
+    entity_type = Column(String(50), nullable=False)
+    entity_id = Column(UUID(as_uuid=True), nullable=True)
+    entity_label = Column(String(255), default="")
+    detail = Column(JSONB, default=dict)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)
 
 
 # ──────────────────────────────────────────────

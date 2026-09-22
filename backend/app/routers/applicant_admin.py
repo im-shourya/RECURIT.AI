@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.db import get_db
 from app.models.database import (
     Drive, Applicant, EmailLog, Organisation,
-    ApplicantStatus, EmailType, TaskType,
+    ApplicantStatus, AuditAction, EmailType, TaskType,
 )
 from app.models.schemas import (
     ApplicantResponse,
@@ -44,6 +44,7 @@ from app.services.email_service import (
     send_interview_email,
 )
 from app.services import storage_service
+from app.services import audit
 from app.config import get_settings
 
 settings = get_settings()
@@ -305,6 +306,19 @@ def decide_applicant(
     )
 
     db.add(EmailLog(applicant_id=applicant.id, type=EmailType.RESULT))
+    audit.record(
+        db,
+        org_id=org.id,
+        action=(
+            AuditAction.APPLICANT_SELECTED
+            if applicant.status == ApplicantStatus.SELECTED
+            else AuditAction.APPLICANT_REJECTED
+        ),
+        entity_type="applicant",
+        entity_id=applicant.id,
+        entity_label=applicant.name,
+        detail={"drive": applicant.drive.name, "decision": body.decision},
+    )
     db.commit()
     db.refresh(applicant)
 
@@ -490,6 +504,19 @@ def bulk_decision(
 
         applicant.status = target
         db.add(EmailLog(applicant_id=applicant.id, type=EmailType.RESULT))
+        audit.record(
+            db,
+            org_id=org.id,
+            action=(
+                AuditAction.APPLICANT_SELECTED
+                if target == ApplicantStatus.SELECTED
+                else AuditAction.APPLICANT_REJECTED
+            ),
+            entity_type="applicant",
+            entity_id=applicant.id,
+            entity_label=applicant.name,
+            detail={"drive": applicant.drive.name, "bulk": True},
+        )
         updated.append(applicant.id)
 
     db.commit()
@@ -512,3 +539,63 @@ def bulk_decision(
         skipped=skipped,
         status=target.value,
     )
+
+
+# ──────────────────────────────────────────────
+# DELETE A CANDIDATE'S DATA
+# ──────────────────────────────────────────────
+@router.delete("/{applicant_id}", status_code=204)
+def delete_applicant(
+    applicant_id: UUID,
+    org: Organisation = Depends(get_current_org),
+    db: Session = Depends(get_db),
+):
+    """
+    Permanently erase a candidate and everything recorded about them.
+
+    There was previously no way to remove a candidate at all, which made a
+    deletion request impossible to honour — this service stores names, email
+    addresses, interview transcripts, scores and recordings of identifiable
+    people.
+
+    Cascades to the submission, interview, transcript and email log rows.
+    Stored files are deleted from object storage too: leaving a recording
+    behind would mean the deletion was only partial.
+
+    The audit entry is written first and deliberately outlives the applicant,
+    so erasing someone cannot also erase the record that they were erased.
+    """
+    applicant = _owned_applicant(applicant_id, org, db)
+
+    keys = []
+    if applicant.submission and applicant.submission.file_url:
+        keys.append(applicant.submission.file_url)
+    if applicant.interview and applicant.interview.recording_url:
+        keys.append(applicant.interview.recording_url)
+
+    audit.record(
+        db,
+        org_id=org.id,
+        action=AuditAction.APPLICANT_DELETED,
+        entity_type="applicant",
+        entity_id=applicant.id,
+        entity_label=applicant.name,
+        detail={"drive": applicant.drive.name, "stored_files": len(keys)},
+    )
+
+    db.delete(applicant)
+    db.commit()
+
+    # After the row is gone: a storage error must not leave the database
+    # record in place, and an orphaned object is recoverable where a
+    # half-deleted candidate is not.
+    for key in keys:
+        try:
+            storage_service.delete_object(key)
+        except Exception as exc:
+            log.error(
+                "stored file left behind after applicant deletion",
+                extra={"key": key, "error": type(exc).__name__},
+            )
+
+    return None
