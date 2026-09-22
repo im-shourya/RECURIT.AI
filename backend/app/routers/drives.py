@@ -7,6 +7,7 @@ PATCH  /drives/{id}/status  — Open / close drive
 """
 
 import secrets
+from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
@@ -24,6 +25,24 @@ from app.models.schemas import (
 )
 from app.services.auth_service import get_current_org
 from app.services.qr_service import generate_qr_for_drive, generate_apply_link
+
+def _close_if_past_deadline(drive: Drive, db: Session) -> Drive:
+    """
+    Close a drive whose apply deadline has passed.
+
+    There is no scheduler in this project, so rather than leave every expired
+    drive sitting at "active" — which made closed drives look open in the
+    dashboard and counted them as active in analytics — the transition happens
+    lazily the next time the drive is read. It is idempotent and only ever
+    moves active -> closed, never the reverse, so a drive the recruiter closed
+    early stays closed.
+    """
+    if drive.status == DriveStatus.ACTIVE and drive.apply_deadline < date.today():
+        drive.status = DriveStatus.CLOSED
+        db.commit()
+        db.refresh(drive)
+    return drive
+
 
 router = APIRouter(prefix="/drives", tags=["Drives"])
 
@@ -91,6 +110,8 @@ def list_drives(
     db: Session = Depends(get_db),
 ):
     drives = db.query(Drive).filter(Drive.org_id == org.id).order_by(Drive.created_at.desc()).all()
+    for drive in drives:
+        _close_if_past_deadline(drive, db)
     return [
         _drive_to_response(d, applicant_count=len(d.applicants))
         for d in drives
