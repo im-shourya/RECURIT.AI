@@ -197,3 +197,22 @@ async def send_password_reset_email(to_email: str, to_name: str, reset_link: str
         ttl_minutes=settings.PASSWORD_RESET_TOKEN_TTL_MINUTES,
     )
     return await send_email(to_email=to_email, subject=subject, html=html, text=text)
+
+
+async def send_interview_completed_email(
+    to_email: str,
+    to_name: str,
+    applicant_name: str,
+    drive_name: str,
+    total_score: int,
+    review_url: str,
+):
+    """Tell the recruiting organisation that a candidate has finished."""
+    subject, html, text = email_templates.interview_completed_for_recruiter(
+        to_name=to_name,
+        applicant_name=applicant_name,
+        drive_name=drive_name,
+        total_score=total_score,
+        review_url=review_url,
+    )
+    return await send_email(to_email=to_email, subject=subject, html=html, text=text)

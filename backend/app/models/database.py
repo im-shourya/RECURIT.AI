@@ -71,6 +71,10 @@ class Organisation(Base):
     description = Column(Text, default="")
     domain_tags = Column(ARRAY(String), default=list)
     logo_url = Column(Text, default="")
+    # Recruiters are emailed when a candidate finishes an interview. Opt-out
+    # rather than opt-in: a drive owner who hears nothing assumes the platform
+    # is idle, which is the failure this notification exists to prevent.
+    notify_on_interview = Column(Boolean, default=True, nullable=False, server_default="true")
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     # Relationships
