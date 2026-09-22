@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     EMAILJS_TEMPLATE_INTERVIEW: str = "template_2ff11hc"
     EMAILJS_TEMPLATE_RESULT: str = "template_lvd2m7p"
 
+    # ── Password reset ──
+    EMAILJS_TEMPLATE_PASSWORD_RESET: str = ""
+    PASSWORD_RESET_TOKEN_TTL_MINUTES: int = 60
+
     # ── Frontend URL ──
     FRONTEND_URL: str = "http://localhost:5173"
 
