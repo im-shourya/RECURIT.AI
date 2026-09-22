@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import get_db
-from app.models.database import Organisation, PasswordResetToken
+from app.models.database import Organisation, PasswordResetToken, AuditAction
 from app.models.schemas import (
     OrgRegisterRequest,
     OrgLoginRequest,
@@ -37,6 +37,7 @@ from app.services.auth_service import (
 )
 from app.services.email_service import send_password_reset_email
 from app.services.rate_limit import RateLimit
+from app.services import audit
 
 settings = get_settings()
 
@@ -145,6 +146,10 @@ def change_password(
         )
 
     org.password_hash = hash_password(body.new_password)
+    audit.record(
+        db, org_id=org.id, action=AuditAction.PASSWORD_CHANGED,
+        entity_type="organisation", entity_id=org.id, entity_label=org.name,
+    )
     db.commit()
 
     # Returns 204. Existing JWTs stay valid: tokens carry no password state and

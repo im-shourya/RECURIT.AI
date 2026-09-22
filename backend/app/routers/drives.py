@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models.database import Drive, Organisation, TaskType, QuestionLevel, DriveStatus
+from app.models.database import Drive, Organisation, TaskType, QuestionLevel, DriveStatus, AuditAction
 from app.models.schemas import (
     DriveCreateRequest,
     DriveResponse,
@@ -24,6 +24,7 @@ from app.models.schemas import (
     ApplicantResponse,
 )
 from app.services.auth_service import get_current_org
+from app.services import audit
 from app.services.qr_service import generate_qr_for_drive, generate_apply_link
 
 def _close_if_past_deadline(drive: Drive, db: Session) -> Drive:
@@ -95,6 +96,11 @@ def create_drive(
         qr_code_url=qr_code_url,
     )
     db.add(drive)
+    db.flush()
+    audit.record(
+        db, org_id=org.id, action=AuditAction.DRIVE_CREATED,
+        entity_type="drive", entity_id=drive.id, entity_label=drive.name,
+    )
     db.commit()
     db.refresh(drive)
 
@@ -273,6 +279,11 @@ def delete_drive(
             ),
         )
 
+    audit.record(
+        db, org_id=org.id, action=AuditAction.DRIVE_DELETED,
+        entity_type="drive", entity_id=drive.id, entity_label=drive.name,
+        detail={"applicants_deleted": applicant_count},
+    )
     db.delete(drive)
     db.commit()
     return None
