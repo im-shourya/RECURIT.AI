@@ -148,6 +148,24 @@ decision result (selected / rejected), password reset. Each is sent as HTML
 plus a plain-text alternative, with the logo and a footer carrying support and
 policy links.
 
+## Migrating existing PostgreSQL data
+
+The code change moves where *new* data is written. Existing rows move with:
+
+```bash
+pip install psycopg2-binary   # not a runtime dependency
+
+DATABASE_URL=postgresql://... MONGODB_URL=mongodb://... \
+    python scripts/migrate_postgres_to_mongo.py --dry-run
+```
+
+Drop `--dry-run` to write. Safe to re-run: documents are upserted by their
+existing id, so an interrupted run can simply be repeated. Ids are preserved,
+which is what keeps links already emailed to candidates resolving afterwards.
+
+Not a dump/restore — `submissions`, `interviews` and `email_logs` are joined
+and nested into the applicant document on the way across.
+
 ## Schema and indexes
 
 MongoDB is schemaless, so there are no migrations. Document shape is defined
