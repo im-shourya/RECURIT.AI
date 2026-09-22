@@ -176,6 +176,18 @@ class SubmissionCreateRequest(BaseModel):
     description: str = ""
 
 
+class FileUploadResponse(BaseModel):
+    """Returned by the upload endpoint; `file_url` holds the stored object key."""
+    file_url: str
+    filename: str
+
+
+class SubmissionFileLinkResponse(BaseModel):
+    """A short-lived link to a stored submission file."""
+    url: str
+    expires_in_seconds: int
+
+
 class SubmissionResponse(BaseModel):
     id: UUID
     applicant_id: UUID
