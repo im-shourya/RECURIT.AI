@@ -9,21 +9,24 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { api } from '@/lib/api'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false)
+    try {
+      await api.forgotPassword({ email })
       setSubmitted(true)
-      toast.success('Recovery email sent!')
-    }, 1500)
+    } catch (err: any) {
+      toast.error('Could not send the recovery email', { description: err.message })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -78,7 +81,8 @@ export default function ForgotPasswordPage() {
         >
           <p className="text-sm font-medium">Check your email</p>
           <p className="text-xs text-muted-foreground mt-1">
-            We've sent a password recovery link to <span className="font-semibold text-foreground">{email}</span>.
+            If an account exists for <span className="font-semibold text-foreground">{email}</span>,
+            a recovery link is on its way. The link expires in one hour.
           </p>
         </motion.div>
       )}
