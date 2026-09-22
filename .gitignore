@@ -22,3 +22,5 @@ env/
 
 .agents/
 skill/
+# Build artefacts
+*.tsbuildinfo
