@@ -70,6 +70,8 @@ backend/
 | GET | `/api/auth/me` | JWT | Current org profile |
 | PATCH | `/api/auth/me` | JWT | Update org profile |
 | POST | `/api/auth/change-password` | JWT | Change org password |
+| POST | `/api/auth/forgot-password` | — | Request a reset link (always 204) |
+| POST | `/api/auth/reset-password` | — | Consume a reset token, set new password |
 | POST | `/api/drives` | JWT | Create drive (returns link + QR) |
 | GET | `/api/drives` | JWT | List org drives |
 | GET | `/api/drives/{id}` | JWT | Drive detail + applicants |
@@ -113,6 +115,6 @@ needs public access. Allowed types: pdf, zip, doc, docx, png, jpg, txt, md.
 
 ## Database
 
-6 PostgreSQL tables: `organisations`, `drives`, `applicants`, `submissions`, `interviews`, `email_logs`
+7 PostgreSQL tables: `organisations`, `drives`, `applicants`, `submissions`, `interviews`, `email_logs`, `password_reset_tokens`
 
 See `../database/init.sql` for the raw SQL schema.

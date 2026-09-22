@@ -152,5 +152,23 @@ CREATE INDEX IF NOT EXISTS idx_email_logs_applicant_id ON email_logs(applicant_i
 
 
 -- ══════════════════════════════════════════════════════════════
+-- PASSWORD RESET TOKENS
+-- Single-use, short-lived. Only the SHA-256 hash of the token is
+-- stored; the plaintext lives solely in the emailed link, so a
+-- database leak cannot be replayed to take over accounts.
+-- ══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id      UUID NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+    token_hash  VARCHAR(64) UNIQUE NOT NULL,
+    expires_at  TIMESTAMPTZ NOT NULL,
+    used_at     TIMESTAMPTZ,
+    created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_hash ON password_reset_tokens(token_hash);
+
+
+-- ══════════════════════════════════════════════════════════════
 -- DONE — All tables and indexes created
 -- ══════════════════════════════════════════════════════════════

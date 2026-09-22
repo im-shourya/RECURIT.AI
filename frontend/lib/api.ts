@@ -50,6 +50,12 @@ async function request<T>(
     throw new Error(body.detail || `Request failed: ${res.status}`);
   }
 
+  // 204 responses carry no body, so parsing one as JSON would throw on an
+  // otherwise successful request.
+  if (res.status === 204) {
+    return undefined as T;
+  }
+
   return res.json();
 }
 
@@ -212,6 +218,17 @@ export const api = {
     domain_tags?: string[];
     logo_url?: string;
   }) => request<OrgProfile>('/api/auth/me', { method: 'PATCH', body: JSON.stringify(data) }, true),
+
+  changePassword: (data: { current_password: string; new_password: string }) =>
+    request<void>('/api/auth/change-password', { method: 'POST', body: JSON.stringify(data) }, true),
+
+  // Always resolves, whether or not the address is registered — the API
+  // deliberately does not reveal which, so the UI must not either.
+  forgotPassword: (data: { email: string }) =>
+    request<void>('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify(data) }),
+
+  resetPassword: (data: { token: string; new_password: string }) =>
+    request<void>('/api/auth/reset-password', { method: 'POST', body: JSON.stringify(data) }),
 
   // ── Drives (authed) ──
   createDrive: (data: {
