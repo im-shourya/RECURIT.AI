@@ -137,3 +137,13 @@ async def send_result_email(
         "score": str(score),
     }
     return await send_email(settings.EMAILJS_TEMPLATE_RESULT, params)
+
+
+async def send_password_reset_email(to_email: str, to_name: str, reset_link: str):
+    """Send the password reset link via Service 2."""
+    params = {
+        "to_email": to_email,
+        "to_name": to_name,
+        "reset_link": reset_link,
+    }
+    return await send_email(settings.EMAILJS_TEMPLATE_PASSWORD_RESET, params)
