@@ -45,6 +45,11 @@ class OrgProfileResponse(BaseModel):
         from_attributes = True
 
 
+class PasswordChangeRequest(BaseModel):
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+
 class OrgProfileUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=2, max_length=255)
     description: Optional[str] = None
@@ -143,7 +148,23 @@ class ApplicantResponse(BaseModel):
 
 
 class ApplicantStatusUpdate(BaseModel):
+    status: str = Field(
+        ...,
+        pattern="^(applied|task_sent|submitted|interview_sent|interviewed|selected|rejected)$",
+    )
+
+
+class ApplicantDecisionRequest(BaseModel):
+    """A recruiter's final hire / reject decision on one applicant."""
+    decision: str = Field(..., pattern="^(selected|rejected)$")
+
+
+class ApplicantDecisionResponse(BaseModel):
+    id: UUID
+    name: str
+    email: str
     status: str
+    result_email_sent: bool
 
 
 # ══════════════════════════════════════════════
