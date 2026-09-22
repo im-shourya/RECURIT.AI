@@ -1,72 +1,92 @@
 """
 RECRUIT.AI — Applicants Router (Public Endpoints)
-GET  /apply/{link_token}        — Fetch drive details for the apply form
-POST /apply/{link_token}        — Submit application → triggers email
-POST /submit/{applicant_id}        — Submit task/GitHub → triggers RepoLens + interview email
-POST /submit/{applicant_id}/upload — Upload a submission file to object storage
+GET  /apply/{link_token}           — Drive details for the apply form
+POST /apply/{link_token}           — Submit an application
+POST /submit/{submit_token}        — Submit task/GitHub work
+POST /submit/{submit_token}/upload — Upload a submission file
+GET  /status/{submit_token}        — Candidate's own application status
+
+Every route here is reached by an unguessable token, never by a database id.
 """
 
 import logging
 import secrets
 from datetime import date, datetime, timedelta, timezone
-from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, UploadFile, File
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from fastapi import (
+    APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status,
+)
+from pymongo.errors import DuplicateKeyError
 
-from app.db import get_db
-from app.models.database import (
-    Drive, Applicant, Submission, Interview, EmailLog,
-    DriveStatus, ApplicantStatus, TaskType, EmailType,
+from app.config import get_settings
+from app.models.documents import (
+    Applicant,
+    ApplicantStatus,
+    Drive,
+    DriveStatus,
+    EmailLogEntry,
+    EmailType,
+    Interview,
+    Organisation,
+    Submission,
+    TaskType,
 )
 from app.models.schemas import (
-    ApplyRequest,
     ApplicantResponse,
+    ApplicantStatusView,
+    ApplyRequest,
     DrivePublicResponse,
+    FileUploadResponse,
     SubmissionCreateRequest,
     SubmissionResponse,
-    FileUploadResponse,
-    ApplicantStatusView,
 )
-from app.services.email_service import send_application_email, send_interview_email
 from app.services import storage_service
+from app.services.email_service import send_application_email, send_interview_email
 from app.services.rate_limit import RateLimit
-from app.services.qr_service import generate_apply_link
-from app.config import get_settings
 
 settings = get_settings()
 log = logging.getLogger("recruit.applicants")
 router = APIRouter(tags=["Applicants (Public)"])
 
 
-def _applicant_by_submit_token(submit_token: str, db: Session) -> Applicant:
+async def _applicant_by_submit_token(submit_token: str) -> Applicant:
     """
     Resolve the submission capability token.
 
-    An unknown token returns 404 with the same wording as a missing applicant,
-    so the endpoint cannot be used to probe which tokens exist.
+    An unknown token returns the same 404 as a missing applicant, so the
+    endpoint cannot be used to probe which tokens exist.
     """
-    applicant = (
-        db.query(Applicant).filter(Applicant.submit_token == submit_token).first()
-    )
+    applicant = await Applicant.find_one(Applicant.submit_token == submit_token)
     if not applicant:
         raise HTTPException(status_code=404, detail="Submission link is invalid")
     return applicant
 
 
+def _new_interview() -> Interview:
+    return Interview(
+        token=secrets.token_urlsafe(32),
+        expires_at=datetime.now(timezone.utc)
+        + timedelta(days=settings.INTERVIEW_TOKEN_TTL_DAYS),
+    )
+
+
 # ──────────────────────────────────────────────
-# FETCH DRIVE INFO FOR APPLY FORM
+# DRIVE INFO FOR THE APPLY FORM
 # ──────────────────────────────────────────────
 @router.get("/apply/{link_token}", response_model=DrivePublicResponse)
-def get_drive_for_apply(link_token: str, db: Session = Depends(get_db)):
-    drive = db.query(Drive).filter(Drive.link_token == link_token).first()
+async def get_drive_for_apply(link_token: str):
+    drive = await Drive.find_one(Drive.link_token == link_token)
     if not drive:
         raise HTTPException(status_code=404, detail="Recruitment drive not found")
     if drive.status != DriveStatus.ACTIVE:
-        raise HTTPException(status_code=400, detail="This recruitment drive is no longer accepting applications")
+        raise HTTPException(
+            status_code=400,
+            detail="This recruitment drive is no longer accepting applications",
+        )
     if drive.apply_deadline < date.today():
         raise HTTPException(status_code=400, detail="Application deadline has passed")
+
+    org = await Organisation.get(drive.org_id)
 
     return DrivePublicResponse(
         id=drive.id,
@@ -77,14 +97,14 @@ def get_drive_for_apply(link_token: str, db: Session = Depends(get_db)):
         question_level=drive.question_level.value,
         apply_deadline=drive.apply_deadline,
         task_deadline=drive.task_deadline,
-        organisation_name=drive.organisation.name,
-        organisation_logo=drive.organisation.logo_url or "",
+        organisation_name=org.name if org else "",
+        organisation_logo=(org.logo_url if org else "") or "",
         status=drive.status.value,
     )
 
 
 # ──────────────────────────────────────────────
-# SUBMIT APPLICATION
+# SUBMIT AN APPLICATION
 # ──────────────────────────────────────────────
 @router.post(
     "/apply/{link_token}",
@@ -96,27 +116,23 @@ async def submit_application(
     link_token: str,
     body: ApplyRequest,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
 ):
-    drive = db.query(Drive).filter(Drive.link_token == link_token).first()
+    drive = await Drive.find_one(Drive.link_token == link_token)
     if not drive:
         raise HTTPException(status_code=404, detail="Recruitment drive not found")
     if drive.status != DriveStatus.ACTIVE:
-        raise HTTPException(status_code=400, detail="This drive is no longer accepting applications")
+        raise HTTPException(
+            status_code=400, detail="This drive is no longer accepting applications"
+        )
     if drive.apply_deadline < date.today():
         raise HTTPException(status_code=400, detail="Application deadline has passed")
 
-    # Check for duplicate application
-    existing = db.query(Applicant).filter(
-        Applicant.drive_id == drive.id,
-        Applicant.email == body.email,
-    ).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="You have already applied to this drive")
+    org = await Organisation.get(drive.org_id)
+    org_name = org.name if org else ""
 
-    # Create applicant
     applicant = Applicant(
         drive_id=drive.id,
+        org_id=drive.org_id,
         name=body.name,
         email=body.email,
         reg_no=body.reg_no,
@@ -124,59 +140,40 @@ async def submit_application(
         primary_domain=body.primary_domain,
         github_url=body.github_url,
         status=ApplicantStatus.APPLIED,
-        # Capability token for the submission endpoint. Issued to every
-        # applicant so the public route never keys off a bare UUID.
+        # Capability token for the submission endpoint, so that route never
+        # keys off a bare id.
         submit_token=secrets.token_urlsafe(32),
     )
-    db.add(applicant)
+
     try:
-        db.commit()
-    except IntegrityError:
-        # Lost the race against a concurrent duplicate submit. The unique
-        # constraint did its job; report it the same way the pre-check does so
-        # a double-click is indistinguishable from applying twice.
-        db.rollback()
+        await applicant.insert()
+    except DuplicateKeyError:
+        # The pre-check is a read before a write, so two concurrent requests
+        # could both pass it. The unique index on (drive_id, email) is what
+        # actually closes that window; a double-click reads the same as
+        # applying twice.
         raise HTTPException(
             status_code=400, detail="You have already applied to this drive"
         )
-    db.refresh(applicant)
 
-    # ── Determine next steps based on task_type ──
-    org_name = drive.organisation.name
+    submission_link = f"{settings.FRONTEND_URL}/submit/{applicant.submit_token}"
 
     if drive.task_type == TaskType.TASK:
-        # Task path: send email with task link + submission link
         applicant.status = ApplicantStatus.TASK_SENT
-        db.commit()
-
-        task_link = f"{settings.FRONTEND_URL}/task/{drive.link_token}"
-        submission_link = f"{settings.FRONTEND_URL}/submit/{applicant.submit_token}"
-
         background_tasks.add_task(
             send_application_email,
             to_email=applicant.email,
             to_name=applicant.name,
             drive_name=drive.name,
             org_name=org_name,
-            task_link=task_link,
+            task_link=f"{settings.FRONTEND_URL}/task/{drive.link_token}",
             submission_link=submission_link,
         )
 
     elif drive.task_type == TaskType.GITHUB:
-        # GitHub path: if they provided a GitHub URL, send interview link directly
         if body.github_url:
-            interview_token = secrets.token_urlsafe(32)
-            interview = Interview(
-                applicant_id=applicant.id,
-                token=interview_token,
-                expires_at=datetime.now(timezone.utc)
-                + timedelta(days=settings.INTERVIEW_TOKEN_TTL_DAYS),
-            )
-            db.add(interview)
+            applicant.interview = _new_interview()
             applicant.status = ApplicantStatus.INTERVIEW_SENT
-            db.commit()
-
-            interview_link = f"{settings.FRONTEND_URL}/interview/{interview_token}"
 
             background_tasks.add_task(
                 send_application_email,
@@ -190,12 +187,10 @@ async def submit_application(
                 to_email=applicant.email,
                 to_name=applicant.name,
                 drive_name=drive.name,
-                interview_link=interview_link,
+                interview_link=f"{settings.FRONTEND_URL}/interview/{applicant.interview.token}",
             )
-
-            # TODO: trigger RepoLens analysis as async Celery job here
+            # TODO: trigger RepoLens analysis once the GitAnalyser service is wired in
         else:
-            # No GitHub URL provided — just confirm application
             background_tasks.add_task(
                 send_application_email,
                 to_email=applicant.email,
@@ -204,14 +199,8 @@ async def submit_application(
                 org_name=org_name,
             )
 
-    # Log the email
-    email_log = EmailLog(
-        applicant_id=applicant.id,
-        type=EmailType.APPLIED,
-    )
-    db.add(email_log)
-    db.commit()
-    db.refresh(applicant)
+    applicant.email_logs.append(EmailLogEntry(type=EmailType.APPLIED))
+    await applicant.save()
 
     return ApplicantResponse(
         id=applicant.id,
@@ -230,86 +219,59 @@ async def submit_application(
 # ──────────────────────────────────────────────
 # SUBMIT TASK / GITHUB PROJECT
 # ──────────────────────────────────────────────
-@router.post("/submit/{submit_token}", response_model=SubmissionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/submit/{submit_token}",
+    response_model=SubmissionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def submit_task(
     submit_token: str,
     body: SubmissionCreateRequest,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
 ):
     """
-    Submit a task or project.
-
-    Keyed on an unguessable token rather than the applicant's UUID. The old
+    Keyed on an unguessable token rather than the applicant's id. The old
     route accepted a bare id, so anyone holding or guessing one could submit
     on another candidate's behalf.
     """
-    applicant = _applicant_by_submit_token(submit_token, db)
+    applicant = await _applicant_by_submit_token(submit_token)
 
-    # Check applicant hasn't already submitted
     if applicant.submission:
         raise HTTPException(status_code=400, detail="You have already submitted")
 
-    drive = applicant.drive
-
-    # Check deadline
-    if drive.task_deadline and drive.task_deadline < date.today():
+    drive = await Drive.get(applicant.drive_id)
+    if drive and drive.task_deadline and drive.task_deadline < date.today():
         raise HTTPException(status_code=400, detail="Submission deadline has passed")
 
-    # Create submission record
-    submission = Submission(
-        applicant_id=applicant.id,
+    applicant.submission = Submission(
         file_url=body.file_url,
         github_url=body.github_url,
         description=body.description,
     )
-    db.add(submission)
-
-    # Update applicant status
     applicant.status = ApplicantStatus.SUBMITTED
-    db.commit()
-    db.refresh(submission)
 
-    # ── Create interview and send link ──
-    interview_token = secrets.token_urlsafe(32)
-    interview = Interview(
-        applicant_id=applicant.id,
-        token=interview_token,
-        expires_at=datetime.now(timezone.utc)
-        + timedelta(days=settings.INTERVIEW_TOKEN_TTL_DAYS),
-    )
-    db.add(interview)
+    applicant.interview = _new_interview()
     applicant.status = ApplicantStatus.INTERVIEW_SENT
-    db.commit()
+    applicant.email_logs.append(EmailLogEntry(type=EmailType.INTERVIEW))
+    await applicant.save()
 
-    interview_link = f"{settings.FRONTEND_URL}/interview/{interview_token}"
     background_tasks.add_task(
         send_interview_email,
         to_email=applicant.email,
         to_name=applicant.name,
-        drive_name=drive.name,
-        interview_link=interview_link,
+        drive_name=drive.name if drive else "",
+        interview_link=f"{settings.FRONTEND_URL}/interview/{applicant.interview.token}",
     )
-
-    # Log interview email
-    email_log = EmailLog(
-        applicant_id=applicant.id,
-        type=EmailType.INTERVIEW,
-    )
-    db.add(email_log)
-    db.commit()
-    db.refresh(submission)
-
-    # TODO: Trigger RepoLens analysis as async Celery job if github_url is present
+    # TODO: trigger RepoLens analysis once the GitAnalyser service is wired in
 
     return SubmissionResponse(
-        id=submission.id,
-        applicant_id=submission.applicant_id,
-        file_url=submission.file_url,
-        github_url=submission.github_url,
-        description=submission.description,
-        repolens_analysis=submission.repolens_analysis or {},
-        submitted_at=submission.submitted_at,
+        id=applicant.id,
+        applicant_id=applicant.id,
+        file_url=applicant.submission.file_url,
+        github_url=applicant.submission.github_url,
+        description=applicant.submission.description,
+        repolens_analysis=applicant.submission.repolens_analysis or {},
+        submitted_at=applicant.submission.submitted_at,
     )
 
 
@@ -320,20 +282,12 @@ async def submit_task(
 async def upload_submission_file(
     submit_token: str,
     file: UploadFile = File(...),
-    db: Session = Depends(get_db),
 ):
     """
-    Upload a candidate's submission file and return the stored object key.
-
-    The key is what the caller then passes as `file_url` to POST /submit/{id}.
-    Uploading does not itself create a submission, so an interrupted upload
-    leaves no half-finished application behind.
-
-    The file is untrusted: the extension is allowlisted, the size cap is
-    enforced while streaming, the object key is built only from server-side
-    values, and the stored object is private.
+    Upload is a separate step from creating the submission, so an interrupted
+    upload leaves no half-finished application behind.
     """
-    applicant = _applicant_by_submit_token(submit_token, db)
+    applicant = await _applicant_by_submit_token(submit_token)
 
     if applicant.submission:
         raise HTTPException(status_code=400, detail="You have already submitted")
@@ -357,8 +311,7 @@ async def upload_submission_file(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except storage_service.StorageError as exc:
-        # Do not surface the backend error verbatim; it can carry bucket names
-        # and credentials detail.
+        # Not surfaced verbatim: it can carry bucket names and credential detail.
         log.error(
             "submission upload failed",
             extra={"applicant_id": str(applicant.id), "error": str(exc)},
@@ -372,30 +325,29 @@ async def upload_submission_file(
 # CANDIDATE SELF-SERVICE STATUS
 # ──────────────────────────────────────────────
 @router.get("/status/{submit_token}", response_model=ApplicantStatusView)
-def get_own_status(submit_token: str, db: Session = Depends(get_db)):
+async def get_own_status(submit_token: str):
     """
-    Let a candidate check their own application.
+    Reuses the token the candidate already holds, so no new credential is
+    introduced.
 
-    Candidates previously had no way to see where they stood — they only ever
-    received email, so a lost or filtered message left them with nothing.
-
-    Reuses the submission token they already hold, so no new credential is
-    introduced. The response is deliberately narrow: progress, deadlines and
-    the final outcome, but never the interview score, the transcript or the
-    malpractice flags, which are the recruiter's evidence and not the
-    candidate's to read mid-process.
+    Deliberately narrow: progress, deadlines and the final outcome, but never
+    the interview score, transcript or malpractice flags. Those are the
+    recruiter's evidence, and showing them mid-process would tell a candidate
+    how they are being graded while they are still being graded.
     """
-    applicant = _applicant_by_submit_token(submit_token, db)
-    drive = applicant.drive
+    applicant = await _applicant_by_submit_token(submit_token)
+    drive = await Drive.get(applicant.drive_id)
+    org = await Organisation.get(applicant.org_id)
+
     decided = applicant.status in (ApplicantStatus.SELECTED, ApplicantStatus.REJECTED)
 
     return ApplicantStatusView(
         name=applicant.name,
-        drive_name=drive.name,
-        organisation_name=drive.organisation.name,
+        drive_name=drive.name if drive else "",
+        organisation_name=org.name if org else "",
         status=applicant.status.value,
         applied_at=applicant.applied_at,
-        task_deadline=drive.task_deadline,
+        task_deadline=drive.task_deadline if drive else None,
         has_submitted=applicant.submission is not None,
         interview_completed=bool(applicant.interview and applicant.interview.ended_at),
         decision=applicant.status.value if decided else None,

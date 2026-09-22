@@ -17,11 +17,8 @@ import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
-
 from app.config import get_settings
-from app.db import SessionLocal
-from app.models.database import EmailOutbox, EmailStatus
+from app.models.documents import EmailOutbox, EmailStatus
 
 settings = get_settings()
 log = logging.getLogger("recruit.outbox")
@@ -31,26 +28,20 @@ log = logging.getLogger("recruit.outbox")
 MAX_ATTEMPTS = 5
 
 
-def enqueue(*, to_email: str, subject: str, html: str, text: str) -> EmailOutbox:
+async def enqueue(*, to_email: str, subject: str, html: str, text: str) -> EmailOutbox:
     """
     Record an outbound email as pending.
 
-    Uses its own session and commits immediately: the row must land even if
-    the surrounding request later rolls back, because the decision it notifies
-    the candidate about has usually already been committed.
+    Written immediately and independently of anything else in flight: the
+    decision it notifies the candidate about has usually already been saved,
+    so the record of intent must not depend on the rest of the request.
     """
-    session = SessionLocal()
-    try:
-        row = EmailOutbox(
-            to_email=to_email, subject=subject, html=html, text=text,
-            status=EmailStatus.PENDING,
-        )
-        session.add(row)
-        session.commit()
-        session.refresh(row)
-        return row
-    finally:
-        session.close()
+    row = EmailOutbox(
+        to_email=to_email, subject=subject, html=html, text=text,
+        status=EmailStatus.PENDING,
+    )
+    await row.insert()
+    return row
 
 
 async def deliver(row_id) -> bool:
@@ -59,9 +50,8 @@ async def deliver(row_id) -> bool:
     # module, so a top-level import would be circular.
     from app.services.email_service import send_email
 
-    session = SessionLocal()
     try:
-        row = session.get(EmailOutbox, row_id)
+        row = await EmailOutbox.get(row_id)
         if row is None or row.status == EmailStatus.SENT:
             return True
 
@@ -70,7 +60,7 @@ async def deliver(row_id) -> bool:
             to_email=row.to_email, subject=row.subject, html=row.html, text=row.text
         )
 
-        if result in ("failed",):
+        if result == "failed":
             row.last_error = "transport reported failure"
             if row.attempts >= MAX_ATTEMPTS:
                 row.status = EmailStatus.FAILED
@@ -78,48 +68,42 @@ async def deliver(row_id) -> bool:
                     "giving up on email after repeated failures",
                     extra={"outbox_id": str(row.id), "attempts": row.attempts},
                 )
-            session.commit()
+            await row.save()
             return False
 
         # "skipped-no-config" counts as delivered: there is no provider to
-        # retry against, so leaving it pending would accumulate rows forever
-        # on a machine that simply has no email configured.
+        # retry against, so leaving it pending would accumulate documents
+        # forever on a machine that simply has no email configured.
         row.status = EmailStatus.SENT
         row.sent_at = datetime.now(timezone.utc)
         row.provider_message_id = result
-        session.commit()
+        await row.save()
         return True
     except Exception as exc:
-        session.rollback()
         log.error("outbox delivery raised", extra={"error": type(exc).__name__})
         return False
-    finally:
-        session.close()
 
 
 async def sweep_once(limit: int = 20) -> int:
-    """Retry pending rows. Returns how many were attempted."""
-    session = SessionLocal()
+    """Retry pending documents. Returns how many were attempted."""
     try:
         cutoff = datetime.now(timezone.utc) - timedelta(
             seconds=settings.OUTBOX_RETRY_DELAY_SECONDS
         )
-        rows = session.scalars(
-            select(EmailOutbox)
-            .where(
+        rows = (
+            await EmailOutbox.find(
                 EmailOutbox.status == EmailStatus.PENDING,
                 EmailOutbox.attempts < MAX_ATTEMPTS,
                 EmailOutbox.created_at < cutoff,
             )
-            .order_by(EmailOutbox.created_at)
+            .sort(EmailOutbox.created_at)
             .limit(limit)
-        ).all()
+            .to_list()
+        )
         ids = [r.id for r in rows]
     except Exception as exc:
         log.error("outbox sweep query failed", extra={"error": type(exc).__name__})
         return 0
-    finally:
-        session.close()
 
     for row_id in ids:
         await deliver(row_id)

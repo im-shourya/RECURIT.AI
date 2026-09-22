@@ -17,10 +17,8 @@ What is NOT covered: end-to-end behaviour against a real database.
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
-from sqlalchemy.orm import Session
 
 from app.main import app
-from app.models.database import Applicant, Drive
 from app.models.schemas import ApplicantDecisionRequest, PasswordChangeRequest
 
 client = TestClient(app)
@@ -70,28 +68,27 @@ def test_endpoint_rejects_garbage_token(method, path):
 
 # ──────────────────────────────────────────────
 # Authorization filter
+#
+# Previously asserted by compiling the SQL and reading the WHERE clause,
+# because no database was reachable. It now runs the query.
 # ──────────────────────────────────────────────
-def _compiled(query) -> str:
-    return str(query.statement.compile(compile_kwargs={"literal_binds": False}))
-
-
-def test_applicant_lookup_is_scoped_to_the_organisation():
+async def test_applicant_lookup_is_scoped_to_the_organisation(applicant, other_org):
     """
-    The org scoping is the authorization boundary for these endpoints. Assert it
-    is present in the emitted SQL rather than trusting the Python reads
-    correctly — a dropped filter here would expose every organisation's
-    candidates to every other organisation.
+    The org scoping is the authorization boundary for these endpoints. A
+    dropped filter here would expose every organisation's candidates to every
+    other organisation.
     """
-    session = Session()
-    query = (
-        session.query(Applicant)
-        .join(Drive, Applicant.drive_id == Drive.id)
-        .filter(Applicant.id == APPLICANT_ID, Drive.org_id == "some-org")
+    from app.models.documents import Applicant
+
+    found = await Applicant.find_one(
+        Applicant.id == applicant.id, Applicant.org_id == other_org.id
     )
-    sql = _compiled(query)
+    assert found is None, "another organisation must not resolve this applicant"
 
-    assert "JOIN drives" in sql
-    assert "drives.org_id" in sql, "applicant lookup must filter on drives.org_id"
+    mine = await Applicant.find_one(
+        Applicant.id == applicant.id, Applicant.org_id == applicant.org_id
+    )
+    assert mine is not None
 
 
 # ──────────────────────────────────────────────

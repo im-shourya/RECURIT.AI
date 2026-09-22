@@ -5,25 +5,19 @@ POST   /team           — invite a member
 PATCH  /team/{user_id} — change a member's role
 DELETE /team/{user_id} — remove a member
 
-Managing members is owner-only. Everything here is scoped to the caller's
-organisation, so one org can never see or change another's people.
+Managing members is owner-only; everything is scoped to the caller's
+organisation.
 """
 
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.db import get_db
-from app.models.database import AuditAction, PasswordResetToken, User, UserRole
-from app.models.schemas import (
-    TeamMemberResponse,
-    TeamInviteRequest,
-    TeamRoleUpdate,
-)
-from app.services import audit
+from app.models.documents import AuditAction, PasswordResetToken, User, UserRole
+from app.models.schemas import TeamInviteRequest, TeamMemberResponse, TeamRoleUpdate
+from app.services import audit, cascade
 from app.services.auth_service import (
     generate_reset_token,
     get_current_user,
@@ -49,12 +43,8 @@ def _to_response(user: User) -> TeamMemberResponse:
     )
 
 
-def _owned_member(user_id: UUID, actor: User, db: Session) -> User:
-    member = (
-        db.query(User)
-        .filter(User.id == user_id, User.org_id == actor.org_id)
-        .first()
-    )
+async def _owned_member(user_id: UUID, actor: User) -> User:
+    member = await User.find_one(User.id == user_id, User.org_id == actor.org_id)
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
     return member
@@ -64,16 +54,10 @@ def _owned_member(user_id: UUID, actor: User, db: Session) -> User:
 # LIST
 # ──────────────────────────────────────────────
 @router.get("", response_model=list[TeamMemberResponse])
-def list_members(
-    actor: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
+async def list_members(actor: User = Depends(get_current_user)):
     """Any member may see who else is on the team."""
     members = (
-        db.query(User)
-        .filter(User.org_id == actor.org_id)
-        .order_by(User.created_at)
-        .all()
+        await User.find(User.org_id == actor.org_id).sort(User.created_at).to_list()
     )
     return [_to_response(m) for m in members]
 
@@ -82,21 +66,17 @@ def list_members(
 # INVITE
 # ──────────────────────────────────────────────
 @router.post("", response_model=TeamMemberResponse, status_code=status.HTTP_201_CREATED)
-def invite_member(
+async def invite_member(
     body: TeamInviteRequest,
     background_tasks: BackgroundTasks,
     actor: User = Depends(require_role(UserRole.OWNER)),
-    db: Session = Depends(get_db),
 ):
     """
-    Invite someone to the organisation.
-
     The member is created without a password and receives a reset link, so a
-    password is never transmitted or chosen on their behalf. They cannot sign
-    in until they set one.
+    password is never transmitted or chosen on their behalf.
 
-    Only OWNER may invite, and an invitation cannot grant OWNER: promoting
-    someone to owner is a separate, deliberate act.
+    An invitation cannot grant OWNER: promoting someone is a separate,
+    deliberate act.
     """
     if body.role == UserRole.OWNER.value:
         raise HTTPException(
@@ -104,8 +84,7 @@ def invite_member(
             detail="An invitation cannot grant the owner role. Invite, then promote.",
         )
 
-    # Email uniqueness is global, because it is the sign-in identifier.
-    if db.query(User).filter(User.email == body.email).first():
+    if await User.find_one(User.email == body.email):
         raise HTTPException(status_code=400, detail="That email is already in use")
 
     member = User(
@@ -116,24 +95,20 @@ def invite_member(
         role=UserRole(body.role),
         is_active=True,
     )
-    db.add(member)
-    db.flush()
+    await member.insert()
 
     plaintext, token_hash = generate_reset_token()
-    db.add(
-        PasswordResetToken(
-            org_id=actor.org_id,
-            user_id=member.id,
-            token_hash=token_hash,
-            # Longer than an ordinary reset: an invitation may sit unread for
-            # a day or two, and an expired one means re-inviting.
-            expires_at=datetime.now(timezone.utc)
-            + timedelta(minutes=settings.INVITE_TOKEN_TTL_MINUTES),
-        )
-    )
+    await PasswordResetToken(
+        org_id=actor.org_id,
+        user_id=member.id,
+        token_hash=token_hash,
+        # Longer than an ordinary reset: an invitation may sit unread for a
+        # day or two, and expiry means re-inviting.
+        expires_at=datetime.now(timezone.utc)
+        + timedelta(minutes=settings.INVITE_TOKEN_TTL_MINUTES),
+    ).insert()
 
-    audit.record(
-        db,
+    await audit.record(
         org_id=actor.org_id,
         action=AuditAction.MEMBER_INVITED,
         entity_type="user",
@@ -141,8 +116,6 @@ def invite_member(
         entity_label=member.email,
         detail={"role": member.role.value, "invited_by": actor.email},
     )
-    db.commit()
-    db.refresh(member)
 
     background_tasks.add_task(
         send_password_reset_email,
@@ -158,21 +131,18 @@ def invite_member(
 # CHANGE ROLE
 # ──────────────────────────────────────────────
 @router.patch("/{user_id}", response_model=TeamMemberResponse)
-def update_member_role(
+async def update_member_role(
     user_id: UUID,
     body: TeamRoleUpdate,
     actor: User = Depends(require_role(UserRole.OWNER)),
-    db: Session = Depends(get_db),
 ):
     """
-    Change a member's role.
-
-    An organisation must always have exactly one owner, so the current owner
-    cannot demote themselves — doing so would leave nobody able to manage
-    members, including nobody able to undo it. Transfer happens by promoting
-    someone else, which demotes the previous owner in the same operation.
+    An organisation always has exactly one owner, so the current owner cannot
+    demote themselves — that would leave nobody able to manage members,
+    including nobody able to undo it. Ownership transfers by promoting someone
+    else, which demotes the previous owner in the same operation.
     """
-    member = _owned_member(user_id, actor, db)
+    member = await _owned_member(user_id, actor)
     new_role = UserRole(body.role)
     previous = member.role
 
@@ -183,13 +153,15 @@ def update_member_role(
         )
 
     if new_role == UserRole.OWNER:
-        # Ownership transfers rather than duplicates.
+        # Ownership transfers rather than duplicates: two owners would mean
+        # either could remove the other.
         actor.role = UserRole.ADMIN
+        await actor.save()
 
     member.role = new_role
+    await member.save()
 
-    audit.record(
-        db,
+    await audit.record(
         org_id=actor.org_id,
         action=AuditAction.MEMBER_ROLE_CHANGED,
         entity_type="user",
@@ -197,8 +169,6 @@ def update_member_role(
         entity_label=member.email,
         detail={"from": previous.value, "to": new_role.value, "changed_by": actor.email},
     )
-    db.commit()
-    db.refresh(member)
     return _to_response(member)
 
 
@@ -206,19 +176,15 @@ def update_member_role(
 # REMOVE
 # ──────────────────────────────────────────────
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def remove_member(
+async def remove_member(
     user_id: UUID,
     actor: User = Depends(require_role(UserRole.OWNER)),
-    db: Session = Depends(get_db),
 ):
     """
-    Remove a member's access.
-
-    The owner cannot be removed: that would leave the organisation with no one
-    able to manage it. Delete the organisation instead, or transfer ownership
-    first.
+    The owner cannot be removed: that would leave the organisation with nobody
+    able to manage it. Transfer ownership first.
     """
-    member = _owned_member(user_id, actor, db)
+    member = await _owned_member(user_id, actor)
 
     if member.role == UserRole.OWNER:
         raise HTTPException(
@@ -226,8 +192,7 @@ def remove_member(
             detail="The owner cannot be removed. Transfer ownership first.",
         )
 
-    audit.record(
-        db,
+    await audit.record(
         org_id=actor.org_id,
         action=AuditAction.MEMBER_REMOVED,
         entity_type="user",
@@ -235,6 +200,8 @@ def remove_member(
         entity_label=member.email,
         detail={"role": member.role.value, "removed_by": actor.email},
     )
-    db.delete(member)
-    db.commit()
+
+    # Their outstanding reset tokens go too: an invitation still sitting in an
+    # inbox must stop working the moment access is revoked.
+    await cascade.delete_user(member)
     return None

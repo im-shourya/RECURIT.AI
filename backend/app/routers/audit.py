@@ -7,10 +7,8 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from sqlalchemy.orm import Session
 
-from app.db import get_db
-from app.models.database import AuditAction, AuditLog, Organisation
+from app.models.documents import AuditAction, AuditLog, Organisation
 from app.models.schemas import AuditEntryResponse
 from app.services.auth_service import get_current_org
 
@@ -18,23 +16,21 @@ router = APIRouter(prefix="/audit", tags=["Audit"])
 
 
 @router.get("", response_model=list[AuditEntryResponse])
-def list_audit_entries(
+async def list_audit_entries(
     response: Response,
     action: Optional[str] = Query(None, description="Filter by action"),
     entity_id: Optional[UUID] = Query(None, description="Filter to one subject"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     org: Organisation = Depends(get_current_org),
-    db: Session = Depends(get_db),
 ):
     """
-    Read this organisation's audit trail, newest first.
+    Newest first, scoped to the calling organisation.
 
-    Scoped to the calling organisation, so one org cannot read another's
-    decision history. Read-only by design: there is no endpoint to edit or
-    delete an entry, because a trail that can be rewritten answers nothing.
+    Read-only by design: there is no endpoint to edit or delete an entry,
+    because a trail that can be rewritten answers nothing.
     """
-    query = db.query(AuditLog).filter(AuditLog.org_id == org.id)
+    conditions = [AuditLog.org_id == org.id]
 
     if action:
         valid = {a.value for a in AuditAction}
@@ -43,17 +39,19 @@ def list_audit_entries(
                 status_code=400,
                 detail=f"Invalid action. Expected one of: {', '.join(sorted(valid))}",
             )
-        query = query.filter(AuditLog.action == AuditAction(action))
+        conditions.append(AuditLog.action == AuditAction(action))
 
     if entity_id:
-        query = query.filter(AuditLog.entity_id == entity_id)
+        conditions.append(AuditLog.entity_id == entity_id)
 
-    total = query.order_by(None).count()
+    query = AuditLog.find(*conditions)
+
+    total = await query.count()
     response.headers["X-Total-Count"] = str(total)
     response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
 
     entries = (
-        query.order_by(AuditLog.created_at.desc()).offset(offset).limit(limit).all()
+        await query.sort(-AuditLog.created_at).skip(offset).limit(limit).to_list()
     )
 
     return [
