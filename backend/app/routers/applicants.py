@@ -2,14 +2,15 @@
 RECRUIT.AI — Applicants Router (Public Endpoints)
 GET  /apply/{link_token}        — Fetch drive details for the apply form
 POST /apply/{link_token}        — Submit application → triggers email
-POST /submit/{applicant_id}     — Submit task/GitHub → triggers RepoLens + interview email
+POST /submit/{applicant_id}        — Submit task/GitHub → triggers RepoLens + interview email
+POST /submit/{applicant_id}/upload — Upload a submission file to object storage
 """
 
 import secrets
 from datetime import date, datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, UploadFile, File
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -23,8 +24,10 @@ from app.models.schemas import (
     DrivePublicResponse,
     SubmissionCreateRequest,
     SubmissionResponse,
+    FileUploadResponse,
 )
 from app.services.email_service import send_application_email, send_interview_email
+from app.services import storage_service
 from app.services.qr_service import generate_apply_link
 from app.config import get_settings
 
@@ -262,3 +265,57 @@ async def submit_task(
         repolens_analysis=submission.repolens_analysis or {},
         submitted_at=submission.submitted_at,
     )
+
+
+# ──────────────────────────────────────────────
+# UPLOAD A SUBMISSION FILE
+# ──────────────────────────────────────────────
+@router.post("/submit/{applicant_id}/upload", response_model=FileUploadResponse)
+async def upload_submission_file(
+    applicant_id: UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """
+    Upload a candidate's submission file and return the stored object key.
+
+    The key is what the caller then passes as `file_url` to POST /submit/{id}.
+    Uploading does not itself create a submission, so an interrupted upload
+    leaves no half-finished application behind.
+
+    The file is untrusted: the extension is allowlisted, the size cap is
+    enforced while streaming, the object key is built only from server-side
+    values, and the stored object is private.
+    """
+    applicant = db.query(Applicant).filter(Applicant.id == applicant_id).first()
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Applicant not found")
+
+    if applicant.submission:
+        raise HTTPException(status_code=400, detail="You have already submitted")
+
+    if not storage_service.is_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="File uploads are not available: object storage is not configured",
+        )
+
+    try:
+        key = storage_service.upload_submission_file(
+            applicant_id=applicant.id,
+            filename=file.filename or "",
+            stream=file.file,
+        )
+    except storage_service.UnsupportedFileType as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except storage_service.UploadTooLarge as exc:
+        raise HTTPException(status_code=413, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except storage_service.StorageError as exc:
+        # Do not surface the backend error verbatim; it can carry bucket names
+        # and credentials detail.
+        print(f"[UPLOAD ERROR] applicant={applicant_id}: {exc}")
+        raise HTTPException(status_code=502, detail="Upload failed, please try again")
+
+    return FileUploadResponse(file_url=key, filename=file.filename or "")
