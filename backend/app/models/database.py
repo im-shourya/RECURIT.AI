@@ -215,6 +215,49 @@ class PasswordResetToken(Base):
     organisation = relationship("Organisation", back_populates="reset_tokens")
 
 
+class EmailStatus(str, enum.Enum):
+    PENDING = "pending"
+    SENT = "sent"
+    FAILED = "failed"
+
+
+# ──────────────────────────────────────────────
+# Email Outbox
+# ──────────────────────────────────────────────
+class EmailOutbox(Base):
+    """
+    A queued outbound email.
+
+    Emails were handed to FastAPI BackgroundTasks, which run in-process: if
+    the worker restarted between the response and the send, that email was
+    gone, with no record that it had ever been attempted. For a result
+    notification or a password reset link, silently losing it is the worst
+    possible failure.
+
+    The row is written inside the request, so the intent to send survives a
+    restart even if the send itself does not. A sweeper retries anything left
+    pending.
+    """
+    __tablename__ = "email_outbox"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    to_email = Column(String(255), nullable=False, index=True)
+    subject = Column(Text, nullable=False)
+    html = Column(Text, nullable=False)
+    text = Column(Text, nullable=False, default="")
+    status = Column(
+        SAEnum(EmailStatus, name="email_status_enum", values_callable=lambda obj: [e.value for e in obj]),
+        default=EmailStatus.PENDING,
+        nullable=False,
+        index=True,
+    )
+    attempts = Column(Integer, default=0, nullable=False)
+    last_error = Column(Text, default="")
+    provider_message_id = Column(String(255), default="")
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    sent_at = Column(DateTime(timezone=True), nullable=True)
+
+
 # ──────────────────────────────────────────────
 # Email Logs
 # ──────────────────────────────────────────────

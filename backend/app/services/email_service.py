@@ -42,6 +42,34 @@ def _from_header() -> str:
     return f"{name} <{email}>" if name else email
 
 
+async def send_durable(*, to_email: str, subject: str, html: str, text: str) -> str:
+    """
+    Queue an email, then try to deliver it immediately.
+
+    The row lands first, so a restart between queuing and sending leaves a
+    record the sweeper can retry rather than losing the message outright.
+    Delivery failure is not raised: the caller is a background task and the
+    work it is reporting on has usually already committed.
+    """
+    from app.services import email_outbox
+
+    try:
+        row = email_outbox.enqueue(
+            to_email=to_email, subject=subject, html=html, text=text
+        )
+    except Exception as exc:
+        # If the outbox itself is unavailable, fall back to sending inline
+        # rather than dropping the message entirely.
+        log.error(
+            "could not queue email, sending inline",
+            extra={"to": to_email, "error": type(exc).__name__},
+        )
+        return await send_email(to_email=to_email, subject=subject, html=html, text=text)
+
+    await email_outbox.deliver(row.id)
+    return str(row.id)
+
+
 async def send_email(
     *,
     to_email: str,
@@ -133,7 +161,7 @@ async def send_application_email(
         task_link=task_link,
         submission_link=submission_link,
     )
-    return await send_email(to_email=to_email, subject=subject, html=html, text=text)
+    return await send_durable(to_email=to_email, subject=subject, html=html, text=text)
 
 
 async def send_task_email(
@@ -154,7 +182,7 @@ async def send_task_email(
         submission_link=submission_link,
         deadline=deadline,
     )
-    return await send_email(to_email=to_email, subject=subject, html=html, text=text)
+    return await send_durable(to_email=to_email, subject=subject, html=html, text=text)
 
 
 async def send_interview_email(
@@ -169,7 +197,7 @@ async def send_interview_email(
         drive_name=drive_name,
         interview_link=interview_link,
     )
-    return await send_email(to_email=to_email, subject=subject, html=html, text=text)
+    return await send_durable(to_email=to_email, subject=subject, html=html, text=text)
 
 
 async def send_result_email(
@@ -186,7 +214,7 @@ async def send_result_email(
         result_status=result_status,
         score=score,
     )
-    return await send_email(to_email=to_email, subject=subject, html=html, text=text)
+    return await send_durable(to_email=to_email, subject=subject, html=html, text=text)
 
 
 async def send_password_reset_email(to_email: str, to_name: str, reset_link: str):
@@ -196,7 +224,7 @@ async def send_password_reset_email(to_email: str, to_name: str, reset_link: str
         reset_link=reset_link,
         ttl_minutes=settings.PASSWORD_RESET_TOKEN_TTL_MINUTES,
     )
-    return await send_email(to_email=to_email, subject=subject, html=html, text=text)
+    return await send_durable(to_email=to_email, subject=subject, html=html, text=text)
 
 
 async def send_interview_completed_email(
@@ -215,4 +243,4 @@ async def send_interview_completed_email(
         total_score=total_score,
         review_url=review_url,
     )
-    return await send_email(to_email=to_email, subject=subject, html=html, text=text)
+    return await send_durable(to_email=to_email, subject=subject, html=html, text=text)
