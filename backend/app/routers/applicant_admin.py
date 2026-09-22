@@ -1,8 +1,9 @@
 """
 RECRUIT.AI — Applicant Admin Router (Organisation-only)
-GET  /applicants                  — List applicants across the org's drives
-GET  /applicants/{id}             — Full applicant profile (submission + interview)
-POST /applicants/{id}/decision    — Record hire / reject decision, email the result
+GET  /applicants                       — List applicants across the org's drives
+GET  /applicants/{id}                  — Full applicant profile (submission + interview)
+GET  /applicants/{id}/submission-file  — Short-lived link to the uploaded file
+POST /applicants/{id}/decision         — Record hire / reject decision, email the result
 
 Every endpoint here is authenticated and scoped to the calling organisation.
 Applicants are reached only by joining through Drive.org_id, so one
@@ -25,9 +26,11 @@ from app.models.schemas import (
     ApplicantResponse,
     ApplicantDecisionRequest,
     ApplicantDecisionResponse,
+    SubmissionFileLinkResponse,
 )
 from app.services.auth_service import get_current_org
 from app.services.email_service import send_result_email
+from app.services import storage_service
 
 router = APIRouter(prefix="/applicants", tags=["Applicants (Organisation)"])
 
@@ -115,6 +118,51 @@ def get_applicant(
     db: Session = Depends(get_db),
 ):
     return _to_response(_owned_applicant(applicant_id, org, db))
+
+
+# ──────────────────────────────────────────────
+# SUBMISSION FILE LINK
+# ──────────────────────────────────────────────
+@router.get("/{applicant_id}/submission-file", response_model=SubmissionFileLinkResponse)
+def get_submission_file_link(
+    applicant_id: UUID,
+    org: Organisation = Depends(get_current_org),
+    db: Session = Depends(get_db),
+):
+    """
+    Return a short-lived presigned URL for the candidate's uploaded file.
+
+    Submission objects are private, so this is the only way to read one. The
+    link is minted per request and expires in minutes, which keeps the bucket
+    closed and means a copied URL does not grant lasting access.
+    """
+    applicant = _owned_applicant(applicant_id, org, db)
+
+    if not applicant.submission or not applicant.submission.file_url:
+        raise HTTPException(status_code=404, detail="This applicant has no uploaded file")
+
+    stored = applicant.submission.file_url
+    try:
+        url = storage_service.presigned_get_url(stored)
+    except storage_service.StorageError as exc:
+        print(f"[STORAGE ERROR] applicant={applicant_id}: {exc}")
+        raise HTTPException(status_code=502, detail="Could not generate a download link")
+
+    if not url:
+        # Either storage is unconfigured, or this row predates uploads and
+        # holds a plain URL the candidate supplied. Hand it back unchanged
+        # rather than pretending the file is missing.
+        if stored.startswith(("http://", "https://")):
+            return SubmissionFileLinkResponse(url=stored, expires_in_seconds=0)
+        raise HTTPException(
+            status_code=503,
+            detail="File downloads are not available: object storage is not configured",
+        )
+
+    return SubmissionFileLinkResponse(
+        url=url,
+        expires_in_seconds=storage_service.PRESIGNED_URL_TTL_SECONDS,
+    )
 
 
 # ──────────────────────────────────────────────
