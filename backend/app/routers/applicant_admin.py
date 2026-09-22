@@ -12,6 +12,7 @@ organisation can never read or decide on another organisation's candidates.
 
 import csv
 import io
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
@@ -46,6 +47,7 @@ from app.services import storage_service
 from app.config import get_settings
 
 settings = get_settings()
+log = logging.getLogger("recruit.applicants")
 
 router = APIRouter(prefix="/applicants", tags=["Applicants (Organisation)"])
 
@@ -234,7 +236,10 @@ def get_submission_file_link(
     try:
         url = storage_service.presigned_get_url(stored)
     except storage_service.StorageError as exc:
-        print(f"[STORAGE ERROR] applicant={applicant_id}: {exc}")
+        log.error(
+            "could not sign submission download",
+            extra={"applicant_id": str(applicant_id), "error": str(exc)},
+        )
         raise HTTPException(status_code=502, detail="Could not generate a download link")
 
     if not url:

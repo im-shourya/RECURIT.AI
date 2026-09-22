@@ -16,6 +16,7 @@ run inside FastAPI background tasks on the event loop, where a blocking HTTP
 call would stall the worker. httpx is already a dependency.
 """
 
+import logging
 from typing import Optional
 
 import httpx
@@ -24,6 +25,7 @@ from app.config import get_settings
 from app.services import email_templates
 
 settings = get_settings()
+log = logging.getLogger("recruit.email")
 
 RESEND_API_URL = "https://api.resend.com/emails"
 REQUEST_TIMEOUT_SECONDS = 15.0
@@ -57,7 +59,10 @@ async def send_email(
     appear to undo work that already committed.
     """
     if not is_configured():
-        print(f"[EMAIL SKIP] not configured - to={to_email} subject={subject!r}")
+        log.warning(
+            "email skipped: Resend is not configured",
+            extra={"to": to_email, "subject": subject},
+        )
         return "skipped-no-config"
 
     payload = {
@@ -87,13 +92,22 @@ async def send_email(
             return response.json().get("id", "sent")
     except httpx.HTTPStatusError as exc:
         # Log the status and Resend's message, never the payload or the key.
-        print(
-            f"[EMAIL ERROR] to={to_email} subject={subject!r} "
-            f"status={exc.response.status_code} body={exc.response.text[:300]}"
+        log.error(
+            "email rejected by Resend",
+            extra={
+                "to": to_email,
+                "subject": subject,
+                "status": exc.response.status_code,
+                # Resend's message, truncated. Never the payload or the key.
+                "response": exc.response.text[:300],
+            },
         )
         return "failed"
     except (httpx.HTTPError, ValueError) as exc:
-        print(f"[EMAIL ERROR] to={to_email} subject={subject!r} error={type(exc).__name__}")
+        log.error(
+            "email transport failed",
+            extra={"to": to_email, "subject": subject, "error": type(exc).__name__},
+        )
         return "failed"
 
 

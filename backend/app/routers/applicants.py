@@ -6,6 +6,7 @@ POST /submit/{applicant_id}        — Submit task/GitHub → triggers RepoLens 
 POST /submit/{applicant_id}/upload — Upload a submission file to object storage
 """
 
+import logging
 import secrets
 from datetime import date, datetime, timedelta, timezone
 from uuid import UUID
@@ -33,6 +34,7 @@ from app.services.qr_service import generate_apply_link
 from app.config import get_settings
 
 settings = get_settings()
+log = logging.getLogger("recruit.applicants")
 router = APIRouter(tags=["Applicants (Public)"])
 
 
@@ -346,7 +348,10 @@ async def upload_submission_file(
     except storage_service.StorageError as exc:
         # Do not surface the backend error verbatim; it can carry bucket names
         # and credentials detail.
-        print(f"[UPLOAD ERROR] applicant={applicant.id}: {exc}")
+        log.error(
+            "submission upload failed",
+            extra={"applicant_id": str(applicant.id), "error": str(exc)},
+        )
         raise HTTPException(status_code=502, detail="Upload failed, please try again")
 
     return FileUploadResponse(file_url=key, filename=file.filename or "")
