@@ -26,8 +26,9 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { api } from '@/lib/api'
 
-export default function SubmitPage({ params }: { params: Promise<{ applicantId: string }> }) {
-  const { applicantId } = use(params)
+export default function SubmitPage({ params }: { params: Promise<{ token: string }> }) {
+  // Unguessable submission token from the emailed link, not an applicant id.
+  const { token } = use(params)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -50,7 +51,7 @@ export default function SubmitPage({ params }: { params: Promise<{ applicantId: 
     // The submit page re-uses applicant info — we'll set defaults
     // The backend POST endpoint handles the submission
     setLoading(false)
-  }, [applicantId])
+  }, [token])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -94,7 +95,7 @@ export default function SubmitPage({ params }: { params: Promise<{ applicantId: 
     }
 
     try {
-      await api.submitTask(applicantId, {
+      await api.submitTask(token, {
         github_url: formData.githubUrl || undefined,
         description: formData.description || undefined,
       })
