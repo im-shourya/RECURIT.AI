@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { api, ApplicantResponse } from '@/lib/api'
+import { useAuth } from '@/lib/auth-context'
 
 const PAGE_SIZE = 25
 
@@ -48,6 +49,7 @@ const DECIDED = new Set(['selected', 'rejected'])
 
 export default function ApplicantsPage() {
   const driveId = useSearchParams().get('drive_id') ?? undefined
+  const { can } = useAuth()
 
   const [applicants, setApplicants] = useState<ApplicantResponse[]>([])
   const [total, setTotal] = useState(0)
@@ -104,7 +106,9 @@ export default function ApplicantsPage() {
   }
 
   // Only undecided rows can be acted on; the API rejects a second decision.
-  const decidable = applicants.filter((a) => !DECIDED.has(a.status))
+  const decidable = can('admin')
+    ? applicants.filter((a) => !DECIDED.has(a.status))
+    : []
   const selectedDecidable = decidable.filter((a) => selected.has(a.id))
   const allDecidableSelected =
     decidable.length > 0 && selectedDecidable.length === decidable.length
@@ -275,7 +279,7 @@ export default function ApplicantsPage() {
                 <Checkbox
                   checked={selected.has(a.id)}
                   onCheckedChange={() => toggle(a.id)}
-                  disabled={DECIDED.has(a.status)}
+                  disabled={DECIDED.has(a.status) || !can('admin')}
                   aria-label={`Select ${a.name}`}
                 />
                 <Link href={`/dashboard/applicants/${a.id}`} className="flex-1 min-w-0">

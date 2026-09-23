@@ -41,6 +41,14 @@ class OrgProfileResponse(BaseModel):
     logo_url: str
     created_at: datetime
 
+    # Who is signed in, not just which organisation. Without this the client
+    # cannot tell a member from an owner, so it would offer every action to
+    # everyone and let the API answer with 403s.
+    user_id: UUID | None = None
+    user_name: str | None = None
+    user_email: str | None = None
+    role: str | None = None
+
     class Config:
         from_attributes = True
 

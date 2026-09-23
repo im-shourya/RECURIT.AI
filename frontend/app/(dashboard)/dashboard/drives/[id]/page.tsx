@@ -29,8 +29,10 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
 import { api, DriveDetailResponse } from '@/lib/api'
+import { useAuth } from '@/lib/auth-context'
 
 export default function DriveDetailsPage() {
+  const { can } = useAuth()
   const params = useParams()
   const router = useRouter()
   const id = params.id as string
@@ -127,12 +129,14 @@ export default function DriveDetailsPage() {
             <Copy className="mr-2 h-4 w-4" />
             Copy Link
           </Button>
-          <Button 
-            variant={drive.status === 'active' ? 'destructive' : 'default'} 
-            onClick={toggleStatus}
-          >
-            {drive.status === 'active' ? 'Close Drive' : 'Reopen Drive'}
-          </Button>
+          {can('admin') && (
+            <Button 
+              variant={drive.status === 'active' ? 'destructive' : 'default'} 
+              onClick={toggleStatus}
+            >
+              {drive.status === 'active' ? 'Close Drive' : 'Reopen Drive'}
+            </Button>
+          )}
         </div>
       </div>
 
