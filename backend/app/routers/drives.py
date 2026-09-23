@@ -41,6 +41,7 @@ router = APIRouter(prefix="/drives", tags=["Drives"])
 def _to_response(drive: Drive, applicant_count: int = 0) -> DriveResponse:
     return DriveResponse(
         id=drive.id,
+        org_id=drive.org_id,
         name=drive.name,
         domain=drive.domain,
         task_type=drive.task_type.value,
