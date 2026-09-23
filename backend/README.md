@@ -83,8 +83,11 @@ backend/
 | POST | `/api/submit/{applicant_id}` | — | Task/GitHub submission |
 | POST | `/api/submit/{applicant_id}/upload` | — | Upload a submission file (max 10MB) |
 | GET | `/api/applicants` | JWT | List applicants (filter by drive / status / search) |
+| GET | `/api/applicants/export` | JWT | CSV export (same filters as list) |
 | GET | `/api/applicants/{id}` | JWT | Applicant profile + submission + interview |
 | GET | `/api/applicants/{id}/submission-file` | JWT | Short-lived download link |
+| POST | `/api/applicants/{id}/resend-email` | JWT | Re-send applied / task / interview / result |
+| POST | `/api/applicants/bulk-decision` | JWT | Decide up to 100 applicants at once |
 | POST | `/api/applicants/{id}/decision` | JWT | Record hire / reject, email the result |
 | GET | `/api/interview/{token}` | — | Get interview config |
 | POST | `/api/interview/{token}/start` | — | Begin interview |
