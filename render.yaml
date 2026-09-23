@@ -1,55 +1,100 @@
+# RECRUIT.AI — Render deployment
+#
+# Backend only. The frontend is deployed separately on Vercel.
+#
+# Values marked `sync: false` are set in the Render dashboard rather than
+# committed here, because they are secrets or environment-specific.
+
 services:
   # ── Backend API ──
   - type: web
     name: recruit-ai-api
     runtime: python
+    rootDir: backend
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
-    rootDir: backend
+    healthCheckPath: /health
     envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: recruit-ai-db
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: recruit-ai-redis
-          property: connectionString
+      # ── Database (MongoDB Atlas) ──
+      # Atlas is external to Render, so the connection string is set in the
+      # dashboard. Atlas Network Access must allow Render's egress; on the
+      # plans without static outbound IPs that means 0.0.0.0/0, which makes
+      # the database password the only thing protecting it.
+      - key: MONGODB_URL
+        sync: false
+      - key: MONGODB_DB
+        value: recruit_ai
+
+      # ── Environment ──
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+
+      # ── Auth ──
+      # Generated once by Render and kept across deploys. Changing it signs
+      # every user out, so do not regenerate casually.
       - key: SECRET_KEY
         generateValue: true
+
+      # ── URLs ──
+      # FRONTEND_URL builds every link emailed to a candidate; APP_URL is the
+      # base for the logo and footer links inside those emails. Both must be
+      # absolute and publicly reachable.
       - key: FRONTEND_URL
         sync: false
+      - key: APP_URL
+        sync: false
+      # Exact origins, comma-separated. "*" is rejected at startup.
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
 
-  # ── Celery Worker ──
-  - type: worker
-    name: recruit-ai-worker
-    runtime: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "celery -A app.worker.celery_app worker --loglevel=info"
-    rootDir: backend
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: recruit-ai-db
-          property: connectionString
+      # ── Email (Resend) ──
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+      - key: RESEND_FROM_NAME
+        value: RECRUIT.AI
+      - key: SUPPORT_EMAIL
+        sync: false
+
+      # ── Rate limiting ──
       - key: REDIS_URL
         fromService:
           type: redis
           name: recruit-ai-redis
           property: connectionString
-      - key: SECRET_KEY
-        fromService:
-          type: web
-          name: recruit-ai-api
-          property: SECRET_KEY
+      # Render terminates TLS at a proxy, so the client address arrives in
+      # X-Forwarded-For. Without this every caller is limited as one IP.
+      - key: TRUST_PROXY_HEADERS
+        value: "true"
 
-  # ── Redis (Managed Instance) ──
+      # ── File uploads (optional; uploads return 503 without these) ──
+      - key: S3_BUCKET_NAME
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+
+      # ── Error tracking (optional; empty disables Sentry) ──
+      - key: SENTRY_DSN
+        sync: false
+
+  # ── Redis ──
+  # Backs the rate limiter. Without it limits fall back to process memory,
+  # which is approximate but not fatal.
   - type: redis
     name: recruit-ai-redis
-    plan: free # Note: Render free redis is limited, consider Upstash
-    ipAllowList: [] # Allow internal traffic
+    plan: free
+    ipAllowList: []   # internal traffic only
 
-databases:
-  - name: recruit-ai-db
-    plan: free # Note: Render free postgres lasts 90 days. Recommended: Neon for production.
+# No `databases:` block: the app no longer uses PostgreSQL.
+#
+# No Celery worker either. The previous configuration started
+# `celery -A app.worker.celery_app`, a module that has never existed in this
+# repository, so that service could only ever have failed to boot. Outbound
+# email is retried by an in-process sweeper inside the web service.
