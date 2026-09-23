@@ -35,6 +35,7 @@ from app.models.documents import (
     EmailType,
     Organisation,
     TaskType,
+    UserRole,
 )
 from app.models.schemas import (
     ApplicantDecisionRequest,
@@ -48,7 +49,7 @@ from app.models.schemas import (
     SubmissionFileLinkResponse,
 )
 from app.services import audit, storage_service
-from app.services.auth_service import get_current_org
+from app.services.auth_service import get_current_org, require_role
 from app.services.email_service import (
     send_application_email,
     send_interview_email,
@@ -327,7 +328,13 @@ async def get_submission_file_link(
 # ──────────────────────────────────────────────
 # DECISION
 # ──────────────────────────────────────────────
-@router.post("/{applicant_id}/decision", response_model=ApplicantDecisionResponse)
+@router.post(
+    "/{applicant_id}/decision",
+    response_model=ApplicantDecisionResponse,
+    # The product's own wording: AI assists, the recruiter decides. A member
+    # reviews evidence; deciding is an admin action.
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
+)
 async def decide_applicant(
     applicant_id: UUID,
     body: ApplicantDecisionRequest,
@@ -392,7 +399,12 @@ async def decide_applicant(
 # ──────────────────────────────────────────────
 # RESEND AN EMAIL
 # ──────────────────────────────────────────────
-@router.post("/{applicant_id}/resend-email", status_code=204)
+@router.post(
+    "/{applicant_id}/resend-email",
+    status_code=204,
+    # Sends mail to a candidate in the organisation's name.
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
+)
 async def resend_email(
     applicant_id: UUID,
     body: ResendEmailRequest,
@@ -464,7 +476,11 @@ async def resend_email(
 # ──────────────────────────────────────────────
 # BULK DECISION
 # ──────────────────────────────────────────────
-@router.post("/bulk-decision", response_model=BulkDecisionResponse)
+@router.post(
+    "/bulk-decision",
+    response_model=BulkDecisionResponse,
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
+)
 async def bulk_decision(
     body: BulkDecisionRequest,
     background_tasks: BackgroundTasks,
@@ -540,7 +556,12 @@ async def bulk_decision(
 # ──────────────────────────────────────────────
 # DELETE A CANDIDATE'S DATA
 # ──────────────────────────────────────────────
-@router.delete("/{applicant_id}", status_code=204)
+@router.delete(
+    "/{applicant_id}",
+    status_code=204,
+    # Irreversible erasure of a person's data, including their transcript.
+    dependencies=[Depends(require_role(UserRole.OWNER))],
+)
 async def delete_applicant(
     applicant_id: UUID,
     org: Organisation = Depends(get_current_org),
