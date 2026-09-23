@@ -37,6 +37,7 @@ from app.models.schemas import (
 )
 from app.services import storage_service
 from app.services.auth_service import get_current_org
+from app.services.rate_limit import RateLimit
 from app.services.email_service import send_interview_completed_email
 
 settings = get_settings()
@@ -82,7 +83,12 @@ async def _active(token: str) -> Applicant:
 # ──────────────────────────────────────────────
 # CONFIG
 # ──────────────────────────────────────────────
-@router.get("/{token}", response_model=InterviewConfigResponse)
+@router.get(
+    "/{token}",
+    response_model=InterviewConfigResponse,
+    dependencies=[Depends(RateLimit("interview_config", limit=60, window_seconds=3600,
+                                    key_param="token"))],
+)
 async def get_interview_config(token: str):
     applicant = await _active(token)
     drive = await Drive.get(applicant.drive_id)
@@ -108,7 +114,12 @@ async def get_interview_config(token: str):
 # ──────────────────────────────────────────────
 # START
 # ──────────────────────────────────────────────
-@router.post("/{token}/start", response_model=InterviewStartResponse)
+@router.post(
+    "/{token}/start",
+    response_model=InterviewStartResponse,
+    dependencies=[Depends(RateLimit("interview_start", limit=10, window_seconds=3600,
+                                    key_param="token"))],
+)
 async def start_interview(token: str):
     applicant = await _active(token)
 
@@ -126,7 +137,14 @@ async def start_interview(token: str):
 # ──────────────────────────────────────────────
 # ANSWER
 # ──────────────────────────────────────────────
-@router.post("/{token}/answer", response_model=InterviewAnswerResponse)
+@router.post(
+    "/{token}/answer",
+    response_model=InterviewAnswerResponse,
+    # An interview is nine questions. This allows retries and a reconnect
+    # without letting anyone append to a transcript indefinitely.
+    dependencies=[Depends(RateLimit("interview_answer", limit=60, window_seconds=3600,
+                                    key_param="token"))],
+)
 async def submit_answer(token: str, body: InterviewAnswerRequest):
     applicant = await _active(token)
 
@@ -193,7 +211,12 @@ async def submit_answer(token: str, body: InterviewAnswerRequest):
 # ──────────────────────────────────────────────
 # END
 # ──────────────────────────────────────────────
-@router.post("/{token}/end", response_model=InterviewEndResponse)
+@router.post(
+    "/{token}/end",
+    response_model=InterviewEndResponse,
+    dependencies=[Depends(RateLimit("interview_end", limit=10, window_seconds=3600,
+                                    key_param="token"))],
+)
 async def end_interview(
     token: str,
     body: InterviewEndRequest,
@@ -255,7 +278,14 @@ async def end_interview(
 # ──────────────────────────────────────────────
 # RECORDING
 # ──────────────────────────────────────────────
-@router.post("/{token}/recording", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/{token}/recording",
+    status_code=status.HTTP_204_NO_CONTENT,
+    # Each accepted recording is up to 200MB. Without a cap this endpoint is
+    # the cheapest way to run up an object-storage bill.
+    dependencies=[Depends(RateLimit("interview_recording", limit=5, window_seconds=3600,
+                                    key_param="token"))],
+)
 async def upload_recording(token: str, file: UploadFile = File(...)):
     """
     recording_url used to be a string accepted on /end and stored verbatim, so
