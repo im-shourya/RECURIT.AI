@@ -12,7 +12,7 @@ import secrets
 from datetime import date
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.models.documents import (
     Applicant,
@@ -24,6 +24,7 @@ from app.models.documents import (
     TaskType,
 )
 from app.models.schemas import (
+    ApplicantResponse,
     DriveCreateRequest,
     DriveDetailResponse,
     DriveResponse,
@@ -36,6 +37,10 @@ from app.services.auth_service import get_current_org
 from app.services.qr_service import generate_qr_for_drive
 
 router = APIRouter(prefix="/drives", tags=["Drives"])
+
+# How many applicants drive detail embeds. Enough to render a summary panel
+# without the response growing without bound.
+DRIVE_DETAIL_APPLICANT_PREVIEW = 25
 
 
 def _to_response(drive: Drive, applicant_count: int = 0) -> DriveResponse:
@@ -143,17 +148,27 @@ async def get_drive(
     drive = await _owned_drive(drive_id, org)
     await _close_if_past_deadline(drive)
 
-    applicants = await Applicant.find(Applicant.drive_id == drive.id).to_list()
+    # Bounded on purpose. This used to embed every applicant, so a drive with
+    # thousands of candidates returned all of them in one response. The count
+    # is still exact; the list is a preview, and
+    # GET /api/drives/{id}/applicants pages through the rest.
+    total = await Applicant.find(Applicant.drive_id == drive.id).count()
+    preview = (
+        await Applicant.find(Applicant.drive_id == drive.id)
+        .sort(-Applicant.applied_at)
+        .limit(DRIVE_DETAIL_APPLICANT_PREVIEW)
+        .to_list()
+    )
 
     # Imported here to avoid a circular import at module load: the applicant
     # router imports from this one for the shared serialiser.
     from app.routers.applicant_admin import applicant_to_response
 
-    base = _to_response(drive, applicant_count=len(applicants))
+    base = _to_response(drive, applicant_count=total)
     return DriveDetailResponse(
         **base.model_dump(),
         organisation_name=org.name,
-        applicants=[applicant_to_response(a) for a in applicants],
+        applicants=[applicant_to_response(a) for a in preview],
     )
 
 
@@ -268,3 +283,39 @@ async def delete_drive(
 
     await cascade.delete_drive(drive)
     return None
+
+
+# ──────────────────────────────────────────────
+# APPLICANTS FOR ONE DRIVE
+# ──────────────────────────────────────────────
+@router.get("/{drive_id}/applicants", response_model=list[ApplicantResponse])
+async def list_drive_applicants(
+    drive_id: UUID,
+    response: Response,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    org: Organisation = Depends(get_current_org),
+):
+    """
+    Page through one drive's applicants.
+
+    Drive detail embeds only a preview, so this is how a client reads the
+    rest without pulling every candidate in a single response.
+
+    The drive is resolved through the organisation first, so an id belonging
+    to another organisation returns 404 rather than listing its candidates.
+    """
+    drive = await _owned_drive(drive_id, org)
+
+    query = Applicant.find(Applicant.drive_id == drive.id)
+    total = await query.count()
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
+
+    applicants = (
+        await query.sort(-Applicant.applied_at).skip(offset).limit(limit).to_list()
+    )
+
+    from app.routers.applicant_admin import applicant_to_response
+
+    return [applicant_to_response(a) for a in applicants]
