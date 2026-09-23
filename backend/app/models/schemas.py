@@ -184,6 +184,27 @@ class ApplicantDecisionRequest(BaseModel):
     decision: str = Field(..., pattern="^(selected|rejected)$")
 
 
+class ResendEmailRequest(BaseModel):
+    type: str = Field(..., pattern="^(applied|task|interview|result)$")
+
+
+class BulkDecisionRequest(BaseModel):
+    """
+    One decision applied to many applicants.
+
+    Capped at 100 per call: each accepted id sends an email, so an unbounded
+    list would be a way to fan out a large amount of mail in one request.
+    """
+    applicant_ids: list[UUID] = Field(..., min_length=1, max_length=100)
+    decision: str = Field(..., pattern="^(selected|rejected)$")
+
+
+class BulkDecisionResponse(BaseModel):
+    updated: int
+    skipped: list[str]
+    status: str
+
+
 class ApplicantDecisionResponse(BaseModel):
     id: UUID
     name: str
