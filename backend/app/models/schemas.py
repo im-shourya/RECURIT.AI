@@ -54,6 +54,15 @@ class ResetPasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=8, max_length=128)
 
 
+class AccountDeleteRequest(BaseModel):
+    """
+    Deleting an organisation is irreversible and takes every candidate with
+    it, so the password is required even though the caller is signed in.
+    """
+    current_password: str = Field(..., min_length=1)
+    confirm: bool = Field(..., description="Must be true")
+
+
 class PasswordChangeRequest(BaseModel):
     current_password: str = Field(..., min_length=1)
     new_password: str = Field(..., min_length=8, max_length=128)
