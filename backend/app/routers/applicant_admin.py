@@ -38,6 +38,8 @@ from app.models.documents import (
 )
 from app.models.schemas import (
     ApplicantDecisionRequest,
+    InterviewSummaryResponse,
+    SubmissionResponse,
     ApplicantDecisionResponse,
     ApplicantResponse,
     BulkDecisionRequest,
@@ -65,6 +67,40 @@ router = APIRouter(prefix="/applicants", tags=["Applicants (Organisation)"])
 # ──────────────────────────────────────────────
 def applicant_to_response(a: Applicant) -> ApplicantResponse:
     """Shared with the drives router, which embeds applicants in drive detail."""
+    # Submission and interview are embedded now, so neither has an id of its
+    # own. Both are 1:1 with the applicant, so the applicant's id identifies
+    # them — the same value /interview/{token}/detail already reports.
+    submission = (
+        SubmissionResponse(
+            id=a.id,
+            applicant_id=a.id,
+            file_url=a.submission.file_url or "",
+            github_url=a.submission.github_url or "",
+            description=a.submission.description or "",
+            repolens_analysis=a.submission.repolens_analysis or {},
+            submitted_at=a.submission.submitted_at,
+        )
+        if a.submission
+        else None
+    )
+
+    interview = (
+        InterviewSummaryResponse(
+            id=a.id,
+            token=a.interview.token,
+            started_at=a.interview.started_at,
+            ended_at=a.interview.ended_at,
+            recording_url=a.interview.recording_url or "",
+            score_intro=a.interview.score_intro,
+            score_project=a.interview.score_project,
+            score_domain=a.interview.score_domain,
+            total_score=a.interview.total_score,
+            malpractice_flags=a.interview.malpractice_flags or [],
+        )
+        if a.interview
+        else None
+    )
+
     return ApplicantResponse(
         id=a.id,
         drive_id=a.drive_id,
@@ -76,8 +112,8 @@ def applicant_to_response(a: Applicant) -> ApplicantResponse:
         github_url=a.github_url or "",
         status=a.status.value,
         applied_at=a.applied_at,
-        submission=a.submission,
-        interview=a.interview,
+        submission=submission,
+        interview=interview,
     )
 
 
