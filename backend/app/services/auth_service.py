@@ -3,6 +3,8 @@ RECRUIT.AI — Authentication Service
 Handles password hashing and JWT token creation / verification.
 """
 
+import hashlib
+import secrets
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
@@ -67,3 +69,27 @@ def get_current_org(
         raise HTTPException(status_code=401, detail="Organisation not found")
 
     return org
+
+
+# ── Password reset tokens ──
+def generate_reset_token() -> tuple[str, str]:
+    """
+    Mint a reset token.
+
+    Returns (plaintext, sha256_hash). Only the hash is ever persisted; the
+    plaintext exists solely inside the emailed link, so a database leak cannot
+    be replayed to seize accounts.
+    """
+    plaintext = secrets.token_urlsafe(32)
+    return plaintext, hash_reset_token(plaintext)
+
+
+def hash_reset_token(plaintext: str) -> str:
+    """
+    Hash a reset token for storage and lookup.
+
+    SHA-256 rather than bcrypt on purpose: the token is 32 random bytes, so it
+    has no guessable structure to slow down, and lookup must be an indexed
+    equality match rather than a scan over every row.
+    """
+    return hashlib.sha256(plaintext.encode("utf-8")).hexdigest()
