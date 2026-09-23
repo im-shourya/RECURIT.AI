@@ -73,7 +73,13 @@ def _new_interview() -> Interview:
 # ──────────────────────────────────────────────
 # DRIVE INFO FOR THE APPLY FORM
 # ──────────────────────────────────────────────
-@router.get("/apply/{link_token}", response_model=DrivePublicResponse)
+@router.get(
+    "/apply/{link_token}",
+    response_model=DrivePublicResponse,
+    # Generous: this is a page load, and a drive link is shared widely.
+    dependencies=[Depends(RateLimit("apply_view", limit=120, window_seconds=3600,
+                                    key_param="link_token"))],
+)
 async def get_drive_for_apply(link_token: str):
     drive = await Drive.find_one(Drive.link_token == link_token)
     if not drive:
@@ -223,6 +229,9 @@ async def submit_application(
     "/submit/{submit_token}",
     response_model=SubmissionResponse,
     status_code=status.HTTP_201_CREATED,
+    # One submission is expected; the rest is retries after an error.
+    dependencies=[Depends(RateLimit("submit", limit=10, window_seconds=3600,
+                                    key_param="submit_token"))],
 )
 async def submit_task(
     submit_token: str,
@@ -278,7 +287,14 @@ async def submit_task(
 # ──────────────────────────────────────────────
 # UPLOAD A SUBMISSION FILE
 # ──────────────────────────────────────────────
-@router.post("/submit/{submit_token}/upload", response_model=FileUploadResponse)
+@router.post(
+    "/submit/{submit_token}/upload",
+    response_model=FileUploadResponse,
+    # Each accepted upload is up to 10MB of object storage, so this is a
+    # spend limit as much as an abuse limit.
+    dependencies=[Depends(RateLimit("submit_upload", limit=10, window_seconds=3600,
+                                    key_param="submit_token"))],
+)
 async def upload_submission_file(
     submit_token: str,
     file: UploadFile = File(...),
@@ -324,7 +340,13 @@ async def upload_submission_file(
 # ──────────────────────────────────────────────
 # CANDIDATE SELF-SERVICE STATUS
 # ──────────────────────────────────────────────
-@router.get("/status/{submit_token}", response_model=ApplicantStatusView)
+@router.get(
+    "/status/{submit_token}",
+    response_model=ApplicantStatusView,
+    # Candidates refresh this while they wait, so it is deliberately loose.
+    dependencies=[Depends(RateLimit("status", limit=120, window_seconds=3600,
+                                    key_param="submit_token"))],
+)
 async def get_own_status(submit_token: str):
     """
     Reuses the token the candidate already holds, so no new credential is
