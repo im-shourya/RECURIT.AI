@@ -9,7 +9,7 @@ PATCH  /drives/{id}/status  — Open / close drive
 import secrets
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -19,6 +19,7 @@ from app.models.schemas import (
     DriveResponse,
     DriveDetailResponse,
     DriveStatusUpdate,
+    DriveUpdateRequest,
     ApplicantResponse,
 )
 from app.services.auth_service import get_current_org
@@ -166,3 +167,91 @@ def update_drive_status(
     db.commit()
     db.refresh(drive)
     return _drive_to_response(drive, applicant_count=len(drive.applicants))
+
+
+# ──────────────────────────────────────────────
+# UPDATE DRIVE
+# ──────────────────────────────────────────────
+@router.patch("/{drive_id}", response_model=DriveResponse)
+def update_drive(
+    drive_id: UUID,
+    body: DriveUpdateRequest,
+    org: Organisation = Depends(get_current_org),
+    db: Session = Depends(get_db),
+):
+    """
+    Edit a drive's details.
+
+    `task_type` is not editable. Switching between a task drive and a GitHub
+    drive mid-flight would strand applicants who already progressed down the
+    other branch, so that needs a new drive rather than an edit.
+    """
+    drive = db.query(Drive).filter(Drive.id == drive_id, Drive.org_id == org.id).first()
+    if not drive:
+        raise HTTPException(status_code=404, detail="Drive not found")
+
+    fields = body.model_dump(exclude_unset=True)
+    if not fields:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    # A task drive still needs a task deadline after the edit.
+    if "task_deadline" in fields and fields["task_deadline"] is None:
+        if drive.task_type == TaskType.TASK:
+            raise HTTPException(
+                status_code=400,
+                detail="task_deadline is required while task_type is 'task'",
+            )
+
+    for key, value in fields.items():
+        if key == "question_level":
+            drive.question_level = QuestionLevel(value)
+        elif key == "status":
+            drive.status = DriveStatus(value)
+        else:
+            setattr(drive, key, value)
+
+    db.commit()
+    db.refresh(drive)
+    return _drive_to_response(drive, applicant_count=len(drive.applicants))
+
+
+# ──────────────────────────────────────────────
+# DELETE DRIVE
+# ──────────────────────────────────────────────
+@router.delete("/{drive_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_drive(
+    drive_id: UUID,
+    confirm: bool = Query(
+        False,
+        description="Required to delete a drive that already has applicants",
+    ),
+    org: Organisation = Depends(get_current_org),
+    db: Session = Depends(get_db),
+):
+    """
+    Permanently delete a drive.
+
+    This cascades to every applicant, submission, interview and email log under
+    it — candidate data that cannot be recovered. A drive with applicants
+    therefore refuses to delete unless ?confirm=true is passed, so a stray
+    click cannot wipe a live recruitment round. Closing a drive
+    (PATCH status=closed) is the non-destructive alternative.
+    """
+    drive = db.query(Drive).filter(Drive.id == drive_id, Drive.org_id == org.id).first()
+    if not drive:
+        raise HTTPException(status_code=404, detail="Drive not found")
+
+    applicant_count = len(drive.applicants)
+    if applicant_count and not confirm:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"This drive has {applicant_count} applicant(s). Deleting it also "
+                f"deletes their submissions and interviews. Re-send with "
+                f"?confirm=true to proceed, or close the drive instead."
+            ),
+        )
+
+    db.delete(drive)
+    db.commit()
+    return None
