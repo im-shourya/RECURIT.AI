@@ -19,6 +19,8 @@ import {
   Plus,
   FolderOpen,
   BarChart3,
+  Users,
+  ScrollText,
   Settings,
   Bell,
   Menu,
@@ -35,7 +37,10 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Plus, label: 'Create Drive', href: '/dashboard/drives/new' },
   { icon: FolderOpen, label: 'All Drives', href: '/dashboard/drives' },
+  { icon: Users, label: 'Candidates', href: '/dashboard/applicants' },
   { icon: BarChart3, label: 'Analytics', href: '/dashboard/analytics' },
+  { icon: ScrollText, label: 'Activity', href: '/dashboard/audit' },
+  { icon: Users, label: 'Team', href: '/dashboard/team' },
   { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
 ]
 

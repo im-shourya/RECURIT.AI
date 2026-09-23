@@ -59,6 +59,43 @@ async function request<T>(
   return res.json();
 }
 
+/**
+ * Like request(), but also hands back the Response.
+ *
+ * Pagination totals travel in X-Total-Count rather than the body, so the
+ * caller needs the headers. Only used where that matters.
+ */
+async function requestWithResponse<T>(
+  path: string,
+  options: RequestInit = {},
+  auth = false,
+): Promise<{ data: T; response: Response }> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string>),
+  };
+
+  if (auth) {
+    const token = getToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+
+  if (response.status === 401) {
+    clearToken();
+    if (typeof window !== 'undefined') window.location.href = '/auth/login';
+    throw new Error('Unauthorized');
+  }
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail || `Request failed: ${response.status}`);
+  }
+
+  return { data: await response.json(), response };
+}
+
 // ══════════════════════════════════════════════
 // API TYPES (mirror backend Pydantic schemas)
 // ══════════════════════════════════════════════
@@ -108,6 +145,44 @@ export interface ApplicantResponse {
   applied_at: string;
   submission?: SubmissionResponse | null;
   interview?: InterviewSummary | null;
+}
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: 'owner' | 'admin' | 'member';
+  is_active: boolean;
+  has_accepted_invite: boolean;
+  created_at: string;
+  last_login_at: string | null;
+}
+
+export interface AuditEntry {
+  id: string;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  entity_label: string;
+  detail: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface BulkDecisionResult {
+  updated: number;
+  skipped: string[];
+  status: string;
+}
+
+export interface SubmissionFileLink {
+  url: string;
+  expires_in_seconds: number;
+}
+
+/** A page of applicants plus the total, read from the X-Total-Count header. */
+export interface ApplicantPage {
+  items: ApplicantResponse[];
+  total: number;
 }
 
 export interface DriveDetailResponse extends DriveResponse {
@@ -292,5 +367,106 @@ export const api = {
     }),
 
   // ── Analytics (authed) ──
+  // ── Applicants (organisation) ──
+  listApplicants: async (params: {
+    drive_id?: string;
+    status?: string;
+    q?: string;
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<ApplicantPage> => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '') as [string, string][],
+    ).toString();
+    const { data, response } = await requestWithResponse<ApplicantResponse[]>(
+      `/api/applicants${query ? `?${query}` : ''}`, {}, true,
+    );
+    // Falls back to the page length if the header is missing — which happens
+    // when a proxy strips it, and is better than showing "of 0".
+    const total = Number(response.headers.get('X-Total-Count') ?? data.length);
+    return { items: data, total: Number.isFinite(total) ? total : data.length };
+  },
+
+  getApplicant: (id: string) =>
+    request<ApplicantResponse>(`/api/applicants/${id}`, {}, true),
+
+  decideApplicant: (id: string, decision: 'selected' | 'rejected') =>
+    request<{ id: string; status: string; result_email_sent: boolean }>(
+      `/api/applicants/${id}/decision`,
+      { method: 'POST', body: JSON.stringify({ decision }) },
+      true,
+    ),
+
+  bulkDecision: (applicant_ids: string[], decision: 'selected' | 'rejected') =>
+    request<BulkDecisionResult>(
+      '/api/applicants/bulk-decision',
+      { method: 'POST', body: JSON.stringify({ applicant_ids, decision }) },
+      true,
+    ),
+
+  resendEmail: (id: string, type: 'applied' | 'task' | 'interview' | 'result') =>
+    request<void>(
+      `/api/applicants/${id}/resend-email`,
+      { method: 'POST', body: JSON.stringify({ type }) },
+      true,
+    ),
+
+  getSubmissionFileLink: (id: string) =>
+    request<SubmissionFileLink>(`/api/applicants/${id}/submission-file`, {}, true),
+
+  deleteApplicant: (id: string) =>
+    request<void>(`/api/applicants/${id}`, { method: 'DELETE' }, true),
+
+  /**
+   * CSV export.
+   *
+   * Fetched as a blob rather than linked directly, because the endpoint needs
+   * the Authorization header and a plain <a href> cannot send one.
+   */
+  exportApplicants: async (params: { drive_id?: string; status?: string; q?: string } = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '') as [string, string][],
+    ).toString();
+    const res = await fetch(`${API_BASE_URL}/api/applicants/export${query ? `?${query}` : ''}`, {
+      headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+    });
+    if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+    return res.blob();
+  },
+
+  // ── Team ──
+  listTeam: () => request<TeamMember[]>('/api/team', {}, true),
+
+  inviteMember: (data: { name?: string; email: string; role: 'admin' | 'member' }) =>
+    request<TeamMember>('/api/team', { method: 'POST', body: JSON.stringify(data) }, true),
+
+  updateMemberRole: (id: string, role: 'owner' | 'admin' | 'member') =>
+    request<TeamMember>(`/api/team/${id}`, { method: 'PATCH', body: JSON.stringify({ role }) }, true),
+
+  removeMember: (id: string) =>
+    request<void>(`/api/team/${id}`, { method: 'DELETE' }, true),
+
+  // ── Audit ──
+  listAudit: (params: { action?: string; entity_id?: string; limit?: number } = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '') as [string, string][],
+    ).toString();
+    return request<AuditEntry[]>(`/api/audit${query ? `?${query}` : ''}`, {}, true);
+  },
+
+  // ── Candidate self-service ──
+  getOwnStatus: (submitToken: string) =>
+    request<{
+      name: string;
+      drive_name: string;
+      organisation_name: string;
+      status: string;
+      applied_at: string;
+      task_deadline: string | null;
+      has_submitted: boolean;
+      interview_completed: boolean;
+      decision: string | null;
+    }>(`/api/status/${submitToken}`),
+
   getAnalytics: () => request<AnalyticsResponse>('/api/analytics/dashboard', {}, true),
 };
