@@ -22,6 +22,7 @@ from app.models.documents import (
     Organisation,
     QuestionLevel,
     TaskType,
+    UserRole,
 )
 from app.models.schemas import (
     ApplicantResponse,
@@ -33,7 +34,7 @@ from app.models.schemas import (
 )
 from app.services import audit
 from app.services import cascade
-from app.services.auth_service import get_current_org
+from app.services.auth_service import get_current_org, require_role
 from app.services.qr_service import generate_qr_for_drive
 
 router = APIRouter(prefix="/drives", tags=["Drives"])
@@ -87,7 +88,13 @@ async def _close_if_past_deadline(drive: Drive) -> Drive:
 # ──────────────────────────────────────────────
 # CREATE
 # ──────────────────────────────────────────────
-@router.post("", response_model=DriveResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=DriveResponse,
+    status_code=status.HTTP_201_CREATED,
+    # Running recruitment is an admin action; members are read-only.
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
+)
 async def create_drive(
     body: DriveCreateRequest,
     org: Organisation = Depends(get_current_org),
@@ -175,7 +182,11 @@ async def get_drive(
 # ──────────────────────────────────────────────
 # UPDATE
 # ──────────────────────────────────────────────
-@router.patch("/{drive_id}", response_model=DriveResponse)
+@router.patch(
+    "/{drive_id}",
+    response_model=DriveResponse,
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
+)
 async def update_drive(
     drive_id: UUID,
     body: DriveUpdateRequest,
@@ -225,7 +236,11 @@ async def update_drive(
 # ──────────────────────────────────────────────
 # STATUS
 # ──────────────────────────────────────────────
-@router.patch("/{drive_id}/status", response_model=DriveResponse)
+@router.patch(
+    "/{drive_id}/status",
+    response_model=DriveResponse,
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
+)
 async def update_drive_status(
     drive_id: UUID,
     body: DriveStatusUpdate,
@@ -242,7 +257,13 @@ async def update_drive_status(
 # ──────────────────────────────────────────────
 # DELETE
 # ──────────────────────────────────────────────
-@router.delete("/{drive_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{drive_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    # Deleting a drive takes every candidate under it, so this is owner-only
+    # rather than admin: it is not recoverable.
+    dependencies=[Depends(require_role(UserRole.OWNER))],
+)
 async def delete_drive(
     drive_id: UUID,
     confirm: bool = Query(

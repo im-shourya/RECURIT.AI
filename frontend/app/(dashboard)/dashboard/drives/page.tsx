@@ -39,8 +39,10 @@ import {
 import { toast } from 'sonner'
 import { Spinner } from '@/components/ui/spinner'
 import { api, type DriveResponse } from '@/lib/api'
+import { useAuth } from '@/lib/auth-context'
 
 export default function DrivesPage() {
+  const { can } = useAuth()
   const [drives, setDrives] = useState<DriveResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -88,12 +90,14 @@ export default function DrivesPage() {
             Manage your recruitment drives
           </p>
         </div>
-        <Button asChild className="gradient-primary border-0 hover:opacity-90">
-          <Link href="/dashboard/drives/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Create Drive
-          </Link>
-        </Button>
+        {can('admin') && (
+          <Button asChild className="gradient-primary border-0 hover:opacity-90">
+            <Link href="/dashboard/drives/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Drive
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -174,15 +178,21 @@ export default function DrivesPage() {
                         <QrCode className="mr-2 h-4 w-4" />
                         Show QR Code
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Drive
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete Drive
-                      </DropdownMenuItem>
+                      {can('admin') && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Drive
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      {can('owner') && (
+                        <DropdownMenuItem className="text-destructive">
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete Drive
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -255,7 +265,7 @@ export default function DrivesPage() {
                 ? 'Try adjusting your filters to find what you\'re looking for.'
                 : 'Get started by creating your first recruitment drive.'}
             </p>
-            {!searchQuery && statusFilter === 'all' && (
+            {!searchQuery && statusFilter === 'all' && can('admin') && (
               <Button asChild className="gradient-primary border-0">
                 <Link href="/dashboard/drives/new">
                   <Plus className="mr-2 h-4 w-4" />
