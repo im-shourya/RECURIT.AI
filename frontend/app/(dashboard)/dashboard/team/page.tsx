@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { api, TeamMember } from '@/lib/api'
+import { useAuth } from '@/lib/auth-context'
 
 const ROLE_DESCRIPTION: Record<string, string> = {
   owner: 'Everything, including managing members',
@@ -36,6 +37,8 @@ const ROLE_DESCRIPTION: Record<string, string> = {
 }
 
 export default function TeamPage() {
+  // Every member can see who else is here; only the owner can change it.
+  const { can } = useAuth()
   const [members, setMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
   const [inviteOpen, setInviteOpen] = useState(false)
@@ -130,6 +133,7 @@ export default function TeamPage() {
           </p>
         </div>
 
+        {can('owner') && (
         <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -194,6 +198,7 @@ export default function TeamPage() {
             </form>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       {loading ? (
@@ -230,7 +235,11 @@ export default function TeamPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Select value={m.role} onValueChange={(v) => changeRole(m, v)}>
+                  <Select
+                    value={m.role}
+                    onValueChange={(v) => changeRole(m, v)}
+                    disabled={!can('owner')}
+                  >
                     <SelectTrigger className="w-[130px]">
                       <SelectValue />
                     </SelectTrigger>
@@ -249,7 +258,7 @@ export default function TeamPage() {
                     onClick={() => remove(m)}
                     // The owner cannot be removed — that would leave the
                     // organisation with nobody able to manage it.
-                    disabled={m.role === 'owner'}
+                    disabled={m.role === 'owner' || !can('owner')}
                     aria-label={`Remove ${m.email}`}
                     className="text-muted-foreground hover:text-destructive"
                   >

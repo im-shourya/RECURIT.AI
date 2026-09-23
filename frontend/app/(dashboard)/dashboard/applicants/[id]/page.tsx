@@ -28,6 +28,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
 import { api, ApplicantResponse } from '@/lib/api'
+import { useAuth } from '@/lib/auth-context'
 
 const STATUS_LABEL: Record<string, string> = {
   applied: 'Applied',
@@ -62,6 +63,7 @@ function ScoreBar({ label, value }: { label: string; value: number }) {
 export default function ApplicantProfilePage() {
   const router = useRouter()
   const id = useParams().id as string
+  const { can } = useAuth()
 
   const [applicant, setApplicant] = useState<ApplicantResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -182,7 +184,7 @@ export default function ApplicantProfilePage() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" disabled={!can('admin')}>
               <Mail className="mr-2 h-4 w-4" />
               Resend email
             </Button>
@@ -365,42 +367,49 @@ export default function ApplicantProfilePage() {
               ) : (
                 <>
                   <p className="text-sm text-muted-foreground">
-                    Review the evidence, then decide. The candidate is emailed
-                    the outcome immediately, and the decision cannot be undone.
+                    {can('admin')
+                      ? 'Review the evidence, then decide. The candidate is emailed the outcome immediately, and the decision cannot be undone.'
+                      : 'This candidate has not been decided on yet. Deciding requires the admin role — ask an admin or the owner.'}
                   </p>
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      onClick={() => decide('selected')}
-                      disabled={deciding}
-                      className="w-full"
-                    >
-                      <CheckSquare className="mr-2 h-4 w-4" />
-                      Select candidate
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => decide('rejected')}
-                      disabled={deciding}
-                      className="w-full"
-                    >
-                      <XSquare className="mr-2 h-4 w-4" />
-                      Reject
-                    </Button>
-                  </div>
+                  {can('admin') && (
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        onClick={() => decide('selected')}
+                        disabled={deciding}
+                        className="w-full"
+                      >
+                        <CheckSquare className="mr-2 h-4 w-4" />
+                        Select candidate
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => decide('rejected')}
+                        disabled={deciding}
+                        className="w-full"
+                      >
+                        <XSquare className="mr-2 h-4 w-4" />
+                        Reject
+                      </Button>
+                    </div>
+                  )}
                 </>
               )}
 
-              <Separator />
+              {can('owner') && (
+                <>
+                  <Separator />
 
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={remove}
-                className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Erase candidate data
-              </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={remove}
+                    className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Erase candidate data
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>

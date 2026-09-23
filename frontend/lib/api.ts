@@ -105,6 +105,8 @@ export interface TokenResponse {
   token_type: string;
 }
 
+export type Role = 'owner' | 'admin' | 'member';
+
 export interface OrgProfile {
   id: string;
   name: string;
@@ -113,6 +115,12 @@ export interface OrgProfile {
   domain_tags: string[];
   logo_url: string;
   created_at: string;
+  // Who is signed in, as opposed to which organisation. Optional so an older
+  // backend that does not send it still deserialises.
+  user_id?: string;
+  user_name?: string;
+  user_email?: string;
+  role?: Role;
 }
 
 export interface DriveResponse {
