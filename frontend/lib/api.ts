@@ -193,6 +193,12 @@ export interface ApplicantPage {
   total: number;
 }
 
+/** A page of audit entries plus the total, read from the X-Total-Count header. */
+export interface AuditPage {
+  items: AuditEntry[];
+  total: number;
+}
+
 export interface DriveDetailResponse extends DriveResponse {
   organisation_name: string;
   applicants: ApplicantResponse[];
@@ -596,11 +602,29 @@ export const api = {
     request<void>(`/api/team/${id}`, { method: 'DELETE' }, true),
 
   // ── Audit ──
-  listAudit: (params: { action?: string; entity_id?: string; limit?: number } = {}) => {
+  /**
+   * One page of the audit trail.
+   *
+   * The endpoint has always reported the unpaged total in X-Total-Count and
+   * accepted an offset; this client sent neither, so the trail was silently
+   * capped at whatever one request returned.
+   */
+  listAudit: async (params: {
+    action?: string;
+    entity_id?: string;
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<AuditPage> => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '') as [string, string][],
     ).toString();
-    return request<AuditEntry[]>(`/api/audit${query ? `?${query}` : ''}`, {}, true);
+    const { data, response } = await requestWithResponse<AuditEntry[]>(
+      `/api/audit${query ? `?${query}` : ''}`, {}, true,
+    );
+    // Falls back to the page length when a proxy strips the header, which is
+    // better than claiming a total of zero while showing rows.
+    const total = Number(response.headers.get('X-Total-Count') ?? data.length);
+    return { items: data, total: Number.isFinite(total) ? total : data.length };
   },
 
   // ── Candidate self-service ──
