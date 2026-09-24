@@ -4,6 +4,7 @@ GET    /applicants                       — List, filter, search
 GET    /applicants/export                — CSV export
 GET    /applicants/{id}                  — Full profile
 GET    /applicants/{id}/submission-file  — Short-lived download link
+GET    /applicants/{id}/recording-file   — Short-lived interview playback link
 POST   /applicants/{id}/decision         — Hire / reject
 POST   /applicants/{id}/resend-email     — Re-send a transactional email
 POST   /applicants/bulk-decision         — Decide up to 100 at once
@@ -46,6 +47,7 @@ from app.models.schemas import (
     BulkDecisionRequest,
     BulkDecisionResponse,
     ResendEmailRequest,
+    StoredFileLinkResponse,
     SubmissionFileLinkResponse,
 )
 from app.services import audit, storage_service
@@ -321,6 +323,57 @@ async def get_submission_file_link(
         )
 
     return SubmissionFileLinkResponse(
+        url=url, expires_in_seconds=storage_service.PRESIGNED_URL_TTL_SECONDS
+    )
+
+
+# ──────────────────────────────────────────────
+# INTERVIEW RECORDING LINK
+# ──────────────────────────────────────────────
+@router.get("/{applicant_id}/recording-file", response_model=StoredFileLinkResponse)
+async def get_recording_file_link(
+    applicant_id: UUID,
+    org: Organisation = Depends(get_current_org),
+):
+    """
+    Short-lived playback link for an interview recording.
+
+    `interview.recording_url` holds an object key, not a URL — the upload
+    endpoint returns a server-generated key and recordings are stored private.
+    Without this there was no way to turn that key back into something
+    playable, so a recruiter could never watch what was captured.
+
+    Scoped through _owned_applicant, so another organisation's id is a 404
+    rather than a signed link to their candidate's video.
+    """
+    applicant = await _owned_applicant(applicant_id, org)
+
+    if not applicant.interview or not applicant.interview.recording_url:
+        raise HTTPException(
+            status_code=404, detail="This applicant has no interview recording"
+        )
+
+    stored = applicant.interview.recording_url
+    try:
+        url = storage_service.presigned_get_url(stored)
+    except storage_service.StorageError as exc:
+        log.error(
+            "could not sign recording playback",
+            extra={"applicant_id": str(applicant_id), "error": str(exc)},
+        )
+        raise HTTPException(status_code=502, detail="Could not generate a playback link")
+
+    if not url:
+        # Either storage is unconfigured, or this is a legacy row from when
+        # /end accepted a recording_url from the client and stored it verbatim.
+        if stored.startswith(("http://", "https://")):
+            return StoredFileLinkResponse(url=stored, expires_in_seconds=0)
+        raise HTTPException(
+            status_code=503,
+            detail="Recording playback is not available: object storage is not configured",
+        )
+
+    return StoredFileLinkResponse(
         url=url, expires_in_seconds=storage_service.PRESIGNED_URL_TTL_SECONDS
     )
 
