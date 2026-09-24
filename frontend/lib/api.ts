@@ -302,6 +302,38 @@ export const api = {
     logo_url?: string;
   }) => request<OrgProfile>('/api/auth/me', { method: 'PATCH', body: JSON.stringify(data) }, true),
 
+  /**
+   * Replace the organisation logo.
+   *
+   * Sent as multipart, so this bypasses `request()` — that helper forces a
+   * JSON content type, and letting the browser set its own boundary is the
+   * only way a multipart body parses server-side.
+   */
+  uploadLogo: async (file: File): Promise<OrgProfile> => {
+    const form = new FormData();
+    form.append('file', file);
+
+    const res = await fetch(`${API_BASE_URL}/api/auth/me/logo`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+      body: form,
+    });
+
+    if (res.status === 401) {
+      clearToken();
+      if (typeof window !== 'undefined') window.location.href = '/auth/login';
+      throw new Error('Unauthorized');
+    }
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `Upload failed: ${res.status}`);
+    }
+    return res.json();
+  },
+
+  removeLogo: () =>
+    request<OrgProfile>('/api/auth/me/logo', { method: 'DELETE' }, true),
+
   changePassword: (data: { current_password: string; new_password: string }) =>
     request<void>('/api/auth/change-password', { method: 'POST', body: JSON.stringify(data) }, true),
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Settings as SettingsIcon, 
@@ -19,12 +19,52 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Spinner } from '@/components/ui/spinner'
 import { api, OrgProfile } from '@/lib/api'
+import { useAuth } from '@/lib/auth-context'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 export default function SettingsPage() {
+  const { can } = useAuth()
   const [profile, setProfile] = useState<OrgProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const fileInput = useRef<HTMLInputElement>(null)
+
+  /**
+   * Organisation details appear on every public apply page, so editing them is
+   * an admin action. The API enforces this independently — disabling the
+   * controls only stops a member being offered an action that would 403.
+   */
+  const canEdit = can('admin')
+
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    // Reset immediately, so picking the same file again still fires onChange.
+    e.target.value = ''
+    if (!file) return
+
+    setUploadingLogo(true)
+    try {
+      setProfile(await api.uploadLogo(file))
+      toast.success('Logo updated')
+    } catch (err: any) {
+      toast.error('Could not upload the logo', { description: err.message })
+    } finally {
+      setUploadingLogo(false)
+    }
+  }
+
+  const handleLogoRemove = async () => {
+    setUploadingLogo(true)
+    try {
+      setProfile(await api.removeLogo())
+      toast.success('Logo removed')
+    } catch (err: any) {
+      toast.error('Could not remove the logo', { description: err.message })
+    } finally {
+      setUploadingLogo(false)
+    }
+  }
 
   useEffect(() => {
     async function loadProfile() {
@@ -104,10 +144,39 @@ export default function SettingsPage() {
               </Avatar>
               <div className="space-y-2">
                 <h3 className="font-medium text-sm">Organisation Logo</h3>
-                <p className="text-sm text-muted-foreground">Upload a logo to display on your forms.</p>
+                <p className="text-sm text-muted-foreground">
+                  Shown on your public application form. PNG, JPEG, SVG or WebP,
+                  up to 2MB.
+                </p>
+                <input
+                  id="logo-file"
+                  ref={fileInput}
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                  className="sr-only"
+                  onChange={handleLogoChange}
+                />
                 <div className="flex gap-2">
-                  <Button type="button" variant="outline" size="sm">Upload new</Button>
-                  <Button type="button" variant="ghost" size="sm" className="text-destructive">Remove</Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={uploadingLogo || !canEdit}
+                    onClick={() => fileInput.current?.click()}
+                  >
+                    {uploadingLogo && <Spinner className="mr-2 h-4 w-4" />}
+                    Upload new
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive"
+                    disabled={uploadingLogo || !profile.logo_url || !canEdit}
+                    onClick={handleLogoRemove}
+                  >
+                    Remove
+                  </Button>
                 </div>
               </div>
             </div>
@@ -170,7 +239,7 @@ export default function SettingsPage() {
 
         <div className="flex justify-end gap-4">
           <Button type="button" variant="outline">Cancel</Button>
-          <Button type="submit" className="gradient-primary border-0" disabled={saving}>
+          <Button type="submit" className="gradient-primary border-0" disabled={saving || !canEdit}>
             {saving ? <Spinner className="h-4 w-4 mr-2" /> : <Save className="h-4 w-4 mr-2" />}
             Save Changes
           </Button>
