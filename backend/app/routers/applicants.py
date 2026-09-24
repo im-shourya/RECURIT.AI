@@ -34,6 +34,7 @@ from app.models.documents import (
 from app.models.schemas import (
     ApplicantResponse,
     ApplicantStatusView,
+    ApplyAcceptedResponse,
     ApplyRequest,
     DrivePublicResponse,
     FileUploadResponse,
@@ -114,7 +115,7 @@ async def get_drive_for_apply(link_token: str):
 # ──────────────────────────────────────────────
 @router.post(
     "/apply/{link_token}",
-    response_model=ApplicantResponse,
+    response_model=ApplyAcceptedResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(RateLimit("apply", limit=10, window_seconds=3600))],
 )
@@ -208,17 +209,17 @@ async def submit_application(
     applicant.email_logs.append(EmailLogEntry(type=EmailType.APPLIED))
     await applicant.save()
 
-    return ApplicantResponse(
+    return ApplyAcceptedResponse(
         id=applicant.id,
         drive_id=applicant.drive_id,
         name=applicant.name,
         email=applicant.email,
-        reg_no=applicant.reg_no,
-        skills=applicant.skills or [],
-        primary_domain=applicant.primary_domain,
-        github_url=applicant.github_url,
         status=applicant.status.value,
         applied_at=applicant.applied_at,
+        # Returned so the client can show a status link straight away. Until
+        # now the emailed link was the only copy the candidate ever received,
+        # so a bounce left them with no route back into the process.
+        submit_token=applicant.submit_token or "",
     )
 
 
