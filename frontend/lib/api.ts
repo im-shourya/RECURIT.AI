@@ -182,10 +182,20 @@ export interface BulkDecisionResult {
   status: string;
 }
 
-export interface SubmissionFileLink {
+/**
+ * A short-lived link to a private object in storage.
+ *
+ * `expires_in_seconds` is 0 for a legacy row that holds a plain URL rather
+ * than an object key — such a link does not expire because it was never
+ * signed.
+ */
+export interface StoredFileLink {
   url: string;
   expires_in_seconds: number;
 }
+
+/** @deprecated Use StoredFileLink; kept so existing imports keep resolving. */
+export type SubmissionFileLink = StoredFileLink;
 
 /** A page of applicants plus the total, read from the X-Total-Count header. */
 export interface ApplicantPage {
@@ -420,7 +430,18 @@ export const api = {
     ),
 
   getSubmissionFileLink: (id: string) =>
-    request<SubmissionFileLink>(`/api/applicants/${id}/submission-file`, {}, true),
+    request<StoredFileLink>(`/api/applicants/${id}/submission-file`, {}, true),
+
+  /**
+   * A playback link for an interview recording.
+   *
+   * `interview.recording_url` is an object key, not a URL, and recordings are
+   * stored private — so the key has to be exchanged for a signed link. The
+   * link expires in minutes, which is why this is called on demand rather
+   * than rendered into the page.
+   */
+  getRecordingFileLink: (id: string) =>
+    request<StoredFileLink>(`/api/applicants/${id}/recording-file`, {}, true),
 
   deleteApplicant: (id: string) =>
     request<void>(`/api/applicants/${id}`, { method: 'DELETE' }, true),
