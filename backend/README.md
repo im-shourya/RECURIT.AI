@@ -112,6 +112,20 @@ rather than failing obscurely.
 Objects are stored **private**. Recruiters read them through short-lived
 presigned URLs from `/api/applicants/{id}/submission-file`, so the bucket never
 needs public access. Allowed types: pdf, zip, doc, docx, png, jpg, txt, md.
+## Email
+
+Transactional email goes through [Resend](https://resend.com). Templates live
+in `app/services/email_templates.py` and ship with the code, so message content
+is versioned and reviewable rather than living in a third-party dashboard.
+
+Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL`; the sender domain must be
+verified in Resend. Without them, sends are skipped and logged rather than
+failing the request that queued them.
+
+Five templates: application received, task assigned, interview invitation,
+decision result (selected / rejected), password reset. Each is sent as HTML
+plus a plain-text alternative, with the logo and a footer carrying support and
+policy links.
 
 ## Database
 
