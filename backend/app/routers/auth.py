@@ -4,14 +4,19 @@ POST /auth/register          — Organisation + owner registration
 POST /auth/login             — Returns JWT
 GET  /auth/me                — Current org profile
 PATCH /auth/me               — Update org profile
+POST /auth/me/logo           — Upload the organisation logo
+DELETE /auth/me/logo         — Remove the organisation logo
 POST /auth/change-password   — Change the signed-in user's password
 POST /auth/forgot-password   — Request a reset link
 POST /auth/reset-password    — Consume a reset token, set a new password
 """
 
+import logging
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import (
+    APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status,
+)
 
 from app.config import get_settings
 from app.models.documents import (
@@ -33,7 +38,7 @@ from app.models.schemas import (
     ResetPasswordRequest,
     TokenResponse,
 )
-from app.services import audit, cascade
+from app.services import audit, cascade, storage_service
 from app.services.auth_service import (
     create_access_token,
     generate_reset_token,
@@ -47,6 +52,7 @@ from app.services.email_service import send_password_reset_email
 from app.services.rate_limit import RateLimit
 
 settings = get_settings()
+log = logging.getLogger("recruit.auth")
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
@@ -126,7 +132,10 @@ def _profile(org: Organisation, user: User) -> OrgProfileResponse:
         email=org.email,
         description=org.description,
         domain_tags=org.domain_tags,
-        logo_url=org.logo_url,
+        # An uploaded logo is a private object key, so it is signed for display
+        # here rather than handed over raw. A directly supplied URL passes
+        # through untouched.
+        logo_url=storage_service.resolve_logo_url(org.logo_url),
         created_at=org.created_at,
         user_id=user.id,
         user_name=user.name,
@@ -160,6 +169,98 @@ async def update_me(
 
     await org.save()
     return _profile(org, user)
+
+
+# ──────────────────────────────────────────────
+# LOGO
+# ──────────────────────────────────────────────
+@router.post(
+    "/me/logo",
+    response_model=OrgProfileResponse,
+    # The logo appears at the top of every public apply page, so replacing it
+    # is a change to how the organisation presents itself to candidates.
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
+)
+async def upload_logo(
+    file: UploadFile = File(...),
+    org: Organisation = Depends(get_current_org),
+    user: User = Depends(get_current_user),
+):
+    """
+    Replace the organisation's logo.
+
+    There was no upload path at any layer before this: `logo_url` could only
+    be set by sending a URL string to PATCH /auth/me, so the settings page's
+    "Upload new" button had nothing to call.
+    """
+    if not storage_service.is_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Logo uploads are not available: object storage is not configured",
+        )
+
+    try:
+        key = storage_service.upload_org_logo(
+            org_id=org.id, filename=file.filename or "", stream=file.file
+        )
+    except storage_service.UnsupportedFileType as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except storage_service.UploadTooLarge as exc:
+        raise HTTPException(status_code=413, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except storage_service.StorageError as exc:
+        # Not surfaced verbatim: it can carry bucket names and credential detail.
+        log.error("logo upload failed", extra={"org_id": str(org.id), "error": str(exc)})
+        raise HTTPException(status_code=502, detail="Upload failed, please try again")
+
+    previous = org.logo_url
+    org.logo_url = key
+    await org.save()
+
+    # After the document is saved: a storage error here must not lose the new
+    # logo, and an orphaned object is cheaper than a broken avatar.
+    _discard_old_logo(previous)
+
+    return _profile(org, user)
+
+
+@router.delete(
+    "/me/logo",
+    response_model=OrgProfileResponse,
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
+)
+async def remove_logo(
+    org: Organisation = Depends(get_current_org),
+    user: User = Depends(get_current_user),
+):
+    """Clear the logo and remove the stored object, if we own one."""
+    previous = org.logo_url
+    org.logo_url = ""
+    await org.save()
+
+    _discard_old_logo(previous)
+    return _profile(org, user)
+
+
+def _discard_old_logo(stored: str) -> None:
+    """
+    Best-effort cleanup of a replaced logo.
+
+    Only ever deletes a key this service wrote — delete_object refuses
+    anything outside its own prefixes, so a directly supplied URL is left
+    alone. Never raises: losing the old object is not worth failing the
+    request that already succeeded.
+    """
+    if not stored:
+        return
+    try:
+        storage_service.delete_object(stored)
+    except Exception as exc:
+        log.error(
+            "previous logo left behind in storage",
+            extra={"key": stored, "error": type(exc).__name__},
+        )
 
 
 # ──────────────────────────────────────────────
