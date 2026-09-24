@@ -155,6 +155,41 @@ export interface ApplicantResponse {
   interview?: InterviewSummary | null;
 }
 
+/**
+ * The response to a successful application.
+ *
+ * Separate from ApplicantResponse because it carries `submit_token` — the
+ * candidate's own capability token, which must not appear in the
+ * organisation-facing list and detail responses.
+ */
+export interface ApplyAcceptedResponse {
+  id: string;
+  drive_id: string;
+  name: string;
+  email: string;
+  status: string;
+  applied_at: string;
+  submit_token: string;
+}
+
+/**
+ * What a candidate may see about their own application.
+ *
+ * Mirrors the backend schema, which deliberately excludes interview scores,
+ * the transcript and malpractice flags.
+ */
+export interface ApplicantStatusView {
+  name: string;
+  drive_name: string;
+  organisation_name: string;
+  status: string;
+  applied_at: string;
+  task_deadline: string | null;
+  has_submitted: boolean;
+  interview_completed: boolean;
+  decision: string | null;
+}
+
 export interface TeamMember {
   id: string;
   name: string;
@@ -182,14 +217,30 @@ export interface BulkDecisionResult {
   status: string;
 }
 
-export interface SubmissionFileLink {
+/**
+ * A short-lived link to a private object in storage.
+ *
+ * `expires_in_seconds` is 0 for a legacy row that holds a plain URL rather
+ * than an object key — such a link does not expire because it was never
+ * signed.
+ */
+export interface StoredFileLink {
   url: string;
   expires_in_seconds: number;
 }
 
+/** @deprecated Use StoredFileLink; kept so existing imports keep resolving. */
+export type SubmissionFileLink = StoredFileLink;
+
 /** A page of applicants plus the total, read from the X-Total-Count header. */
 export interface ApplicantPage {
   items: ApplicantResponse[];
+  total: number;
+}
+
+/** A page of audit entries plus the total, read from the X-Total-Count header. */
+export interface AuditPage {
+  items: AuditEntry[];
   total: number;
 }
 
@@ -258,6 +309,27 @@ export interface InterviewSummary {
   score_domain: number;
   total_score: number;
   malpractice_flags: unknown[];
+}
+
+/** Returned by the upload endpoint; `file_url` holds the stored object key. */
+export interface FileUploadResponse {
+  file_url: string;
+  filename: string;
+}
+
+/** One question-and-answer pair as stored on the interview transcript. */
+export interface TranscriptEntry {
+  round: string;
+  question: string;
+  answer: string;
+  timestamp: string;
+}
+
+/** Full interview detail, for the recruiter. Extends the summary with the transcript. */
+export interface InterviewDetail extends InterviewSummary {
+  transcript: TranscriptEntry[];
+  applicant_name: string;
+  drive_name: string;
 }
 
 export interface ChartDataPoint {
@@ -345,6 +417,16 @@ export const api = {
   resetPassword: (data: { token: string; new_password: string }) =>
     request<void>('/api/auth/reset-password', { method: 'POST', body: JSON.stringify(data) }),
 
+  /**
+   * Permanently delete the organisation and everything under it.
+   *
+   * Owner-only, and the password is required even though the caller is signed
+   * in — this erases every drive, candidate, transcript and audit entry, so a
+   * borrowed session must not be enough to trigger it.
+   */
+  deleteAccount: (data: { current_password: string; confirm: boolean }) =>
+    request<void>('/api/auth/me', { method: 'DELETE', body: JSON.stringify(data) }, true),
+
   // ── Drives (authed) ──
   createDrive: (data: {
     name: string;
@@ -366,6 +448,62 @@ export const api = {
       body: JSON.stringify({ status }),
     }, true),
 
+  /**
+   * Edit a drive. Only the fields sent are applied.
+   *
+   * `task_type` is not editable server-side: switching a drive between the
+   * task and GitHub flows mid-round would strand applicants who already went
+   * down the other branch. `link_token` is likewise fixed, so rotating the
+   * public link cannot silently break every share and QR code handed out.
+   */
+  updateDrive: (id: string, data: {
+    name?: string;
+    domain?: string;
+    task_description?: string;
+    question_level?: 'beginner' | 'intermediate' | 'advanced';
+    apply_deadline?: string;
+    task_deadline?: string | null;
+    status?: 'active' | 'closed';
+  }) => request<DriveResponse>(`/api/drives/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  }, true),
+
+  /**
+   * Delete a drive and every applicant under it.
+   *
+   * Owner-only. The API refuses with 409 when the drive has applicants unless
+   * `confirm` is true, so a stray click cannot wipe a live round.
+   */
+  deleteDrive: (id: string, confirm = false) =>
+    request<void>(
+      `/api/drives/${id}${confirm ? '?confirm=true' : ''}`,
+      { method: 'DELETE' },
+      true,
+    ),
+
+  /**
+   * Page through one drive's applicants.
+   *
+   * Drive detail embeds only a bounded preview, so this is how a client reads
+   * the rest without pulling every candidate in one response.
+   */
+  listDriveApplicants: async (
+    id: string,
+    params: { limit?: number; offset?: number } = {},
+  ): Promise<ApplicantPage> => {
+    const query = new URLSearchParams(
+      Object.entries(params)
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [k, String(v)]),
+    ).toString();
+    const { data, response } = await requestWithResponse<ApplicantResponse[]>(
+      `/api/drives/${id}/applicants${query ? `?${query}` : ''}`, {}, true,
+    );
+    const total = Number(response.headers.get('X-Total-Count') ?? data.length);
+    return { items: data, total: Number.isFinite(total) ? total : data.length };
+  },
+
   // ── Apply (public) ──
   getDriveForApply: (token: string) =>
     request<DrivePublicResponse>(`/api/apply/${token}`),
@@ -377,7 +515,7 @@ export const api = {
     skills: string[];
     primary_domain: string;
     github_url?: string;
-  }) => request<ApplicantResponse>(`/api/apply/${token}`, { method: 'POST', body: JSON.stringify(data) }),
+  }) => request<ApplyAcceptedResponse>(`/api/apply/${token}`, { method: 'POST', body: JSON.stringify(data) }),
 
   // ── Submit (public) ──
   // Keyed on the submission token from the emailed link, never an applicant id.
@@ -387,9 +525,63 @@ export const api = {
     description?: string;
   }) => request<SubmissionResponse>(`/api/submit/${submitToken}`, { method: 'POST', body: JSON.stringify(data) }),
 
+  /**
+   * Upload a submission file and return the stored object key.
+   *
+   * The key is what `submitTask` expects in `file_url` — the server never
+   * accepts a client-chosen path. Multipart, so it bypasses `request()`,
+   * which forces a JSON content type.
+   */
+  uploadSubmissionFile: async (
+    submitToken: string,
+    file: File,
+  ): Promise<FileUploadResponse> => {
+    const form = new FormData();
+    form.append('file', file);
+
+    const res = await fetch(`${API_BASE_URL}/api/submit/${submitToken}/upload`, {
+      method: 'POST',
+      body: form,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `Upload failed: ${res.status}`);
+    }
+    return res.json();
+  },
+
   // ── Interview (public) ──
   getInterviewConfig: (token: string) =>
     request<InterviewConfig>(`/api/interview/${token}`),
+
+  /**
+   * Upload the captured interview recording.
+   *
+   * Not gated on link expiry server-side: a candidate finishing on the
+   * boundary must still be able to upload what they just recorded.
+   */
+  uploadInterviewRecording: async (token: string, file: Blob, filename = 'interview.webm') => {
+    const form = new FormData();
+    form.append('file', file, filename);
+
+    const res = await fetch(`${API_BASE_URL}/api/interview/${token}/recording`, {
+      method: 'POST',
+      body: form,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `Recording upload failed: ${res.status}`);
+    }
+  },
+
+  /**
+   * Full interview detail for a recruiter — transcript, scores, flags.
+   *
+   * Authenticated and scoped to the calling organisation: an unknown token
+   * and another organisation's token both return 404.
+   */
+  getInterviewDetail: (token: string) =>
+    request<InterviewDetail>(`/api/interview/${token}/detail`, {}, true),
 
   startInterview: (token: string) =>
     request<{ interview_id: string; message: string }>(`/api/interview/${token}/start`, { method: 'POST', body: '{}' }),
@@ -452,7 +644,18 @@ export const api = {
     ),
 
   getSubmissionFileLink: (id: string) =>
-    request<SubmissionFileLink>(`/api/applicants/${id}/submission-file`, {}, true),
+    request<StoredFileLink>(`/api/applicants/${id}/submission-file`, {}, true),
+
+  /**
+   * A playback link for an interview recording.
+   *
+   * `interview.recording_url` is an object key, not a URL, and recordings are
+   * stored private — so the key has to be exchanged for a signed link. The
+   * link expires in minutes, which is why this is called on demand rather
+   * than rendered into the page.
+   */
+  getRecordingFileLink: (id: string) =>
+    request<StoredFileLink>(`/api/applicants/${id}/recording-file`, {}, true),
 
   deleteApplicant: (id: string) =>
     request<void>(`/api/applicants/${id}`, { method: 'DELETE' }, true),
@@ -487,26 +690,36 @@ export const api = {
     request<void>(`/api/team/${id}`, { method: 'DELETE' }, true),
 
   // ── Audit ──
-  listAudit: (params: { action?: string; entity_id?: string; limit?: number } = {}) => {
+  /**
+   * One page of the audit trail.
+   *
+   * The endpoint has always reported the unpaged total in X-Total-Count and
+   * accepted an offset; this client sent neither, so the trail was silently
+   * capped at whatever one request returned.
+   */
+  listAudit: async (params: {
+    action?: string;
+    entity_id?: string;
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<AuditPage> => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '') as [string, string][],
     ).toString();
-    return request<AuditEntry[]>(`/api/audit${query ? `?${query}` : ''}`, {}, true);
+    const { data, response } = await requestWithResponse<AuditEntry[]>(
+      `/api/audit${query ? `?${query}` : ''}`, {}, true,
+    );
+    // Falls back to the page length when a proxy strips the header, which is
+    // better than claiming a total of zero while showing rows.
+    const total = Number(response.headers.get('X-Total-Count') ?? data.length);
+    return { items: data, total: Number.isFinite(total) ? total : data.length };
   },
 
   // ── Candidate self-service ──
+  // Reuses the token the candidate already holds, so no new credential is
+  // introduced. Backs the /status/[token] page.
   getOwnStatus: (submitToken: string) =>
-    request<{
-      name: string;
-      drive_name: string;
-      organisation_name: string;
-      status: string;
-      applied_at: string;
-      task_deadline: string | null;
-      has_submitted: boolean;
-      interview_completed: boolean;
-      decision: string | null;
-    }>(`/api/status/${submitToken}`),
+    request<ApplicantStatusView>(`/api/status/${submitToken}`),
 
   getAnalytics: () => request<AnalyticsResponse>('/api/analytics/dashboard', {}, true),
 };

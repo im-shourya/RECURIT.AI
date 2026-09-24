@@ -7,7 +7,10 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/dashboard/', '/interview/', '/apply/'],
+      // Every one of these carries a capability token in the path. The routes
+      // also set `robots: { index: false }` in their own metadata, because a
+      // disallow rule is advisory and only reaches crawlers that read it.
+      disallow: ['/dashboard/', '/interview/', '/apply/', '/submit/', '/status/'],
     },
     sitemap: `${baseUrl}/sitemap.xml`,
   }

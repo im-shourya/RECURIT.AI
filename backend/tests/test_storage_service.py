@@ -10,10 +10,13 @@ import io
 import uuid
 
 import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.models.documents import Applicant, Interview
 from app.services import storage_service
+from app.services.auth_service import get_current_org
 from app.services.storage_service import (
     MAX_UPLOAD_BYTES,
     UnsupportedFileType,
@@ -192,6 +195,117 @@ def test_submission_file_link_requires_authentication():
 
     response = client.get(f"/api/applicants/{uuid.uuid4()}/submission-file")
     assert response.status_code == 401
+
+
+# ──────────────────────────────────────────────
+# Interview recording playback link
+#
+# recording_url holds a server-generated object key, and recordings are stored
+# private. These cover turning that key back into something a recruiter can
+# actually play, and the scoping that stops it signing another organisation's
+# video.
+# ──────────────────────────────────────────────
+def test_recording_file_link_requires_authentication():
+    response = client.get(f"/api/applicants/{uuid.uuid4()}/recording-file")
+    assert response.status_code == 401
+
+
+@pytest_asyncio.fixture
+async def as_org(org):
+    """Sign in as the fixture organisation for the duration of one test."""
+    app.dependency_overrides[get_current_org] = lambda: org
+    yield org
+    app.dependency_overrides.clear()
+
+
+async def test_recording_link_is_signed_from_the_stored_key(
+    as_org, applicant, monkeypatch
+):
+    applicant.interview = Interview(
+        token="interview-token", recording_url="recordings/abc/def.webm"
+    )
+    await applicant.save()
+
+    monkeypatch.setattr(storage_service, "is_configured", lambda: True)
+    monkeypatch.setattr(
+        storage_service,
+        "presigned_get_url",
+        lambda key, **kw: f"https://signed.test/{key}",
+    )
+
+    response = client.get(f"/api/applicants/{applicant.id}/recording-file")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["url"] == "https://signed.test/recordings/abc/def.webm"
+    assert body["expires_in_seconds"] == storage_service.PRESIGNED_URL_TTL_SECONDS
+
+
+async def test_recording_link_is_404_when_nothing_was_recorded(as_org, applicant):
+    """
+    The common case today: the interview page never uploads, so recording_url
+    is empty. That must read as "no recording", not as a server error.
+    """
+    applicant.interview = Interview(token="interview-token", recording_url="")
+    await applicant.save()
+
+    response = client.get(f"/api/applicants/{applicant.id}/recording-file")
+    assert response.status_code == 404
+
+
+async def test_recording_link_is_404_for_another_organisations_applicant(
+    as_org, other_org, db
+):
+    """Scoping is the point: a signed link to a rival's candidate video is the
+    worst possible leak from this endpoint."""
+    theirs = Applicant(
+        drive_id=uuid.uuid4(),
+        org_id=other_org.id,
+        name="Someone Else",
+        email="else@example.com",
+        interview=Interview(token="other-token", recording_url="recordings/x/y.webm"),
+    )
+    await theirs.insert()
+
+    response = client.get(f"/api/applicants/{theirs.id}/recording-file")
+    assert response.status_code == 404
+
+
+async def test_legacy_plain_url_recording_is_passed_through(as_org, applicant, monkeypatch):
+    """
+    /end used to accept recording_url from the client and store it verbatim.
+    Those rows hold a URL rather than a key, so presigning returns None and the
+    stored value is handed back unsigned with no expiry.
+    """
+    applicant.interview = Interview(
+        token="interview-token", recording_url="https://legacy.test/clip.webm"
+    )
+    await applicant.save()
+
+    monkeypatch.setattr(storage_service, "presigned_get_url", lambda key, **kw: None)
+
+    response = client.get(f"/api/applicants/{applicant.id}/recording-file")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "url": "https://legacy.test/clip.webm",
+        "expires_in_seconds": 0,
+    }
+
+
+async def test_recording_link_is_503_when_storage_unconfigured(
+    as_org, applicant, monkeypatch
+):
+    applicant.interview = Interview(
+        token="interview-token", recording_url="recordings/abc/def.webm"
+    )
+    await applicant.save()
+
+    monkeypatch.setattr(storage_service, "presigned_get_url", lambda key, **kw: None)
+
+    response = client.get(f"/api/applicants/{applicant.id}/recording-file")
+    assert response.status_code == 503
+    assert "not configured" in response.json()["detail"]
 
 
 # ──────────────────────────────────────────────

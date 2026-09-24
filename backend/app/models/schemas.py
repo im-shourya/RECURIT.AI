@@ -189,6 +189,29 @@ class ApplicantResponse(BaseModel):
         from_attributes = True
 
 
+class ApplyAcceptedResponse(BaseModel):
+    """
+    What a candidate gets back when their application is accepted.
+
+    Deliberately separate from ApplicantResponse so that `submit_token` can be
+    returned here without also appearing in the organisation-facing list and
+    detail responses, where it would hand every team member a capability token
+    for every candidate.
+
+    The token goes to the person who just applied, which is exactly who should
+    hold it — it is already emailed to them in the clear. Returning it here is
+    what lets the client show a status link, so a bounced confirmation email is
+    no longer the end of their application.
+    """
+    id: UUID
+    drive_id: UUID
+    name: str
+    email: str
+    status: str
+    applied_at: datetime
+    submit_token: str = ""
+
+
 class ApplicantStatusView(BaseModel):
     """
     What a candidate may see about their own application.
@@ -264,10 +287,20 @@ class FileUploadResponse(BaseModel):
     filename: str
 
 
-class SubmissionFileLinkResponse(BaseModel):
-    """A short-lived link to a stored submission file."""
+class StoredFileLinkResponse(BaseModel):
+    """
+    A short-lived link to a private object in storage.
+
+    Shared by the submission download and the interview recording: both mint a
+    presigned URL per request rather than persisting one, so a link cannot
+    outlive the few minutes it is needed for.
+    """
     url: str
     expires_in_seconds: int
+
+
+# The original name, kept so nothing importing it breaks.
+SubmissionFileLinkResponse = StoredFileLinkResponse
 
 
 class SubmissionResponse(BaseModel):
