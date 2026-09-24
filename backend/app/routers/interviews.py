@@ -13,7 +13,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models.database import Interview, Applicant, ApplicantStatus
+from app.models.database import Interview, Applicant, ApplicantStatus, Drive, Organisation
+from app.services.auth_service import get_current_org
 from app.models.schemas import (
     InterviewConfigResponse,
     InterviewStartResponse,
@@ -27,17 +28,33 @@ from app.models.schemas import (
 router = APIRouter(prefix="/interview", tags=["Interview"])
 
 
-# ──────────────────────────────────────────────
-# VALIDATE TOKEN & GET CONFIG
-# ──────────────────────────────────────────────
-@router.get("/{token}", response_model=InterviewConfigResponse)
-def get_interview_config(token: str, db: Session = Depends(get_db)):
+def _active_interview(token: str, db: Session) -> Interview:
+    """
+    Look up an interview by token and reject links that are no longer usable.
+
+    expires_at is nullable: rows created before expiry existed have no value
+    and are treated as "never given an expiry" rather than as expired, so the
+    change does not invalidate interviews already in flight.
+    """
     interview = db.query(Interview).filter(Interview.token == token).first()
     if not interview:
         raise HTTPException(status_code=404, detail="Interview not found or link is invalid")
 
     if interview.ended_at:
         raise HTTPException(status_code=400, detail="This interview has already been completed")
+
+    if interview.expires_at and interview.expires_at <= datetime.now(timezone.utc):
+        raise HTTPException(status_code=410, detail="This interview link has expired")
+
+    return interview
+
+
+# ──────────────────────────────────────────────
+# VALIDATE TOKEN & GET CONFIG
+# ──────────────────────────────────────────────
+@router.get("/{token}", response_model=InterviewConfigResponse)
+def get_interview_config(token: str, db: Session = Depends(get_db)):
+    interview = _active_interview(token, db)
 
     applicant = interview.applicant
     drive = applicant.drive
@@ -64,15 +81,10 @@ def get_interview_config(token: str, db: Session = Depends(get_db)):
 # ──────────────────────────────────────────────
 @router.post("/{token}/start", response_model=InterviewStartResponse)
 def start_interview(token: str, db: Session = Depends(get_db)):
-    interview = db.query(Interview).filter(Interview.token == token).first()
-    if not interview:
-        raise HTTPException(status_code=404, detail="Interview not found")
+    interview = _active_interview(token, db)
 
     if interview.started_at:
         raise HTTPException(status_code=400, detail="Interview has already started")
-
-    if interview.ended_at:
-        raise HTTPException(status_code=400, detail="Interview has already been completed")
 
     interview.started_at = datetime.now(timezone.utc)
     interview.transcript = []
@@ -94,15 +106,10 @@ def submit_answer(
     body: InterviewAnswerRequest,
     db: Session = Depends(get_db),
 ):
-    interview = db.query(Interview).filter(Interview.token == token).first()
-    if not interview:
-        raise HTTPException(status_code=404, detail="Interview not found")
+    interview = _active_interview(token, db)
 
     if not interview.started_at:
         raise HTTPException(status_code=400, detail="Interview has not started yet")
-
-    if interview.ended_at:
-        raise HTTPException(status_code=400, detail="Interview has already ended")
 
     # Append to transcript
     transcript = interview.transcript or []
@@ -215,9 +222,30 @@ def end_interview(
 # GET FULL INTERVIEW DETAIL (for org dashboard)
 # ──────────────────────────────────────────────
 @router.get("/{token}/detail", response_model=InterviewDetailResponse)
-def get_interview_detail(token: str, db: Session = Depends(get_db)):
-    interview = db.query(Interview).filter(Interview.token == token).first()
+def get_interview_detail(
+    token: str,
+    org: Organisation = Depends(get_current_org),
+    db: Session = Depends(get_db),
+):
+    """
+    Full interview detail for the recruiting organisation.
+
+    This was unauthenticated despite its own docstring saying "for org
+    dashboard": anyone holding an interview token — the candidate, or anyone
+    they forwarded the link to — could read the transcript, the scores and the
+    malpractice flags. It now requires a signed-in organisation, and the
+    interview must belong to one of that organisation's drives.
+    """
+    interview = (
+        db.query(Interview)
+        .join(Applicant, Interview.applicant_id == Applicant.id)
+        .join(Drive, Applicant.drive_id == Drive.id)
+        .filter(Interview.token == token, Drive.org_id == org.id)
+        .first()
+    )
     if not interview:
+        # Same 404 whether the token is unknown or belongs to another
+        # organisation, so this cannot be used to probe for valid tokens.
         raise HTTPException(status_code=404, detail="Interview not found")
 
     applicant = interview.applicant
