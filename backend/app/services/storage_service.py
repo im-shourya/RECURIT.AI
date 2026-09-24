@@ -56,6 +56,24 @@ RECORDING_EXTENSIONS: dict[str, str] = {
 
 MAX_RECORDING_BYTES = 200 * 1024 * 1024  # 200 MB
 
+# Organisation logos. Images only, and a tight cap: this renders in an avatar
+# and at the top of the public apply page, so a multi-megabyte original would
+# be paid for by every candidate who opens the form.
+LOGO_EXTENSIONS: dict[str, str] = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".svg": "image/svg+xml",
+    ".webp": "image/webp",
+}
+
+MAX_LOGO_BYTES = 2 * 1024 * 1024  # 2 MB
+
+# Every prefix this service owns. Used to refuse signing or deleting anything
+# it did not write — a legacy row holding a plain URL must not be turned into
+# a delete against an arbitrary path.
+MANAGED_PREFIXES = ("submissions/", "recordings/", "logos/")
+
 
 class StorageError(RuntimeError):
     """Raised when the storage backend is unusable or rejects a request."""
@@ -218,6 +236,82 @@ def upload_recording(interview_id, filename: str, stream: BinaryIO) -> str:
     return key
 
 
+def upload_org_logo(org_id, filename: str, stream: BinaryIO) -> str:
+    """
+    Store an organisation logo and return its object key.
+
+    Same guarantees as the other uploads — allowlisted extension, key built
+    only from server-side values, private object — with an image allowlist and
+    a much tighter cap.
+
+    SVG is accepted because logos are commonly supplied that way, and it is
+    stored with an explicit `image/svg+xml` content type. Note that an SVG is
+    a document and can carry script, so it must never be rendered same-origin;
+    it is only ever served from the storage host through a presigned URL and
+    referenced as an <img> src, which does not execute embedded script.
+    """
+    if not is_configured():
+        raise StorageError("Object storage is not configured")
+
+    name = (filename or "").strip().lower()
+    dot = name.rfind(".")
+    extension = name[dot:] if dot != -1 else ""
+    if extension not in LOGO_EXTENSIONS:
+        raise UnsupportedFileType(
+            f"Unsupported image format. Allowed: {', '.join(sorted(LOGO_EXTENSIONS))}"
+        )
+
+    key = f"logos/{org_id}/{uuid.uuid4().hex}{extension}"
+
+    body = bytearray()
+    while True:
+        chunk = stream.read(64 * 1024)
+        if not chunk:
+            break
+        body.extend(chunk)
+        if len(body) > MAX_LOGO_BYTES:
+            raise UploadTooLarge(
+                f"Logo exceeds the {MAX_LOGO_BYTES // (1024 * 1024)}MB limit"
+            )
+
+    if not body:
+        raise ValueError("Uploaded image is empty")
+
+    try:
+        _client().put_object(
+            Bucket=settings.S3_BUCKET_NAME,
+            Key=key,
+            Body=bytes(body),
+            ContentType=LOGO_EXTENSIONS[extension],
+            ACL="private",
+        )
+    except (BotoCoreError, ClientError) as exc:
+        raise StorageError(f"Logo upload failed: {exc}") from exc
+
+    return key
+
+
+def resolve_logo_url(stored: str) -> str:
+    """
+    Turn a stored logo value into something a browser can render.
+
+    `logo_url` holds either an object key we wrote, or a plain URL an
+    organisation supplied directly — both are legitimate, and the field
+    predates uploads. A key is signed; anything else is returned unchanged.
+
+    Never raises: a logo that cannot be resolved should leave a blank avatar,
+    not fail the profile or the public apply page it appears on.
+    """
+    if not stored:
+        return ""
+    if not stored.startswith(MANAGED_PREFIXES):
+        return stored
+    try:
+        return presigned_get_url(stored) or ""
+    except StorageError:
+        return ""
+
+
 def delete_object(key: str) -> bool:
     """
     Remove a stored object.
@@ -227,7 +321,7 @@ def delete_object(key: str) -> bool:
     not one of our own keys, so a legacy row holding a plain URL cannot be
     turned into a delete against an arbitrary path.
     """
-    if not key or not key.startswith(("submissions/", "recordings/")):
+    if not key or not key.startswith(MANAGED_PREFIXES):
         return False
     if not is_configured():
         raise StorageError("Object storage is not configured")
@@ -247,7 +341,7 @@ def presigned_get_url(key: str, expires_in: int = PRESIGNED_URL_TTL_SECONDS) -> 
     keys — for example a legacy row where `file_url` holds a plain URL the
     client supplied before uploads existed.
     """
-    if not key or not is_configured() or not key.startswith(("submissions/", "recordings/")):
+    if not key or not is_configured() or not key.startswith(MANAGED_PREFIXES):
         return None
 
     try:
