@@ -26,6 +26,7 @@ from app.services.storage_service import (
 
 client = TestClient(app)
 APPLICANT_ID = uuid.UUID("3f7c1a52-1d44-4a5e-9c3b-9f2a7e6d5c41")
+ORG_ID = uuid.UUID("b21c9e70-5d3a-4f18-8a6c-2e4d7b1f9a03")
 
 
 # ──────────────────────────────────────────────
@@ -191,3 +192,106 @@ def test_submission_file_link_requires_authentication():
 
     response = client.get(f"/api/applicants/{uuid.uuid4()}/submission-file")
     assert response.status_code == 401
+
+
+# ──────────────────────────────────────────────
+# Organisation logos
+#
+# The logo renders in the dashboard avatar and at the top of the public apply
+# page, so it needs an upload path and a way to resolve a stored key back into
+# something a browser can load.
+# ──────────────────────────────────────────────
+@pytest.mark.parametrize("name", ["mark.png", "Logo.SVG", "brand.webp", "photo.JPEG"])
+def test_logo_extensions_are_accepted(name, monkeypatch):
+    monkeypatch.setattr(storage_service, "is_configured", lambda: True)
+    captured = {}
+
+    class _FakeClient:
+        def put_object(self, **kwargs):
+            captured.update(kwargs)
+
+    monkeypatch.setattr(storage_service, "_client", lambda: _FakeClient())
+
+    key = storage_service.upload_org_logo(ORG_ID, name, io.BytesIO(b"image-bytes"))
+
+    assert key.startswith(f"logos/{ORG_ID}/")
+    # The content type comes from our table, never from the client.
+    assert captured["ContentType"] in storage_service.LOGO_EXTENSIONS.values()
+    assert captured["ACL"] == "private"
+
+
+@pytest.mark.parametrize("name", ["resume.pdf", "archive.zip", "clip.webm", "script.js"])
+def test_logo_upload_rejects_non_images(name, monkeypatch):
+    """The submission allowlist is wider; a logo must not accept a .pdf or a .zip."""
+    monkeypatch.setattr(storage_service, "is_configured", lambda: True)
+    monkeypatch.setattr(
+        storage_service, "_client", lambda: pytest.fail("must not reach storage")
+    )
+    with pytest.raises(UnsupportedFileType):
+        storage_service.upload_org_logo(ORG_ID, name, io.BytesIO(b"x"))
+
+
+def test_logo_upload_enforces_its_own_smaller_cap(monkeypatch):
+    monkeypatch.setattr(storage_service, "is_configured", lambda: True)
+    oversized = io.BytesIO(b"x" * (storage_service.MAX_LOGO_BYTES + 1))
+    with pytest.raises(UploadTooLarge):
+        storage_service.upload_org_logo(ORG_ID, "mark.png", oversized)
+
+
+def test_logo_cap_is_tighter_than_the_submission_cap():
+    """A logo is decoration on a public page, not a deliverable."""
+    assert storage_service.MAX_LOGO_BYTES < MAX_UPLOAD_BYTES
+
+
+def test_logo_key_is_built_only_from_server_values(monkeypatch):
+    monkeypatch.setattr(storage_service, "is_configured", lambda: True)
+    monkeypatch.setattr(storage_service, "_client", lambda: type("C", (), {"put_object": lambda self, **k: None})())
+
+    key = storage_service.upload_org_logo(
+        ORG_ID, "../../../etc/passwd.png", io.BytesIO(b"x")
+    )
+    assert ".." not in key
+    assert "passwd" not in key
+    assert key.startswith(f"logos/{ORG_ID}/")
+
+
+def test_resolve_logo_url_signs_a_stored_key(monkeypatch):
+    monkeypatch.setattr(
+        storage_service, "presigned_get_url", lambda key, **kw: f"https://signed.test/{key}"
+    )
+    assert (
+        storage_service.resolve_logo_url("logos/x/y.png")
+        == "https://signed.test/logos/x/y.png"
+    )
+
+
+def test_resolve_logo_url_passes_a_supplied_url_through():
+    """logo_url predates uploads and may hold a URL the organisation supplied."""
+    assert (
+        storage_service.resolve_logo_url("https://cdn.example.com/logo.png")
+        == "https://cdn.example.com/logo.png"
+    )
+    assert storage_service.resolve_logo_url("") == ""
+
+
+def test_resolve_logo_url_never_raises(monkeypatch):
+    """
+    A blank avatar is an acceptable outcome; failing the profile request or the
+    public apply page over a logo is not.
+    """
+    def _boom(key, **kw):
+        raise storage_service.StorageError("bucket on fire")
+
+    monkeypatch.setattr(storage_service, "presigned_get_url", _boom)
+    assert storage_service.resolve_logo_url("logos/x/y.png") == ""
+
+
+def test_logo_keys_are_signable_and_deletable():
+    """
+    Both guards are prefix-based, so adding a new prefix means updating them —
+    otherwise an uploaded logo can never be displayed or cleaned up.
+    """
+    assert "logos/" in storage_service.MANAGED_PREFIXES
+    # Refuses anything outside the managed prefixes, as before.
+    assert storage_service.delete_object("../../secrets") is False
+    assert storage_service.delete_object("https://evil.test/x.png") is False
