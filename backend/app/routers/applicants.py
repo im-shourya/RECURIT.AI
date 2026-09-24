@@ -104,7 +104,10 @@ async def get_drive_for_apply(link_token: str):
         apply_deadline=drive.apply_deadline,
         task_deadline=drive.task_deadline,
         organisation_name=org.name if org else "",
-        organisation_logo=(org.logo_url if org else "") or "",
+        # An uploaded logo is a private object key, so it is signed here. The
+        # apply page loads immediately after this call, well inside the five
+        # minutes the link is good for.
+        organisation_logo=storage_service.resolve_logo_url(org.logo_url if org else ""),
         status=drive.status.value,
     )
 
