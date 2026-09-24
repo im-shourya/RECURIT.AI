@@ -194,3 +194,54 @@ async def test_drive_applicants_are_paginated_and_scoped(drive, applicant, other
     with pytest.raises(HE) as exc:
         await _owned_drive(drive.id, other_org)
     assert exc.value.status_code == 404
+
+
+# ──────────────────────────────────────────────
+# The candidate's own status link
+#
+# The emailed link used to be the only copy of the submit token a candidate
+# ever received, so a bounced confirmation ended their application silently.
+# The apply response now carries it — but only that response.
+# ──────────────────────────────────────────────
+def test_apply_response_returns_the_submit_token():
+    """Without this the client cannot show a status link at all."""
+    from app.models.schemas import ApplyAcceptedResponse
+
+    assert "submit_token" in ApplyAcceptedResponse.model_fields
+
+
+def test_organisation_facing_responses_never_carry_the_submit_token():
+    """
+    The token is a capability: whoever holds it can submit work as that
+    candidate. It belongs to the candidate, not to every team member browsing
+    the applicant list.
+    """
+    from app.models.schemas import ApplicantResponse, ApplicantStatusView
+
+    assert "submit_token" not in ApplicantResponse.model_fields
+    assert "submit_token" not in ApplicantStatusView.model_fields
+
+
+def test_apply_route_uses_the_dedicated_response_model():
+    from app.models.schemas import ApplyAcceptedResponse
+    from app.routers import applicants
+
+    route = next(
+        r for r in app.routes
+        if isinstance(r, APIRoute)
+        and r.path == "/api/apply/{link_token}"
+        and "POST" in r.methods
+    )
+    assert route.response_model is ApplyAcceptedResponse
+
+
+def test_status_view_still_withholds_the_recruiters_evidence():
+    """
+    The status page renders whatever this model exposes, so the exclusion has
+    to hold here rather than in the page.
+    """
+    from app.models.schemas import ApplicantStatusView
+
+    fields = ApplicantStatusView.model_fields
+    for leaked in ("total_score", "score_intro", "transcript", "malpractice_flags"):
+        assert leaked not in fields, f"{leaked} must not reach the candidate"
