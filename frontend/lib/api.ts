@@ -260,6 +260,27 @@ export interface InterviewSummary {
   malpractice_flags: unknown[];
 }
 
+/** Returned by the upload endpoint; `file_url` holds the stored object key. */
+export interface FileUploadResponse {
+  file_url: string;
+  filename: string;
+}
+
+/** One question-and-answer pair as stored on the interview transcript. */
+export interface TranscriptEntry {
+  round: string;
+  question: string;
+  answer: string;
+  timestamp: string;
+}
+
+/** Full interview detail, for the recruiter. Extends the summary with the transcript. */
+export interface InterviewDetail extends InterviewSummary {
+  transcript: TranscriptEntry[];
+  applicant_name: string;
+  drive_name: string;
+}
+
 export interface ChartDataPoint {
   name: string;
   value: number;
@@ -313,6 +334,16 @@ export const api = {
   resetPassword: (data: { token: string; new_password: string }) =>
     request<void>('/api/auth/reset-password', { method: 'POST', body: JSON.stringify(data) }),
 
+  /**
+   * Permanently delete the organisation and everything under it.
+   *
+   * Owner-only, and the password is required even though the caller is signed
+   * in — this erases every drive, candidate, transcript and audit entry, so a
+   * borrowed session must not be enough to trigger it.
+   */
+  deleteAccount: (data: { current_password: string; confirm: boolean }) =>
+    request<void>('/api/auth/me', { method: 'DELETE', body: JSON.stringify(data) }, true),
+
   // ── Drives (authed) ──
   createDrive: (data: {
     name: string;
@@ -333,6 +364,62 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     }, true),
+
+  /**
+   * Edit a drive. Only the fields sent are applied.
+   *
+   * `task_type` is not editable server-side: switching a drive between the
+   * task and GitHub flows mid-round would strand applicants who already went
+   * down the other branch. `link_token` is likewise fixed, so rotating the
+   * public link cannot silently break every share and QR code handed out.
+   */
+  updateDrive: (id: string, data: {
+    name?: string;
+    domain?: string;
+    task_description?: string;
+    question_level?: 'beginner' | 'intermediate' | 'advanced';
+    apply_deadline?: string;
+    task_deadline?: string | null;
+    status?: 'active' | 'closed';
+  }) => request<DriveResponse>(`/api/drives/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  }, true),
+
+  /**
+   * Delete a drive and every applicant under it.
+   *
+   * Owner-only. The API refuses with 409 when the drive has applicants unless
+   * `confirm` is true, so a stray click cannot wipe a live round.
+   */
+  deleteDrive: (id: string, confirm = false) =>
+    request<void>(
+      `/api/drives/${id}${confirm ? '?confirm=true' : ''}`,
+      { method: 'DELETE' },
+      true,
+    ),
+
+  /**
+   * Page through one drive's applicants.
+   *
+   * Drive detail embeds only a bounded preview, so this is how a client reads
+   * the rest without pulling every candidate in one response.
+   */
+  listDriveApplicants: async (
+    id: string,
+    params: { limit?: number; offset?: number } = {},
+  ): Promise<ApplicantPage> => {
+    const query = new URLSearchParams(
+      Object.entries(params)
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [k, String(v)]),
+    ).toString();
+    const { data, response } = await requestWithResponse<ApplicantResponse[]>(
+      `/api/drives/${id}/applicants${query ? `?${query}` : ''}`, {}, true,
+    );
+    const total = Number(response.headers.get('X-Total-Count') ?? data.length);
+    return { items: data, total: Number.isFinite(total) ? total : data.length };
+  },
 
   // ── Apply (public) ──
   getDriveForApply: (token: string) =>
@@ -355,9 +442,63 @@ export const api = {
     description?: string;
   }) => request<SubmissionResponse>(`/api/submit/${submitToken}`, { method: 'POST', body: JSON.stringify(data) }),
 
+  /**
+   * Upload a submission file and return the stored object key.
+   *
+   * The key is what `submitTask` expects in `file_url` — the server never
+   * accepts a client-chosen path. Multipart, so it bypasses `request()`,
+   * which forces a JSON content type.
+   */
+  uploadSubmissionFile: async (
+    submitToken: string,
+    file: File,
+  ): Promise<FileUploadResponse> => {
+    const form = new FormData();
+    form.append('file', file);
+
+    const res = await fetch(`${API_BASE_URL}/api/submit/${submitToken}/upload`, {
+      method: 'POST',
+      body: form,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `Upload failed: ${res.status}`);
+    }
+    return res.json();
+  },
+
   // ── Interview (public) ──
   getInterviewConfig: (token: string) =>
     request<InterviewConfig>(`/api/interview/${token}`),
+
+  /**
+   * Upload the captured interview recording.
+   *
+   * Not gated on link expiry server-side: a candidate finishing on the
+   * boundary must still be able to upload what they just recorded.
+   */
+  uploadInterviewRecording: async (token: string, file: Blob, filename = 'interview.webm') => {
+    const form = new FormData();
+    form.append('file', file, filename);
+
+    const res = await fetch(`${API_BASE_URL}/api/interview/${token}/recording`, {
+      method: 'POST',
+      body: form,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `Recording upload failed: ${res.status}`);
+    }
+  },
+
+  /**
+   * Full interview detail for a recruiter — transcript, scores, flags.
+   *
+   * Authenticated and scoped to the calling organisation: an unknown token
+   * and another organisation's token both return 404.
+   */
+  getInterviewDetail: (token: string) =>
+    request<InterviewDetail>(`/api/interview/${token}/detail`, {}, true),
 
   startInterview: (token: string) =>
     request<{ interview_id: string; message: string }>(`/api/interview/${token}/start`, { method: 'POST', body: '{}' }),
