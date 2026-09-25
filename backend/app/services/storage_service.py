@@ -42,6 +42,20 @@ ALLOWED_EXTENSIONS: dict[str, str] = {
 
 PRESIGNED_URL_TTL_SECONDS = 300  # 5 minutes
 
+# Interview recordings are captured by the browser's MediaRecorder, which
+# produces webm almost everywhere and mp4 on Safari. Kept separate from the
+# submission allowlist: a candidate should not be able to post a .docx as a
+# "recording", and a recording is written by our own player, not chosen from
+# a file picker.
+RECORDING_EXTENSIONS: dict[str, str] = {
+    ".webm": "video/webm",
+    ".mp4": "video/mp4",
+    ".m4a": "audio/mp4",
+    ".ogg": "audio/ogg",
+}
+
+MAX_RECORDING_BYTES = 200 * 1024 * 1024  # 200 MB
+
 
 class StorageError(RuntimeError):
     """Raised when the storage backend is unusable or rejects a request."""
@@ -155,6 +169,55 @@ def upload_submission_file(applicant_id, filename: str, stream: BinaryIO) -> str
     return key
 
 
+def upload_recording(interview_id, filename: str, stream: BinaryIO) -> str:
+    """
+    Store an interview recording and return its object key.
+
+    Same guarantees as a submission upload — allowlisted extension, key built
+    only from server-side values, private object — with a larger cap and a
+    video/audio allowlist.
+    """
+    if not is_configured():
+        raise StorageError("Object storage is not configured")
+
+    name = (filename or "").strip().lower()
+    dot = name.rfind(".")
+    extension = name[dot:] if dot != -1 else ""
+    if extension not in RECORDING_EXTENSIONS:
+        raise UnsupportedFileType(
+            f"Unsupported recording format. Allowed: {', '.join(sorted(RECORDING_EXTENSIONS))}"
+        )
+
+    key = f"recordings/{interview_id}/{uuid.uuid4().hex}{extension}"
+
+    body = bytearray()
+    while True:
+        chunk = stream.read(256 * 1024)
+        if not chunk:
+            break
+        body.extend(chunk)
+        if len(body) > MAX_RECORDING_BYTES:
+            raise UploadTooLarge(
+                f"Recording exceeds the {MAX_RECORDING_BYTES // (1024 * 1024)}MB limit"
+            )
+
+    if not body:
+        raise ValueError("Recording is empty")
+
+    try:
+        _client().put_object(
+            Bucket=settings.S3_BUCKET_NAME,
+            Key=key,
+            Body=bytes(body),
+            ContentType=RECORDING_EXTENSIONS[extension],
+            ACL="private",
+        )
+    except (BotoCoreError, ClientError) as exc:
+        raise StorageError(f"Recording upload failed: {exc}") from exc
+
+    return key
+
+
 def presigned_get_url(key: str, expires_in: int = PRESIGNED_URL_TTL_SECONDS) -> Optional[str]:
     """
     Return a short-lived read URL for a stored object.
@@ -163,7 +226,7 @@ def presigned_get_url(key: str, expires_in: int = PRESIGNED_URL_TTL_SECONDS) -> 
     keys — for example a legacy row where `file_url` holds a plain URL the
     client supplied before uploads existed.
     """
-    if not key or not is_configured() or not key.startswith("submissions/"):
+    if not key or not is_configured() or not key.startswith(("submissions/", "recordings/")):
         return None
 
     try:
