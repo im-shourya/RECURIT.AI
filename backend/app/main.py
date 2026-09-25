@@ -8,16 +8,31 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.config import get_settings
 from app.db import create_tables
 from app.routers import auth, drives, applicants, applicant_admin, interviews, analytics
 
 
 # ── Lifespan: create tables on startup ──
+settings = get_settings()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 RECRUIT.AI Backend starting up...")
-    create_tables()
-    print("✅ Database tables ready")
+    print(f"🚀 RECRUIT.AI Backend starting up (env: {settings.ENVIRONMENT})...")
+
+    if settings.AUTO_CREATE_TABLES:
+        # Convenience for a throwaway local database. create_all() only ever
+        # creates missing tables — it never alters an existing one — so
+        # relying on it in a deployed environment means a changed column is
+        # silently skipped and the app runs against a schema it expects but
+        # does not have.
+        create_tables()
+        print("⚠️  AUTO_CREATE_TABLES is on: tables created from models.")
+        print("    Do not use this where data matters; run migrations instead.")
+    else:
+        print("📦 Schema is managed by Alembic. Apply with: alembic upgrade head")
+
     yield
     print("👋 RECRUIT.AI Backend shutting down...")
 

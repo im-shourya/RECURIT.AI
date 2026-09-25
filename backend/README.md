@@ -130,6 +130,30 @@ decision result (selected / rejected), password reset. Each is sent as HTML
 plus a plain-text alternative, with the logo and a footer carrying support and
 policy links.
 
+## Migrations
+
+Alembic owns the schema.
+
+```bash
+alembic upgrade head          # apply
+alembic revision --autogenerate -m "describe change"
+alembic upgrade head --sql    # preview SQL without touching a database
+```
+
+**On a database that already has these tables** (they were created by
+`create_all` on startup before Alembic was wired up), do not run the baseline
+— mark it as already applied:
+
+```bash
+alembic stamp baseline_0001
+```
+
+`AUTO_CREATE_TABLES` is off by default. `create_all()` only ever creates
+*missing* tables — it never alters an existing one — so relying on it where
+data matters means a changed column is silently skipped and the app runs
+against a schema it does not have. Turn it on only for a throwaway local
+database.
+
 ## Database
 
 7 PostgreSQL tables: `organisations`, `drives`, `applicants`, `submissions`, `interviews`, `email_logs`, `password_reset_tokens`
