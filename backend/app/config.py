@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     # forwarded should stop working at some point.
     INTERVIEW_TOKEN_TTL_DAYS: int = 14
 
+    # ── Logging ──
+    LOG_LEVEL: str = "INFO"
+
     # ── Rate limiting ──
     RATE_LIMIT_ENABLED: bool = True
     # Honour X-Forwarded-For when deployed behind a proxy that sets it.
