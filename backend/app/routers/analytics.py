@@ -1,100 +1,90 @@
 """
 RECRUIT.AI — Analytics Router
+GET /analytics/dashboard — headline counts and distributions
 """
-from typing import List, Dict, Any
+
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 
-from app.db import get_db
-from app.models.database import Drive, Applicant, Interview, Organisation
+from app.models.documents import Applicant, Drive, DriveStatus, Organisation
 from app.models.schemas import AnalyticsResponse, ChartDataPoint
 from app.services.auth_service import get_current_org
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
+SCORE_BUCKETS = ["0-20", "21-40", "41-60", "61-80", "81-100"]
+
+
+def _bucket(score: int) -> str:
+    if score <= 20:
+        return "0-20"
+    if score <= 40:
+        return "21-40"
+    if score <= 60:
+        return "41-60"
+    if score <= 80:
+        return "61-80"
+    return "81-100"
+
+
 @router.get("/dashboard", response_model=AnalyticsResponse)
-def get_dashboard_analytics(
-    org: Organisation = Depends(get_current_org),
-    db: Session = Depends(get_db)
-):
-    # Get all drives for this org
-    drives = db.query(Drive).filter(Drive.org_id == org.id).all()
-    drive_ids = [d.id for d in drives]
-    
-    total_drives = len(drives)
-    active_drives = sum(1 for d in drives if d.status.value == "active")
-    
-    # Get applicants
-    applicants = db.query(Applicant).filter(Applicant.drive_id.in_(drive_ids)).all() if drive_ids else []
-    total_applicants = len(applicants)
-    
-    # Get interviews
-    applicant_ids = [a.id for a in applicants]
-    interviews = db.query(Interview).filter(Interview.applicant_id.in_(applicant_ids), Interview.ended_at.is_not(None)).all() if applicant_ids else []
-    total_interviews = len(interviews)
-    
-    avg_score = 0
-    if interviews:
-        avg_score = int(sum(i.total_score or 0 for i in interviews) / total_interviews)
-        
-    # Score distribution (ranges: 0-20, 21-40, 41-60, 61-80, 81-100)
-    scores = {"0-20": 0, "21-40": 0, "41-60": 0, "61-80": 0, "81-100": 0}
-    for i in interviews:
-        s = i.total_score or 0
-        if s <= 20: scores["0-20"] += 1
-        elif s <= 40: scores["21-40"] += 1
-        elif s <= 60: scores["41-60"] += 1
-        elif s <= 80: scores["61-80"] += 1
-        else: scores["81-100"] += 1
-        
-    score_dist = [ChartDataPoint(name=k, value=v) for k, v in scores.items()]
-    
-    # Domain distribution
-    domains: Dict[str, int] = {}
-    for a in applicants:
-        dom = a.primary_domain or "Unknown"
-        domains[dom] = domains.get(dom, 0) + 1
-    # Sort top 5 and group rest as 'Other'
-    sorted_domains = sorted(domains.items(), key=lambda x: x[1], reverse=True)
-    domain_dist = [ChartDataPoint(name=k, value=v) for k, v in sorted_domains[:5]]
-    if len(sorted_domains) > 5:
-        other_val = sum(v for k, v in sorted_domains[5:])
-        domain_dist.append(ChartDataPoint(name="Other", value=other_val))
-        
-    # Status distribution
-    statuses: Dict[str, int] = {}
-    for a in applicants:
-        st = a.status.value.replace("_", " ").title()
-        statuses[st] = statuses.get(st, 0) + 1
+async def get_dashboard_analytics(org: Organisation = Depends(get_current_org)):
+    drives = await Drive.find(Drive.org_id == org.id).to_list()
+    applicants = await Applicant.find(Applicant.org_id == org.id).to_list()
+
+    # Only completed interviews count towards scores; one still in progress
+    # has a score of 0 that would drag the average down.
+    completed = [
+        a.interview for a in applicants if a.interview and a.interview.ended_at
+    ]
+
+    avg_score = (
+        int(sum(i.total_score or 0 for i in completed) / len(completed))
+        if completed
+        else 0
+    )
+
+    scores = Counter(_bucket(i.total_score or 0) for i in completed)
+    score_dist = [ChartDataPoint(name=b, value=scores.get(b, 0)) for b in SCORE_BUCKETS]
+
+    domains = Counter(a.primary_domain or "Unknown" for a in applicants)
+    top = domains.most_common(5)
+    domain_dist = [ChartDataPoint(name=k, value=v) for k, v in top]
+    if len(domains) > 5:
+        other = sum(v for k, v in domains.items() if k not in dict(top))
+        domain_dist.append(ChartDataPoint(name="Other", value=other))
+
+    statuses = Counter(a.status.value.replace("_", " ").title() for a in applicants)
     status_dist = [ChartDataPoint(name=k, value=v) for k, v in statuses.items()]
-    
-    # Recent trend (last 7 days applicants)
+
+    # Last seven days, including days with no applications so the chart has an
+    # unbroken axis.
     now = datetime.now(timezone.utc)
-    trends: Dict[str, int] = {}
-    for days_ago in range(6, -1, -1):
-        d = (now - timedelta(days=days_ago)).strftime("%b %d")
-        trends[d] = 0
-        
+    trends = {
+        (now - timedelta(days=offset)).strftime("%b %d"): 0
+        for offset in range(6, -1, -1)
+    }
     for a in applicants:
-        if a.applied_at:
-            delta = now - a.applied_at
-            if delta.days <= 6 and delta.days >= 0:
-                d = a.applied_at.strftime("%b %d")
-                if d in trends:
-                    trends[d] += 1
-                    
-    trend_dist = [ChartDataPoint(name=k, value=v) for k, v in trends.items()]
+        applied_at = a.applied_at
+        if not applied_at:
+            continue
+        if applied_at.tzinfo is None:
+            applied_at = applied_at.replace(tzinfo=timezone.utc)
+        if 0 <= (now - applied_at).days <= 6:
+            key = applied_at.strftime("%b %d")
+            if key in trends:
+                trends[key] += 1
 
     return AnalyticsResponse(
-        total_drives=total_drives,
-        active_drives=active_drives,
-        total_applicants=total_applicants,
-        total_interviews=total_interviews,
+        total_drives=len(drives),
+        active_drives=sum(1 for d in drives if d.status == DriveStatus.ACTIVE),
+        total_applicants=len(applicants),
+        total_interviews=len(completed),
         avg_score=avg_score,
         score_distribution=score_dist,
         domain_distribution=domain_dist,
         status_distribution=status_dist,
-        recent_trend=trend_dist,
+        recent_trend=[ChartDataPoint(name=k, value=v) for k, v in trends.items()],
     )
