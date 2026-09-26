@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import get_db
-from app.models.database import Organisation
+from app.models.database import Organisation, ROLE_RANK, User, UserRole
 
 settings = get_settings()
 
@@ -54,21 +54,67 @@ def decode_token(token: str) -> dict:
         )
 
 
-# ── FastAPI dependency: get current organisation ──
-def get_current_org(
+# ── FastAPI dependencies ──
+def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
-) -> Organisation:
+) -> User:
+    """
+    Resolve the signed-in user.
+
+    Tokens now carry a user id. A token issued before users existed carried an
+    organisation id, which will not resolve here — those holders must sign in
+    again. Tokens are short-lived, so the window is small, and silently
+    accepting an organisation id as a user id would mean a token minted under
+    the old model kept full access with no role attached.
+    """
     payload = decode_token(token)
-    org_id: str | None = payload.get("sub")
-    if org_id is None:
+    user_id: str | None = payload.get("sub")
+    if user_id is None:
         raise HTTPException(status_code=401, detail="Invalid token payload")
 
-    org = db.query(Organisation).filter(Organisation.id == org_id).first()
-    if org is None:
-        raise HTTPException(status_code=401, detail="Organisation not found")
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=401, detail="Session is no longer valid")
 
-    return org
+    if not user.is_active:
+        # Deactivation must take effect on the next request, not when the
+        # token happens to expire.
+        raise HTTPException(status_code=401, detail="This account is disabled")
+
+    return user
+
+
+def get_current_org(user: User = Depends(get_current_user)) -> Organisation:
+    """
+    The organisation the signed-in user belongs to.
+
+    Kept with its original name and return type so every existing route that
+    depends on it is unchanged by the move to per-user accounts. Routes that
+    need to know *who* acted depend on get_current_user instead.
+    """
+    return user.organisation
+
+
+def require_role(minimum: UserRole):
+    """
+    Dependency factory enforcing a minimum role.
+
+        dependencies=[Depends(require_role(UserRole.ADMIN))]
+
+    Compared by rank rather than equality, so OWNER satisfies an ADMIN
+    requirement without every call site listing both.
+    """
+
+    def _guard(user: User = Depends(get_current_user)) -> User:
+        if ROLE_RANK[user.role] < ROLE_RANK[minimum]:
+            raise HTTPException(
+                status_code=403,
+                detail=f"This action requires the {minimum.value} role",
+            )
+        return user
+
+    return _guard
 
 
 # ── Password reset tokens ──
