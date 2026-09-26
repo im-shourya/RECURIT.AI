@@ -117,6 +117,10 @@ class Applicant(Base):
     skills = Column(ARRAY(String), default=list)
     primary_domain = Column(String(255), default="")
     github_url = Column(Text, default="")
+    # Unguessable capability token for the public submission endpoint. The
+    # applicant's UUID used to be the only thing guarding that route, which
+    # meant anyone holding an id could submit on someone else's behalf.
+    submit_token = Column(String(64), unique=True, nullable=True, index=True)
     status = Column(
         SAEnum(ApplicantStatus, name="applicant_status_enum", values_callable=lambda obj: [e.value for e in obj]),
         default=ApplicantStatus.APPLIED
@@ -157,6 +161,9 @@ class Interview(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     applicant_id = Column(UUID(as_uuid=True), ForeignKey("applicants.id", ondelete="CASCADE"), nullable=False, unique=True)
     token = Column(String(64), unique=True, nullable=False, index=True)
+    # Interview links used to be valid forever. Nullable so rows created
+    # before this column existed keep working rather than reading as expired.
+    expires_at = Column(DateTime(timezone=True), nullable=True)
     started_at = Column(DateTime(timezone=True), nullable=True)
     ended_at = Column(DateTime(timezone=True), nullable=True)
     recording_url = Column(Text, default="")

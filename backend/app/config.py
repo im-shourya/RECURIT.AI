@@ -49,6 +49,26 @@ class Settings(BaseSettings):
     APP_URL: str = "https://recruitai.shouryaparashar.in"
     EMAIL_LOGO_URL: str = ""
 
+    # ── Interview links ──
+    # Interview tokens used to be valid forever. A link that leaks or is
+    # forwarded should stop working at some point.
+    INTERVIEW_TOKEN_TTL_DAYS: int = 14
+
+    # ── Logging ──
+    LOG_LEVEL: str = "INFO"
+
+    # ── Rate limiting ──
+    RATE_LIMIT_ENABLED: bool = True
+    # Honour X-Forwarded-For when deployed behind a proxy that sets it.
+    # Leave off otherwise: the header is trivially forged, and trusting it
+    # without a proxy in front lets a caller bypass every limit.
+    TRUST_PROXY_HEADERS: bool = False
+
+    # ── CORS ──
+    # Comma-separated list of allowed browser origins. "*" cannot be combined
+    # with credentialed requests, so it is rejected at startup.
+    CORS_ALLOWED_ORIGINS: str = "http://localhost:3000"
+
     # ── Password reset ──
     PASSWORD_RESET_TOKEN_TTL_MINUTES: int = 60
 
