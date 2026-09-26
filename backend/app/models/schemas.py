@@ -351,6 +351,31 @@ class EmailLogResponse(BaseModel):
 
 
 # ══════════════════════════════════════════════
+# TEAM
+# ══════════════════════════════════════════════
+class TeamMemberResponse(BaseModel):
+    id: UUID
+    name: str
+    email: str
+    role: str
+    is_active: bool
+    has_accepted_invite: bool
+    created_at: datetime
+    last_login_at: Optional[datetime]
+
+
+class TeamInviteRequest(BaseModel):
+    name: str = Field("", max_length=255)
+    email: EmailStr
+    # owner is excluded: ownership is transferred, never granted by invitation.
+    role: str = Field("member", pattern="^(admin|member)$")
+
+
+class TeamRoleUpdate(BaseModel):
+    role: str = Field(..., pattern="^(owner|admin|member)$")
+
+
+# ══════════════════════════════════════════════
 # AUDIT
 # ══════════════════════════════════════════════
 class AuditEntryResponse(BaseModel):
