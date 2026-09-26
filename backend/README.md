@@ -88,6 +88,9 @@ backend/
 | GET | `/api/applicants/{id}/submission-file` | JWT | Short-lived download link |
 | POST | `/api/applicants/{id}/resend-email` | JWT | Re-send applied / task / interview / result |
 | POST | `/api/applicants/bulk-decision` | JWT | Decide up to 100 applicants at once |
+| DELETE | `/api/applicants/{id}` | JWT | Erase a candidate and their stored files |
+| GET | `/api/audit` | JWT | This organisation's audit trail |
+| GET | `/api/status/{submit_token}` | token | Candidate's own application status |
 | POST | `/api/applicants/{id}/decision` | JWT | Record hire / reject, email the result |
 | GET | `/api/interview/{token}` | — | Get interview config |
 | POST | `/api/interview/{token}/start` | — | Begin interview |
@@ -198,6 +201,23 @@ never imported, advertising a guarantee the code did not provide.
 
 `redis` stays in requirements for moving rate-limit counters out of process
 memory, which is the next step for exact, shared limits.
+
+## Audit and data rights
+
+Consequential actions — hiring decisions, candidate deletion, drive
+create/delete, password change — are appended to `audit_log`, scoped to the
+organisation and readable at `GET /api/audit`. There is no endpoint to edit or
+delete an entry: a trail that can be rewritten answers nothing.
+
+The table has **no foreign key to applicants** on purpose. It must outlive the
+rows it describes, so erasing a candidate cannot also erase the record that
+they were erased; the subject is stored as an id plus a label captured at the
+time.
+
+`DELETE /api/applicants/{id}` erases a candidate, their submission, interview,
+transcript and email log, and removes their stored files from object storage.
+This is what makes a deletion request answerable — the service stores names,
+email addresses, transcripts, scores and recordings of identifiable people.
 
 ## Database
 
