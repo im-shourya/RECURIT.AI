@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
@@ -121,6 +121,7 @@ def _filtered_query(db: Session, org: Organisation, *, drive_id=None, status=Non
 # ──────────────────────────────────────────────
 @router.get("", response_model=list[ApplicantResponse])
 def list_applicants(
+    response: Response,
     drive_id: Optional[UUID] = Query(None, description="Restrict to one drive"),
     status: Optional[str] = Query(None, description="Filter by applicant status"),
     q: Optional[str] = Query(None, max_length=255, description="Search name, email or reg no"),
@@ -130,6 +131,19 @@ def list_applicants(
     db: Session = Depends(get_db),
 ):
     query = _filtered_query(db, org, drive_id=drive_id, status=status, q=q)
+
+    # Pagination metadata travels in headers rather than wrapping the body in
+    # {items, total}: the response stays a plain array, so existing callers
+    # keep working while a UI can now render "showing 50 of 214" and page
+    # counts. The count is of the filtered set, not the whole table.
+    total = query.order_by(None).count()
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["X-Limit"] = str(limit)
+    response.headers["X-Offset"] = str(offset)
+    response.headers["Access-Control-Expose-Headers"] = (
+        "X-Total-Count, X-Limit, X-Offset"
+    )
+
     applicants = (
         query.order_by(Applicant.applied_at.desc()).offset(offset).limit(limit).all()
     )
