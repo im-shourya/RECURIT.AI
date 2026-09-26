@@ -20,6 +20,7 @@ venv/
 env/
 .env
 
+brag-output
 .agents/
 skill/
 # Build artefacts
