@@ -138,74 +138,56 @@ def test_presigning_returns_none_when_storage_unconfigured(monkeypatch):
 # ──────────────────────────────────────────────
 # Endpoint behaviour
 # ──────────────────────────────────────────────
-class _StubApplicant:
-    """Minimal stand-in so the route can be exercised without a database."""
-    id = APPLICANT_ID
-    submission = None
-
-
-class _StubQuery:
-    def filter(self, *a, **k):
-        return self
-
-    def first(self):
-        return _StubApplicant()
-
-
-class _StubSession:
-    def query(self, *a, **k):
-        return _StubQuery()
-
-
-@pytest.fixture
-def stub_db():
-    """
-    Override get_db so these tests never open a socket.
-
-    DATABASE_URL points at a hosted Postgres that is unreachable from a
-    developer machine or CI without network access; letting a test fall through
-    to it turns a fast unit test into a multi-minute timeout.
-    """
-    from app.db import get_db
-
-    app.dependency_overrides[get_db] = lambda: _StubSession()
-    yield
-    app.dependency_overrides.pop(get_db, None)
-
-
-def test_upload_returns_503_when_storage_unconfigured(monkeypatch, stub_db):
+# These use the real applicant fixture, so the route resolves its capability
+# token against an actual document rather than a stubbed session.
+async def test_upload_returns_503_when_storage_unconfigured(applicant, monkeypatch):
     """A developer without AWS credentials gets a clear, actionable error."""
     monkeypatch.setattr(storage_service, "is_configured", lambda: False)
     response = client.post(
-        f"/api/submit/{APPLICANT_ID}/upload",
+        f"/api/submit/{applicant.submit_token}/upload",
         files={"file": ("cv.pdf", b"data", "application/pdf")},
     )
     assert response.status_code == 503
     assert "not configured" in response.json()["detail"]
 
 
-def test_upload_rejects_bad_extension_through_the_endpoint(monkeypatch, stub_db):
+async def test_upload_rejects_bad_extension_through_the_endpoint(applicant, monkeypatch):
     """The allowlist must be enforced at the HTTP boundary, not only in the service."""
     monkeypatch.setattr(storage_service, "is_configured", lambda: True)
     monkeypatch.setattr(
         storage_service, "_client", lambda: pytest.fail("must not reach storage")
     )
     response = client.post(
-        f"/api/submit/{APPLICANT_ID}/upload",
+        f"/api/submit/{applicant.submit_token}/upload",
         files={"file": ("payload.exe", b"data", "application/octet-stream")},
     )
     assert response.status_code == 400
 
 
-def test_upload_rejects_oversized_file_through_the_endpoint(monkeypatch, stub_db):
+async def test_upload_rejects_oversized_file_through_the_endpoint(applicant, monkeypatch):
     monkeypatch.setattr(storage_service, "is_configured", lambda: True)
     response = client.post(
-        f"/api/submit/{APPLICANT_ID}/upload",
+        f"/api/submit/{applicant.submit_token}/upload",
         files={"file": ("big.pdf", b"x" * (MAX_UPLOAD_BYTES + 1), "application/pdf")},
     )
     assert response.status_code == 413
 
 
+async def test_upload_rejects_an_unknown_token(db, monkeypatch):
+    """
+    The route is keyed on an unguessable token; an unknown one must not reveal
+    whether it exists.
+    """
+    monkeypatch.setattr(storage_service, "is_configured", lambda: True)
+    response = client.post(
+        "/api/submit/not-a-real-token/upload",
+        files={"file": ("cv.pdf", b"data", "application/pdf")},
+    )
+    assert response.status_code == 404
+
+
 def test_submission_file_link_requires_authentication():
-    response = client.get(f"/api/applicants/{APPLICANT_ID}/submission-file")
+    import uuid
+
+    response = client.get(f"/api/applicants/{uuid.uuid4()}/submission-file")
     assert response.status_code == 401
