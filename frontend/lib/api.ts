@@ -184,6 +184,8 @@ export interface ApplicantStatusView {
   organisation_name: string;
   status: string;
   applied_at: string;
+  task_type: string;
+  task_description: string;
   task_deadline: string | null;
   has_submitted: boolean;
   interview_completed: boolean;
@@ -530,25 +532,35 @@ export const api = {
    *
    * The key is what `submitTask` expects in `file_url` — the server never
    * accepts a client-chosen path. Multipart, so it bypasses `request()`,
-   * which forces a JSON content type.
+   * which forces a JSON content type. XHR rather than fetch, because fetch
+   * cannot report upload progress and the page shows a progress bar.
    */
-  uploadSubmissionFile: async (
+  uploadSubmissionFile: (
     submitToken: string,
     file: File,
-  ): Promise<FileUploadResponse> => {
-    const form = new FormData();
-    form.append('file', file);
+    onProgress?: (fraction: number) => void,
+  ): Promise<FileUploadResponse> =>
+    new Promise((resolve, reject) => {
+      const form = new FormData();
+      form.append('file', file);
 
-    const res = await fetch(`${API_BASE_URL}/api/submit/${submitToken}/upload`, {
-      method: 'POST',
-      body: form,
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.detail || `Upload failed: ${res.status}`);
-    }
-    return res.json();
-  },
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API_BASE_URL}/api/submit/${submitToken}/upload`);
+      xhr.responseType = 'json';
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress?.(e.loaded / e.total);
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(xhr.response as FileUploadResponse);
+        } else {
+          const detail = (xhr.response as { detail?: string } | null)?.detail;
+          reject(new Error(detail || `Upload failed: ${xhr.status}`));
+        }
+      };
+      xhr.onerror = () => reject(new Error('Upload failed: network error'));
+      xhr.send(form);
+    }),
 
   // ── Interview (public) ──
   getInterviewConfig: (token: string) =>
