@@ -25,7 +25,7 @@ import {
   Volume2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { api, type InterviewConfig } from '@/lib/api'
+import { api, type InterviewConfig, type InterviewEndResponse } from '@/lib/api'
 
 // Interview configuration
 const TOTAL_TIME = 300 // 5 minutes in seconds
@@ -35,11 +35,24 @@ const ROUNDS = [
   { id: 'domain', name: 'Domain Knowledge', duration: 90, color: 'cyan' },
 ]
 
+// Keeps a five-minute session well under the server's 200MB recording cap.
+const RECORDING_BITS_PER_SECOND = 1_000_000
 
+// webm almost everywhere; Safari only produces mp4.
+const RECORDING_TYPES = [
+  { mimeType: 'video/webm;codecs=vp8,opus', extension: 'webm' },
+  { mimeType: 'video/webm', extension: 'webm' },
+  { mimeType: 'video/mp4', extension: 'mp4' },
+]
+
+function pickRecordingType() {
+  if (typeof MediaRecorder === 'undefined') return null
+  return RECORDING_TYPES.find((t) => MediaRecorder.isTypeSupported(t.mimeType)) ?? null
+}
 
 export default function InterviewPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params)
-  const [stage, setStage] = useState<'setup' | 'ready' | 'interview' | 'processing' | 'complete' | 'error'>('setup')
+  const [stage, setStage] = useState<'setup' | 'ready' | 'interview' | 'processing' | 'complete' | 'failed' | 'error'>('setup')
   const [currentRound, setCurrentRound] = useState(0)
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [timeRemaining, setTimeRemaining] = useState(TOTAL_TIME)
@@ -50,16 +63,27 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
   const [messages, setMessages] = useState<Array<{ role: 'ai' | 'user'; text: string }>>([])
   const [userResponse, setUserResponse] = useState('')
   const [showMalpracticeWarning, setShowMalpracticeWarning] = useState(false)
-  const [scores, setScores] = useState({ intro: 0, project: 0, domain: 0 })
+  // Null until the server has actually scored the interview. Never filled in
+  // on the client: a number shown here is read as the candidate's result.
+  const [result, setResult] = useState<InterviewEndResponse | null>(null)
+  const [endError, setEndError] = useState('')
+  const [recordingSaved, setRecordingSaved] = useState<boolean | null>(null)
   const [interviewConfig, setInterviewConfig] = useState<InterviewConfig | null>(null)
-  const [totalScoreFinal, setTotalScoreFinal] = useState(0)
   
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const recorderRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const recordingExtensionRef = useRef('webm')
+  // The timer and the last answer can both end the interview.
+  const endingRef = useRef(false)
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+        recorderRef.current.stop()
+      }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop())
       }
@@ -142,10 +166,52 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
     }
   }
 
+  // The badge follows the recorder, not the stage: if the browser cannot
+  // record, the candidate must not be told that it is.
+  const startRecording = () => {
+    const stream = streamRef.current
+    const type = pickRecordingType()
+    if (!stream || !type) return
+
+    try {
+      const recorder = new MediaRecorder(stream, {
+        mimeType: type.mimeType,
+        videoBitsPerSecond: RECORDING_BITS_PER_SECOND,
+      })
+      chunksRef.current = []
+      recordingExtensionRef.current = type.extension
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
+      }
+      recorder.onstart = () => setIsRecording(true)
+      recorder.onstop = () => setIsRecording(false)
+      recorder.onerror = () => setIsRecording(false)
+      // Timesliced, so a crash mid-interview still leaves most of it in memory.
+      recorder.start(1000)
+      recorderRef.current = recorder
+    } catch (err) {
+      console.error('Recording could not start:', err)
+    }
+  }
+
+  const stopRecording = (): Promise<Blob | null> => {
+    const recorder = recorderRef.current
+    if (!recorder) return Promise.resolve(null)
+
+    const collect = () =>
+      chunksRef.current.length ? new Blob(chunksRef.current, { type: recorder.mimeType }) : null
+
+    if (recorder.state === 'inactive') return Promise.resolve(collect())
+    return new Promise((resolve) => {
+      recorder.addEventListener('stop', () => resolve(collect()), { once: true })
+      recorder.stop()
+    })
+  }
+
   // Start interview
   const startInterview = useCallback(async () => {
     setStage('interview')
-    setIsRecording(true)
+    startRecording()
     
     try {
       const config = await api.getInterviewConfig(token)
@@ -225,28 +291,45 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
 
   // End interview
   const endInterview = async () => {
+    if (endingRef.current) return
+    endingRef.current = true
     setStage('processing')
-    setIsRecording(false)
+    setEndError('')
+
+    const recording = await stopRecording()
 
     try {
-      const result = await api.endInterview(token)
-      setScores({
-        intro: result.score_intro,
-        project: result.score_project,
-        domain: result.score_domain,
-      })
-      setTotalScoreFinal(result.total_score)
-      setStage('complete')
+      setResult(await api.endInterview(token))
     } catch (err) {
-      console.error('Failed to end interview:', err)
-      // Fallback
-      setScores({
-        intro: Math.floor(Math.random() * 20) + 70,
-        project: Math.floor(Math.random() * 20) + 70,
-        domain: Math.floor(Math.random() * 20) + 70,
-      })
-      setStage('complete')
+      const message = err instanceof Error ? err.message : ''
+      // A retry after a response that was lost on the way back: the interview
+      // was saved, only the scores went missing. Finish without them.
+      if (!/already ended/i.test(message)) {
+        console.error('Failed to end interview:', err)
+        setEndError(message || 'We could not save your interview.')
+        setStage('failed')
+        endingRef.current = false
+        return
+      }
     }
+
+    // After /end, so a slow or failed upload can never cost the candidate
+    // their answers.
+    if (recording) {
+      try {
+        await api.uploadInterviewRecording(
+          token,
+          recording,
+          `interview.${recordingExtensionRef.current}`,
+        )
+        setRecordingSaved(true)
+      } catch (err) {
+        console.error('Failed to upload recording:', err)
+        setRecordingSaved(false)
+      }
+    }
+
+    setStage('complete')
   }
 
   // Format time
@@ -260,9 +343,31 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
   const progressPercentage = ((TOTAL_TIME - timeRemaining) / TOTAL_TIME) * 100
   const progressColor = progressPercentage < 60 ? 'bg-cyan' : progressPercentage < 85 ? 'bg-primary' : 'bg-rose'
 
+  if (stage === 'failed') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-border/50">
+          <CardContent className="p-8 text-center">
+            <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-rose/10 mb-5">
+              <AlertCircle className="h-8 w-8 text-rose" />
+            </div>
+            <h1 className="text-xl font-bold mb-2">Your interview has not been saved yet</h1>
+            <p className="text-muted-foreground text-sm mb-6">
+              {endError} Your answers are stored as you give them. Check your
+              connection and try again; please do not close this page.
+            </p>
+            <Button onClick={endInterview}>Try again</Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   if (stage === 'complete') {
-    const totalScore = totalScoreFinal || Math.round((scores.intro + scores.project + scores.domain) / 3)
-    
+    const scores = result
+      ? { intro: result.score_intro, project: result.score_project, domain: result.score_domain }
+      : null
+
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <motion.div
@@ -287,6 +392,18 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
                 Thank you for completing your AI interview.
               </p>
 
+              {recordingSaved === false && (
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-amber/10 border border-amber/20 mb-6 text-left">
+                  <AlertCircle className="h-5 w-5 text-amber flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-muted-foreground">
+                    Your answers were saved, but the video recording could not be uploaded.
+                    The recruiter will still see your interview transcript.
+                  </p>
+                </div>
+              )}
+
+              {scores && result && (
+              <>
               {/* Score Breakdown */}
               <div className="grid grid-cols-3 gap-4 mb-8">
                 {ROUNDS.map((round) => (
@@ -329,9 +446,11 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
               <div className="p-4 rounded-xl gradient-primary mb-6">
                 <div className="text-white">
                   <span className="text-sm opacity-80">Total Score</span>
-                  <div className="text-4xl font-bold">{totalScore}%</div>
+                  <div className="text-4xl font-bold">{result.total_score}%</div>
                 </div>
               </div>
+              </>
+              )}
 
               <p className="text-sm text-muted-foreground mb-6">
                 The recruiter will review your interview and get back to you soon.
