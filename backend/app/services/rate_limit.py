@@ -142,18 +142,40 @@ class RateLimit:
     FastAPI dependency factory.
 
         @router.post("/login", dependencies=[Depends(RateLimit("login", 10, 300))])
+
+    `key_param` limits per path parameter instead of per caller address. The
+    candidate-facing routes are keyed on their capability token, because that
+    is the unit of abuse: one candidate's token should not be able to hammer
+    an endpoint no matter how many addresses they come from, and several
+    candidates behind one NAT should not share a bucket. It falls back to the
+    address when the parameter is absent — an unknown token still has to be
+    limited by something.
     """
 
-    def __init__(self, name: str, limit: int, window_seconds: int):
+    def __init__(
+        self,
+        name: str,
+        limit: int,
+        window_seconds: int,
+        key_param: str | None = None,
+    ):
         self.name = name
         self.limit = limit
         self.window_seconds = window_seconds
+        self.key_param = key_param
+
+    def _subject(self, request: Request) -> str:
+        if self.key_param:
+            value = request.path_params.get(self.key_param)
+            if value:
+                return f"{self.key_param}:{value}"
+        return client_identifier(request)
 
     def __call__(self, request: Request) -> None:
         if not settings.RATE_LIMIT_ENABLED:
             return
 
-        key = f"{self.name}:{client_identifier(request)}"
+        key = f"{self.name}:{self._subject(request)}"
 
         client = _redis()
         if client is not None:
