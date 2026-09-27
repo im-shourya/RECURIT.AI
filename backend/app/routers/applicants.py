@@ -176,7 +176,6 @@ async def submit_application(
             to_name=applicant.name,
             drive_name=drive.name,
             org_name=org_name,
-            task_link=f"{settings.FRONTEND_URL}/task/{drive.link_token}",
             submission_link=submission_link,
         )
 
@@ -373,6 +372,8 @@ async def get_own_status(submit_token: str):
         organisation_name=org.name if org else "",
         status=applicant.status.value,
         applied_at=applicant.applied_at,
+        task_type=drive.task_type.value if drive else "",
+        task_description=(drive.task_description or "") if drive else "",
         task_deadline=drive.task_deadline if drive else None,
         has_submitted=applicant.submission is not None,
         interview_completed=bool(applicant.interview and applicant.interview.ended_at),

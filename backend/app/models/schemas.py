@@ -225,6 +225,10 @@ class ApplicantStatusView(BaseModel):
     organisation_name: str
     status: str
     applied_at: datetime
+    # The task is not the recruiter's evidence; the candidate needs it to do
+    # the work, and the submit page is where they read it.
+    task_type: str
+    task_description: str
     task_deadline: Optional[date]
     has_submitted: bool
     interview_completed: bool
