@@ -62,9 +62,6 @@ const nextConfig = {
   turbopack: {
     root: appRoot,
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   images: {
     unoptimized: true,
   },
