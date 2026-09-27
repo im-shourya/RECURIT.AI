@@ -21,7 +21,9 @@ from app.models.documents import (
     User,
     UserRole,
 )
+from app.services.auth_service import require_role
 from app.models.schemas import (
+    AccountDeleteRequest,
     ForgotPasswordRequest,
     OrgLoginRequest,
     OrgProfileResponse,
@@ -31,7 +33,7 @@ from app.models.schemas import (
     ResetPasswordRequest,
     TokenResponse,
 )
-from app.services import audit
+from app.services import audit, cascade
 from app.services.auth_service import (
     create_access_token,
     generate_reset_token,
@@ -267,4 +269,38 @@ async def reset_password(body: ResetPasswordRequest):
     record.used_at = now
     await record.save()
 
+    return None
+
+
+# ──────────────────────────────────────────────
+# DELETE ACCOUNT
+# ──────────────────────────────────────────────
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_account(
+    body: AccountDeleteRequest,
+    user: User = Depends(require_role(UserRole.OWNER)),
+):
+    """
+    Permanently delete the organisation and everything under it.
+
+    Owner only, and the password is required even though the caller is signed
+    in: this erases every drive, candidate, transcript and audit entry, so a
+    borrowed session should not be enough to trigger it.
+
+    MongoDB has no cascading delete, so the removal runs through
+    services/cascade.py. The audit log goes too — once the account is gone
+    nobody is left with standing to read it, and keeping it would mean
+    retaining records about candidates after the controller has been removed.
+    """
+    if not body.confirm:
+        raise HTTPException(status_code=400, detail="Confirmation is required")
+
+    if not verify_password(body.current_password, user.password_hash or ""):
+        raise HTTPException(status_code=400, detail="Password is incorrect")
+
+    org = await Organisation.get(user.org_id)
+    if not org:
+        raise HTTPException(status_code=404, detail="Organisation not found")
+
+    await cascade.delete_organisation(org)
     return None
