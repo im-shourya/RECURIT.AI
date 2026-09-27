@@ -53,6 +53,9 @@ def _is_guarded(method: str, path: str) -> bool:
         ("POST", "/api/applicants/{applicant_id}/resend-email"),
         ("POST", "/api/applicants/bulk-decision"),
         ("DELETE", "/api/applicants/{applicant_id}"),
+        ("PATCH", "/api/auth/me"),
+        ("POST", "/api/auth/me/logo"),
+        ("DELETE", "/api/auth/me/logo"),
         ("POST", "/api/team"),
         ("PATCH", "/api/team/{user_id}"),
         ("DELETE", "/api/team/{user_id}"),
@@ -67,13 +70,23 @@ def test_no_organisation_write_is_left_unguarded():
     Catches a write endpoint added later without a role check, rather than
     relying on the list above being kept up to date.
     """
-    public_prefixes = ("/api/apply", "/api/submit", "/api/interview", "/api/auth")
+    public_prefixes = ("/api/apply", "/api/submit", "/api/interview")
+    # Named one by one, not by prefix: /api/auth also holds organisation
+    # writes (PATCH /me, the logo), and a prefix skip once hid them.
+    exempt = {
+        "/api/auth/register",
+        "/api/auth/login",
+        "/api/auth/forgot-password",
+        "/api/auth/reset-password",
+        # Acts on the caller's own account, not the organisation.
+        "/api/auth/change-password",
+    }
     unguarded = []
 
     for r in app.routes:
         if not isinstance(r, APIRoute) or not r.path.startswith("/api"):
             continue
-        if r.path.startswith(public_prefixes):
+        if r.path.startswith(public_prefixes) or r.path in exempt:
             continue
         if not (r.methods & {"POST", "PATCH", "PUT", "DELETE"}):
             continue
@@ -265,3 +278,17 @@ async def test_me_reports_the_signed_in_role(as_role, role):
     assert body["user_email"] == user.email
     # Still the organisation's own profile, not the user's, for the rest.
     assert body["email"] == "org@example.com"
+
+
+async def test_member_cannot_rewrite_the_organisation(as_role):
+    """The organisation's name is what every public apply page shows."""
+    as_role(UserRole.MEMBER)
+    response = client.patch("/api/auth/me", json={"name": "Hijacked"})
+    assert response.status_code == 403
+
+
+async def test_admin_can_update_the_organisation(as_role):
+    as_role(UserRole.ADMIN)
+    response = client.patch("/api/auth/me", json={"name": "Renamed Org"})
+    assert response.status_code == 200
+    assert response.json()["name"] == "Renamed Org"
