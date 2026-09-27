@@ -101,13 +101,30 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
         content={"detail": "Rate limit exceeded. Please try again later."}
     )
 
-# Add CORS middleware
+def parse_allowed_origins(raw: str) -> list[str]:
+    """
+    Every endpoint here spends Gemini quota on an arbitrary repository URL,
+    so any page on the internet being able to call it is a cost exposure.
+    The bundled index.html is same-origin and needs no entry; list only the
+    other browser origins that call this service, comma-separated.
+    """
+    origins = [o.strip() for o in raw.split(",") if o.strip()]
+    if "*" in origins:
+        raise RuntimeError(
+            "CORS_ALLOWED_ORIGINS cannot be '*': it lets any website spend this "
+            "service's Gemini quota. List the exact origins, comma-separated."
+        )
+    return origins
+
+
+# No credentials: the service has no cookies or auth headers to protect, and
+# a wildcard combined with credentials is invalid CORS in any case.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure for production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=parse_allowed_origins(os.getenv("CORS_ALLOWED_ORIGINS", "")),
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 # Include API routes
