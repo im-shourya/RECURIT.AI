@@ -21,11 +21,11 @@ ALL_TEMPLATES = [
     ),
     lambda: email_templates.application_received(
         to_name="Alex", drive_name="Frontend Engineer", org_name="Sparkles Ltd",
-        task_link="https://x.test/t", submission_link="https://x.test/s",
+        submission_link="https://x.test/s",
     ),
     lambda: email_templates.task_assigned(
         to_name="Alex", drive_name="Frontend Engineer", task_description="Build a thing",
-        task_link="https://x.test/t", submission_link="https://x.test/s", deadline="2026-10-05",
+        submission_link="https://x.test/s", deadline="2026-10-05",
     ),
     lambda: email_templates.interview_invitation(
         to_name="Alex", drive_name="Frontend Engineer", interview_link="https://x.test/i"
@@ -113,7 +113,7 @@ def test_task_description_is_escaped():
     """The longest free-text field, and fully attacker-controlled."""
     _, html, _ = email_templates.task_assigned(
         to_name="Alex", drive_name="Role", task_description=XSS,
-        task_link="https://x.test/t", submission_link="https://x.test/s",
+        submission_link="https://x.test/s",
         deadline="2026-10-05",
     )
     assert "<script>" not in html
@@ -191,3 +191,23 @@ def test_is_configured_requires_both_key_and_sender(monkeypatch):
 
     monkeypatch.setattr(settings, "RESEND_FROM_EMAIL", "no-reply@example.test")
     assert email_service.is_configured() is True
+
+
+def test_task_emails_link_only_to_routes_that_exist():
+    """
+    Both task emails used to carry a "Task details" link to /task/<token>,
+    a page the frontend never had. The submit page shows the task, so the
+    submission link is the only one a candidate needs.
+    """
+    for _, html, text in (
+        email_templates.application_received(
+            to_name="Alex", drive_name="Role", org_name="Org",
+            submission_link="https://x.test/submit/abc",
+        ),
+        email_templates.task_assigned(
+            to_name="Alex", drive_name="Role", task_description="Build it",
+            submission_link="https://x.test/submit/abc", deadline="2026-10-05",
+        ),
+    ):
+        assert "/task/" not in html and "/task/" not in text
+        assert "https://x.test/submit/abc" in text

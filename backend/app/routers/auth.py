@@ -152,7 +152,13 @@ async def get_me(
     return _profile(org, user)
 
 
-@router.patch("/me", response_model=OrgProfileResponse)
+@router.patch(
+    "/me",
+    response_model=OrgProfileResponse,
+    # The name and logo appear on every public apply page, so a read-only
+    # member must not be able to rewrite them.
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
+)
 async def update_me(
     body: OrgProfileUpdate,
     org: Organisation = Depends(get_current_org),

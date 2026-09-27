@@ -484,7 +484,6 @@ async def resend_email(
             to_name=applicant.name,
             drive_name=drive.name,
             task_description=drive.task_description or "",
-            task_link=f"{settings.FRONTEND_URL}/task/{drive.link_token}",
             submission_link=f"{settings.FRONTEND_URL}/submit/{applicant.submit_token}",
             deadline=str(drive.task_deadline),
         )
