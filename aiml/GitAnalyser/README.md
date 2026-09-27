@@ -102,6 +102,10 @@ GEMINI_MODEL=flash
 
 # Optional - for higher GitHub API rate limits
 GITHUB_TOKEN=your_github_token_here
+
+# Optional - browser origins allowed to call this API, comma-separated.
+# Leave empty if only the bundled page (same origin) uses it. "*" is refused.
+CORS_ALLOWED_ORIGINS=https://recruitai.example.com
 ```
 
 **Note**: The system will work with mock responses if `GEMINI_API_KEY` is not provided, but analysis quality will be limited to placeholder text.

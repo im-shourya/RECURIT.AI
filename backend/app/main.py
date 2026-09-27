@@ -17,6 +17,7 @@ from app.logging_config import configure_logging
 from app.routers import (
     analytics, applicant_admin, applicants, audit, auth, drives, interviews, team,
 )
+from app.security_headers import SecurityHeadersMiddleware
 from app.services import email_outbox
 
 settings = get_settings()
@@ -84,6 +85,13 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
+)
+
+# Added after CORS, so it wraps it and CORS preflight responses carry the
+# headers too.
+app.add_middleware(
+    SecurityHeadersMiddleware,
+    production=settings.ENVIRONMENT.strip().lower() == "production",
 )
 
 
