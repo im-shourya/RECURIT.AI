@@ -7,7 +7,7 @@ import pytest
 
 from app.config import get_settings
 from app.error_tracking import _scrub, configure_error_tracking
-from app.models.database import Applicant
+from app.models.documents import Applicant
 from app.services import rate_limit
 
 settings = get_settings()
@@ -136,27 +136,32 @@ def test_scrub_tolerates_a_bare_event():
 # ──────────────────────────────────────────────
 # Duplicate applications
 # ──────────────────────────────────────────────
-def test_applicant_has_a_uniqueness_constraint():
+def test_applicant_has_a_uniqueness_index():
     """
     The handler's pre-check is a read before a write, so two concurrent
-    requests could both pass it. Only the database closes that window.
+    requests could both pass it. Only the database closes that window — a
+    unique index here, where it used to be a table constraint.
     """
-    constraints = {
-        c.name for c in Applicant.__table__.constraints if hasattr(c, "columns")
-    }
-    assert "uq_applicant_drive_email" in constraints
+    declared = [
+        index.document for index in Applicant.Settings.indexes
+        if hasattr(index, "document")
+    ]
+    assert any(
+        d.get("name") == "uq_applicant_drive_email" and d.get("unique")
+        for d in declared
+    )
 
 
 def test_uniqueness_is_scoped_per_drive():
     """The same person must still be able to apply to a different drive."""
-    constraint = next(
-        c for c in Applicant.__table__.constraints
-        if getattr(c, "name", None) == "uq_applicant_drive_email"
+    index = next(
+        i.document for i in Applicant.Settings.indexes
+        if getattr(i, "document", {}).get("name") == "uq_applicant_drive_email"
     )
-    assert {c.name for c in constraint.columns} == {"drive_id", "email"}
+    assert set(index["key"]) == {"drive_id", "email"}
 
 
-def test_apply_handles_the_integrity_error():
+def test_apply_handles_the_duplicate_key_error():
     """
     Losing the race must read the same to the caller as applying twice, so a
     double-click is not reported as a server error.
@@ -165,5 +170,5 @@ def test_apply_handles_the_integrity_error():
     from app.routers import applicants
 
     source = inspect.getsource(applicants.submit_application)
-    assert "IntegrityError" in source
-    assert "db.rollback()" in source
+    assert "DuplicateKeyError" in source
+    assert "already applied" in source

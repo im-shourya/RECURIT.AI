@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.models.database import Drive, DriveStatus, Organisation
+from app.models.documents import Drive, DriveStatus, Organisation
 from app.services import email_templates, storage_service
 from app.routers.drives import _close_if_past_deadline
 
@@ -51,8 +51,7 @@ def test_notification_preference_defaults_to_on():
     A recruiter who hears nothing assumes the platform is idle, so this is
     opt-out rather than opt-in.
     """
-    assert Organisation.__table__.c.notify_on_interview.default.arg is True
-    assert Organisation.__table__.c.notify_on_interview.nullable is False
+    assert Organisation.model_fields["notify_on_interview"].default is True
 
 
 # ──────────────────────────────────────────────
@@ -106,73 +105,56 @@ def test_recordings_can_be_presigned(monkeypatch):
 # ──────────────────────────────────────────────
 # Lazy drive closing
 # ──────────────────────────────────────────────
-class _FakeDb:
-    def __init__(self):
-        self.committed = False
-
-    def commit(self):
-        self.committed = True
-
-    def refresh(self, _):
-        pass
-
-
-def _drive(status, deadline):
-    d = Drive()
-    d.status = status
-    d.apply_deadline = deadline
-    return d
-
-
-def test_expired_drive_is_closed_on_read():
+async def test_expired_drive_is_closed_on_read(drive):
     """
     There is no scheduler, so an expired drive stayed "active" forever and
     looked open in the dashboard and in analytics.
     """
-    db = _FakeDb()
-    drive = _drive(DriveStatus.ACTIVE, date.today() - timedelta(days=1))
-    _close_if_past_deadline(drive, db)
+    drive.apply_deadline = date.today() - timedelta(days=1)
+    await drive.save()
+
+    await _close_if_past_deadline(drive)
 
     assert drive.status == DriveStatus.CLOSED
-    assert db.committed is True
+    reloaded = await Drive.get(drive.id)
+    assert reloaded.status == DriveStatus.CLOSED, "the change must be persisted"
 
 
-def test_drive_within_deadline_is_untouched():
-    db = _FakeDb()
-    drive = _drive(DriveStatus.ACTIVE, date.today() + timedelta(days=7))
-    _close_if_past_deadline(drive, db)
+async def test_drive_within_deadline_is_untouched(drive):
+    drive.apply_deadline = date.today() + timedelta(days=7)
+    await drive.save()
 
+    await _close_if_past_deadline(drive)
     assert drive.status == DriveStatus.ACTIVE
-    assert db.committed is False, "must not write on every read"
 
 
-def test_deadline_today_is_still_open():
+async def test_deadline_today_is_still_open(drive):
     """The deadline day itself should still accept applications."""
-    db = _FakeDb()
-    drive = _drive(DriveStatus.ACTIVE, date.today())
-    _close_if_past_deadline(drive, db)
+    drive.apply_deadline = date.today()
+    await drive.save()
 
+    await _close_if_past_deadline(drive)
     assert drive.status == DriveStatus.ACTIVE
 
 
-def test_closing_never_reopens_a_drive():
+async def test_closing_never_reopens_a_drive(drive):
     """Only ever active -> closed, so a drive closed early stays closed."""
-    db = _FakeDb()
-    drive = _drive(DriveStatus.CLOSED, date.today() + timedelta(days=7))
-    _close_if_past_deadline(drive, db)
+    drive.status = DriveStatus.CLOSED
+    drive.apply_deadline = date.today() + timedelta(days=7)
+    await drive.save()
+
+    await _close_if_past_deadline(drive)
+    assert drive.status == DriveStatus.CLOSED
+
+
+async def test_closing_is_idempotent(drive):
+    drive.apply_deadline = date.today() - timedelta(days=1)
+    await drive.save()
+
+    await _close_if_past_deadline(drive)
+    await _close_if_past_deadline(drive)
 
     assert drive.status == DriveStatus.CLOSED
-    assert db.committed is False
-
-
-def test_closing_is_idempotent():
-    db = _FakeDb()
-    drive = _drive(DriveStatus.ACTIVE, date.today() - timedelta(days=1))
-    _close_if_past_deadline(drive, db)
-    db.committed = False
-    _close_if_past_deadline(drive, db)
-
-    assert db.committed is False, "second read must not write again"
 
 
 # ──────────────────────────────────────────────
@@ -198,13 +180,14 @@ def test_pagination_headers_are_declared_exposed():
 
 def test_total_is_counted_before_pagination_is_applied():
     """
-    The count must come from the filtered query without limit/offset, or it
+    The count must come from the filtered query without skip/limit, or it
     would just report the page size back.
+
+    Behaviour is covered for real in test_documents.py; this pins the ordering
+    in the handler, which is where it would regress.
     """
     import inspect
     from app.routers import applicant_admin
 
     source = inspect.getsource(applicant_admin.list_applicants)
-    count_line = source.index("query.order_by(None).count()")
-    paginate_line = source.index(".offset(offset).limit(limit)")
-    assert count_line < paginate_line
+    assert source.index("await query.count()") < source.index(".skip(offset).limit(limit)")

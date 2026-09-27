@@ -1,9 +1,14 @@
 # RECRUIT.AI Backend Dependencies
 fastapi>=0.111.0
 uvicorn[standard]>=0.30.0
-sqlalchemy>=2.0.30
-alembic>=1.13.0
-psycopg2-binary>=2.9.9
+# MongoDB. Beanie is the ODM; motor is its async driver.
+#
+# Pinned below 2.0: Beanie 2.x calls list_collection_names(authorizedCollections=…),
+# which mongomock-motor does not implement, and that is what lets the test
+# suite run real queries without a MongoDB server. Revisit when mongomock-motor
+# supports it.
+beanie>=1.29,<2.0
+motor>=3.5.0
 python-jose[cryptography]>=3.3.0
 bcrypt>=4.0.0
 python-multipart>=0.0.9
