@@ -6,15 +6,21 @@ as MinIO) and hands out short-lived presigned URLs for reading them back.
 Uploaded files are treated as untrusted:
   - the client's filename is never used to build the object key
   - only an allowlisted set of extensions is accepted
-  - the size limit is enforced while streaming, not from the Content-Length
-    header, which a client controls
+  - the size limit is enforced from the bytes received, not the
+    Content-Length header, which a client controls
   - objects are private; reads go through short-lived presigned URLs
+
+Uploads are streamed to the bucket in chunks, never copied whole into memory.
+The functions here are blocking; routers call them through a worker thread so
+a slow upload does not stall the event loop.
 """
 
+import io
 import uuid
 from typing import BinaryIO, Optional
 
 import boto3
+from boto3.exceptions import S3UploadFailedError
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 
@@ -144,12 +150,97 @@ def build_key(applicant_id, extension: str) -> str:
     return f"submissions/{applicant_id}/{uuid.uuid4().hex}{extension}"
 
 
+class _CappedReader:
+    """
+    A read-only view of a stream that raises once more than `limit` bytes
+    have come through it. Used when a stream cannot be measured up front.
+    `prefix` puts back bytes already read from the stream.
+    """
+
+    def __init__(self, stream: BinaryIO, limit: int, too_large: str, prefix: bytes = b""):
+        self._stream = stream
+        self._limit = limit
+        self._too_large = too_large
+        self._prefix = prefix
+        self._seen = 0
+
+    def read(self, size: int = -1) -> bytes:
+        prefix, self._prefix = self._prefix, b""
+        if size is None or size < 0:
+            chunk = prefix + self._stream.read()
+        else:
+            chunk = prefix + self._stream.read(max(size - len(prefix), 0))
+        self._seen += len(chunk)
+        if self._seen > self._limit:
+            raise UploadTooLarge(self._too_large)
+        return chunk
+
+
+def _remaining_size(stream: BinaryIO) -> Optional[int]:
+    """Bytes left in the stream, or None if it cannot seek."""
+    try:
+        if not stream.seekable():
+            return None
+        start = stream.tell()
+        end = stream.seek(0, io.SEEK_END)
+        stream.seek(start)
+        return end - start
+    except (AttributeError, OSError, ValueError):
+        return None
+
+
+def _store(
+    key: str,
+    stream: BinaryIO,
+    *,
+    limit: int,
+    content_type: str,
+    noun: str,
+    empty_message: str,
+) -> None:
+    """
+    Stream `stream` into the bucket under `key`.
+
+    FastAPI's UploadFile is spooled to a temporary file as it arrives, so it
+    can be measured by seeking, which rejects an oversized or empty upload
+    before any network call. A stream that cannot seek is capped while it is
+    read instead. Either way the body is sent in chunks by upload_fileobj and
+    never held whole in memory.
+    """
+    too_large = f"{noun} exceeds the {limit // (1024 * 1024)}MB limit"
+
+    size = _remaining_size(stream)
+    if size is not None:
+        if size > limit:
+            raise UploadTooLarge(too_large)
+        if size == 0:
+            raise ValueError(empty_message)
+        body: BinaryIO = stream
+    else:
+        first = stream.read(1)
+        if not first:
+            raise ValueError(empty_message)
+        body = _CappedReader(stream, limit, too_large, prefix=first)
+
+    try:
+        _client().upload_fileobj(
+            Fileobj=body,
+            Bucket=settings.S3_BUCKET_NAME,
+            Key=key,
+            # Private by default. Reads are served via presigned URLs so the
+            # bucket never needs public access.
+            ExtraArgs={"ContentType": content_type, "ACL": "private"},
+        )
+    except (BotoCoreError, ClientError, S3UploadFailedError) as exc:
+        raise StorageError(f"{noun} upload failed: {exc}") from exc
+
+
 def upload_submission_file(applicant_id, filename: str, stream: BinaryIO) -> str:
     """
     Stream an upload into object storage and return the stored object key.
 
-    The size cap is enforced chunk by chunk while reading, so an oversized or
-    lying client is cut off rather than buffered whole into memory.
+    The size cap is enforced from the bytes actually received, so an oversized
+    or lying client is refused rather than buffered whole into memory.
     """
     if not is_configured():
         raise StorageError("Object storage is not configured")
@@ -157,33 +248,14 @@ def upload_submission_file(applicant_id, filename: str, stream: BinaryIO) -> str
     extension = extension_of(filename)
     key = build_key(applicant_id, extension)
 
-    body = bytearray()
-    while True:
-        chunk = stream.read(64 * 1024)
-        if not chunk:
-            break
-        body.extend(chunk)
-        if len(body) > MAX_UPLOAD_BYTES:
-            raise UploadTooLarge(
-                f"File exceeds the {MAX_UPLOAD_BYTES // (1024 * 1024)}MB limit"
-            )
-
-    if not body:
-        raise ValueError("Uploaded file is empty")
-
-    try:
-        _client().put_object(
-            Bucket=settings.S3_BUCKET_NAME,
-            Key=key,
-            Body=bytes(body),
-            ContentType=ALLOWED_EXTENSIONS[extension],
-            # Private by default. Reads are served via presigned URLs so the
-            # bucket never needs public access.
-            ACL="private",
-        )
-    except (BotoCoreError, ClientError) as exc:
-        raise StorageError(f"Upload failed: {exc}") from exc
-
+    _store(
+        key,
+        stream,
+        limit=MAX_UPLOAD_BYTES,
+        content_type=ALLOWED_EXTENSIONS[extension],
+        noun="File",
+        empty_message="Uploaded file is empty",
+    )
     return key
 
 
@@ -208,31 +280,14 @@ def upload_recording(interview_id, filename: str, stream: BinaryIO) -> str:
 
     key = f"recordings/{interview_id}/{uuid.uuid4().hex}{extension}"
 
-    body = bytearray()
-    while True:
-        chunk = stream.read(256 * 1024)
-        if not chunk:
-            break
-        body.extend(chunk)
-        if len(body) > MAX_RECORDING_BYTES:
-            raise UploadTooLarge(
-                f"Recording exceeds the {MAX_RECORDING_BYTES // (1024 * 1024)}MB limit"
-            )
-
-    if not body:
-        raise ValueError("Recording is empty")
-
-    try:
-        _client().put_object(
-            Bucket=settings.S3_BUCKET_NAME,
-            Key=key,
-            Body=bytes(body),
-            ContentType=RECORDING_EXTENSIONS[extension],
-            ACL="private",
-        )
-    except (BotoCoreError, ClientError) as exc:
-        raise StorageError(f"Recording upload failed: {exc}") from exc
-
+    _store(
+        key,
+        stream,
+        limit=MAX_RECORDING_BYTES,
+        content_type=RECORDING_EXTENSIONS[extension],
+        noun="Recording",
+        empty_message="Recording is empty",
+    )
     return key
 
 
@@ -263,31 +318,14 @@ def upload_org_logo(org_id, filename: str, stream: BinaryIO) -> str:
 
     key = f"logos/{org_id}/{uuid.uuid4().hex}{extension}"
 
-    body = bytearray()
-    while True:
-        chunk = stream.read(64 * 1024)
-        if not chunk:
-            break
-        body.extend(chunk)
-        if len(body) > MAX_LOGO_BYTES:
-            raise UploadTooLarge(
-                f"Logo exceeds the {MAX_LOGO_BYTES // (1024 * 1024)}MB limit"
-            )
-
-    if not body:
-        raise ValueError("Uploaded image is empty")
-
-    try:
-        _client().put_object(
-            Bucket=settings.S3_BUCKET_NAME,
-            Key=key,
-            Body=bytes(body),
-            ContentType=LOGO_EXTENSIONS[extension],
-            ACL="private",
-        )
-    except (BotoCoreError, ClientError) as exc:
-        raise StorageError(f"Logo upload failed: {exc}") from exc
-
+    _store(
+        key,
+        stream,
+        limit=MAX_LOGO_BYTES,
+        content_type=LOGO_EXTENSIONS[extension],
+        noun="Logo",
+        empty_message="Uploaded image is empty",
+    )
     return key
 
 
