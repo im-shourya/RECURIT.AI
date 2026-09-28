@@ -44,6 +44,19 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
+def issue_token(user: User) -> str:
+    """A session token for this user, bound to their current token_version."""
+    return create_access_token(data={"sub": str(user.id), "ver": user.token_version})
+
+
+def revoke_sessions(user: User) -> None:
+    """
+    Invalidate every token issued to this user so far. The caller saves the
+    user; nothing changes until it does.
+    """
+    user.token_version += 1
+
+
 def decode_token(token: str) -> dict:
     try:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
@@ -99,6 +112,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         # Deactivation takes effect on the next request, not when the token
         # happens to expire.
         raise HTTPException(status_code=401, detail="This account is disabled")
+
+    # A token minted before token_version existed has no "ver"; it counts as
+    # version 0, so deploying this does not sign everyone out.
+    if payload.get("ver", 0) != user.token_version:
+        raise HTTPException(status_code=401, detail="Session is no longer valid")
 
     return user
 

@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Spinner } from '@/components/ui/spinner'
-import { api, OrgProfile } from '@/lib/api'
+import { api, setToken, OrgProfile } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -105,17 +105,18 @@ export default function SettingsPage() {
 
     setChangingPassword(true)
     try {
-      await api.changePassword({
+      // Every other session is revoked, including this tab's token, so keep
+      // the replacement the server hands back.
+      const res = await api.changePassword({
         current_password: currentPassword,
         new_password: newPassword,
       })
+      setToken(res.access_token)
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
-      // Existing tokens stay valid server-side, so say so rather than implying
-      // other sessions were signed out.
       toast.success('Password changed', {
-        description: 'Sessions already signed in stay signed in.',
+        description: 'You have been signed out everywhere else.',
       })
     } catch (err: any) {
       toast.error('Could not change the password', { description: err.message })
