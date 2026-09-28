@@ -326,6 +326,15 @@ class EmailOutbox(Document):
             pymongo.IndexModel(
                 [("status", pymongo.ASCENDING), ("created_at", pymongo.ASCENDING)]
             ),
+            # Delivered mail is reaped automatically. MongoDB's TTL ignores
+            # documents where the field is null, so pending and failed rows —
+            # which have no sent_at — are kept indefinitely for retry and for
+            # inspection. Without this the collection only ever grows.
+            pymongo.IndexModel(
+                [("sent_at", pymongo.ASCENDING)],
+                expireAfterSeconds=60 * 60 * 24 * 30,
+                name="ttl_sent_at",
+            ),
         ]
 
 
