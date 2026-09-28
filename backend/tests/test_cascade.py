@@ -189,3 +189,94 @@ async def test_orphan_check_notices_a_skipped_cascade(org, drive, applicant):
 
     orphans = await cascade.count_orphans()
     assert orphans["applicants"] == 1
+
+
+# ──────────────────────────────────────────────
+# Stored files (#51)
+# ──────────────────────────────────────────────
+@pytest.fixture
+def deleted_keys(monkeypatch):
+    """Record every storage delete instead of calling S3."""
+    from app.services import storage_service
+
+    keys: list[str] = []
+
+    def fake_delete(key: str) -> bool:
+        keys.append(key)
+        return True
+
+    monkeypatch.setattr(storage_service, "delete_object", fake_delete)
+    return keys
+
+
+async def _with_files(applicant: Applicant, tag: str) -> Applicant:
+    from app.models.documents import Interview, Submission
+
+    applicant.submission = Submission(file_url=f"submissions/{tag}/resume.pdf")
+    applicant.interview = Interview(token=f"iv-{tag}", recording_url=f"recordings/{tag}/take.webm")
+    await applicant.save()
+    return applicant
+
+
+async def test_deleting_a_drive_removes_its_stored_files(org, drive, applicant, deleted_keys):
+    await _with_files(applicant, "a")
+    kept = await _with_files(
+        await _applicant_for(await _drive_for(org, "kept"), "kept@example.com"), "kept"
+    )
+
+    await cascade.delete_drive(drive)
+
+    assert sorted(deleted_keys) == ["recordings/a/take.webm", "submissions/a/resume.pdf"]
+    assert await Applicant.get(kept.id) is not None
+
+
+async def test_deleting_an_organisation_removes_files_and_logo(
+    org, other_org, drive, applicant, deleted_keys
+):
+    await _with_files(applicant, "a")
+    org.logo_url = f"logos/{org.id}/logo.png"
+    await org.save()
+    rival = await _applicant_for(await _drive_for(other_org, "rival"), "r@example.com")
+    await _with_files(rival, "rival")
+
+    counts = await cascade.delete_organisation(org)
+
+    assert sorted(deleted_keys) == [
+        f"logos/{org.id}/logo.png",
+        "recordings/a/take.webm",
+        "submissions/a/resume.pdf",
+    ]
+    assert counts["stored_files"] == 3
+
+
+async def test_applicants_without_files_delete_nothing_from_storage(drive, applicant, deleted_keys):
+    await cascade.delete_drive(drive)
+    assert deleted_keys == []
+
+
+async def test_a_storage_failure_does_not_stop_the_cascade(
+    org, drive, applicant, monkeypatch
+):
+    from app.services import storage_service
+
+    await _with_files(applicant, "a")
+
+    def broken(key: str) -> bool:
+        raise storage_service.StorageError("bucket unreachable")
+
+    monkeypatch.setattr(storage_service, "delete_object", broken)
+
+    await cascade.delete_drive(drive)
+
+    assert await Drive.get(drive.id) is None
+    assert await Applicant.get(applicant.id) is None
+
+
+async def test_deleting_an_applicant_removes_their_stored_files(org, applicant, deleted_keys):
+    from app.routers.applicant_admin import delete_applicant
+
+    await _with_files(applicant, "a")
+
+    await delete_applicant(applicant.id, org=org)
+
+    assert sorted(deleted_keys) == ["recordings/a/take.webm", "submissions/a/resume.pdf"]

@@ -50,7 +50,7 @@ from app.models.schemas import (
     StoredFileLinkResponse,
     SubmissionFileLinkResponse,
 )
-from app.services import audit, storage_service
+from app.services import audit, cascade, storage_service
 from app.services.auth_service import get_current_org, require_role
 from app.services.email_service import (
     send_application_email,
@@ -630,11 +630,7 @@ async def delete_applicant(
     """
     applicant = await _owned_applicant(applicant_id, org)
 
-    keys = []
-    if applicant.submission and applicant.submission.file_url:
-        keys.append(applicant.submission.file_url)
-    if applicant.interview and applicant.interview.recording_url:
-        keys.append(applicant.interview.recording_url)
+    keys = cascade.stored_file_keys(applicant)
 
     drive = await Drive.get(applicant.drive_id)
 
@@ -652,13 +648,6 @@ async def delete_applicant(
     # After the document is gone: a storage error must not leave the record in
     # place, and an orphaned object is recoverable where a half-deleted
     # candidate is not.
-    for key in keys:
-        try:
-            storage_service.delete_object(key)
-        except Exception as exc:
-            log.error(
-                "stored file left behind after applicant deletion",
-                extra={"key": key, "error": type(exc).__name__},
-            )
+    await cascade.delete_stored_files(keys)
 
     return None
