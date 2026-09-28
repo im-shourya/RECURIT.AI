@@ -175,6 +175,10 @@ class User(Document):
     password_hash: Optional[str] = None
     role: UserRole = UserRole.MEMBER
     is_active: bool = True
+    # Stamped into every token as "ver". Bumping it signs out every session
+    # issued before the bump, which is how a password change revokes a token
+    # an attacker may already hold.
+    token_version: int = 0
     created_at: datetime = Field(default_factory=_now)
     last_login_at: Optional[datetime] = None
 
