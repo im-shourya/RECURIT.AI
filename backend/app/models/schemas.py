@@ -264,10 +264,20 @@ class FileUploadResponse(BaseModel):
     filename: str
 
 
-class SubmissionFileLinkResponse(BaseModel):
-    """A short-lived link to a stored submission file."""
+class StoredFileLinkResponse(BaseModel):
+    """
+    A short-lived link to a private object in storage.
+
+    Shared by the submission download and the interview recording: both mint a
+    presigned URL per request rather than persisting one, so a link cannot
+    outlive the few minutes it is needed for.
+    """
     url: str
     expires_in_seconds: int
+
+
+# The original name, kept so nothing importing it breaks.
+SubmissionFileLinkResponse = StoredFileLinkResponse
 
 
 class SubmissionResponse(BaseModel):
