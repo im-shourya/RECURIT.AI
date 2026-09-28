@@ -409,7 +409,7 @@ export const api = {
     request<OrgProfile>('/api/auth/me/logo', { method: 'DELETE' }, true),
 
   changePassword: (data: { current_password: string; new_password: string }) =>
-    request<void>('/api/auth/change-password', { method: 'POST', body: JSON.stringify(data) }, true),
+    request<TokenResponse>('/api/auth/change-password', { method: 'POST', body: JSON.stringify(data) }, true),
 
   // Always resolves, whether or not the address is registered — the API
   // deliberately does not reveal which, so the UI must not either.
