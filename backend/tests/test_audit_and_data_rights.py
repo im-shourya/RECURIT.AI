@@ -112,9 +112,11 @@ def test_deletion_also_removes_stored_files():
     import inspect
     from app.routers import applicant_admin
 
+    # The keys and the delete loop are shared with the drive and organisation
+    # cascades; test_cascade.py exercises them against real documents.
     source = inspect.getsource(applicant_admin.delete_applicant)
-    assert "storage_service.delete_object" in source
-    assert "recording_url" in source and "file_url" in source
+    assert "cascade.stored_file_keys" in source
+    assert "cascade.delete_stored_files" in source
 
 
 def test_audit_is_recorded_before_the_row_is_deleted():
