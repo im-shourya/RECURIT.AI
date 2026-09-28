@@ -13,7 +13,9 @@ a query on the parent collection by the indexed nested field.
 
 import logging
 from datetime import datetime, timezone
+from functools import partial
 
+from anyio import to_thread
 from fastapi import (
     APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status,
 )
@@ -304,10 +306,15 @@ async def upload_recording(token: str, file: UploadFile = File(...)):
         )
 
     try:
-        key = storage_service.upload_recording(
-            interview_id=applicant.id,
-            filename=file.filename or "",
-            stream=file.file,
+        # Blocking S3 I/O: run it in a worker thread so one slow upload does
+        # not stall every other request on this worker.
+        key = await to_thread.run_sync(
+            partial(
+                storage_service.upload_recording,
+                interview_id=applicant.id,
+                filename=file.filename or "",
+                stream=file.file,
+            )
         )
     except storage_service.UnsupportedFileType as exc:
         raise HTTPException(status_code=400, detail=str(exc))
