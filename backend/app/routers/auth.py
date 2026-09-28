@@ -118,15 +118,36 @@ async def login(body: OrgLoginRequest):
 # ──────────────────────────────────────────────
 # PROFILE
 # ──────────────────────────────────────────────
+def _profile(org: Organisation, user: User) -> OrgProfileResponse:
+    """The organisation, plus who is looking at it."""
+    return OrgProfileResponse(
+        id=org.id,
+        name=org.name,
+        email=org.email,
+        description=org.description,
+        domain_tags=org.domain_tags,
+        logo_url=org.logo_url,
+        created_at=org.created_at,
+        user_id=user.id,
+        user_name=user.name,
+        user_email=user.email,
+        role=user.role.value,
+    )
+
+
 @router.get("/me", response_model=OrgProfileResponse)
-async def get_me(org: Organisation = Depends(get_current_org)):
-    return org
+async def get_me(
+    org: Organisation = Depends(get_current_org),
+    user: User = Depends(get_current_user),
+):
+    return _profile(org, user)
 
 
 @router.patch("/me", response_model=OrgProfileResponse)
 async def update_me(
     body: OrgProfileUpdate,
     org: Organisation = Depends(get_current_org),
+    user: User = Depends(get_current_user),
 ):
     if body.name is not None:
         org.name = body.name
@@ -138,7 +159,7 @@ async def update_me(
         org.logo_url = body.logo_url
 
     await org.save()
-    return org
+    return _profile(org, user)
 
 
 # ──────────────────────────────────────────────
