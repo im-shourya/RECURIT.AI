@@ -15,10 +15,19 @@ They are part of the applicant document and go with it.
 Ordering is children-first throughout. Deleting a parent first would leave
 orphans behind if a later step fails, and an orphan is harder to find than a
 parent that is still there.
+
+Stored files are the exception: their keys are collected first, but the
+objects are removed only after the documents are gone. A storage error must
+not leave a record in place, and an orphaned object is recoverable where a
+half-deleted candidate is not.
 """
 
 import logging
+from typing import Any, Iterable, Optional
 from uuid import UUID
+
+from anyio import to_thread
+from pydantic import BaseModel
 
 from app.models.documents import (
     Applicant,
@@ -28,8 +37,70 @@ from app.models.documents import (
     PasswordResetToken,
     User,
 )
+from app.services import storage_service
 
 log = logging.getLogger("recruit.cascade")
+
+
+class _StoredFiles(BaseModel):
+    """Only the fields that hold object keys, so transcripts are never loaded."""
+
+    submission: Optional[dict[str, Any]] = None
+    interview: Optional[dict[str, Any]] = None
+
+    class Settings:
+        projection = {"submission.file_url": 1, "interview.recording_url": 1}
+
+
+def stored_file_keys(applicant: Applicant | _StoredFiles) -> list[str]:
+    """Every object key an applicant's document points at."""
+    submission, interview = applicant.submission, applicant.interview
+    if isinstance(submission, BaseModel):
+        submission = submission.model_dump()
+    if isinstance(interview, BaseModel):
+        interview = interview.model_dump()
+
+    keys = [
+        (submission or {}).get("file_url") or "",
+        (interview or {}).get("recording_url") or "",
+    ]
+    return [key for key in keys if key]
+
+
+async def _keys_for(query) -> list[str]:
+    keys: list[str] = []
+    async for record in query.project(_StoredFiles):
+        keys.extend(stored_file_keys(record))
+    return keys
+
+
+def _delete_all(keys: list[str]) -> int:
+    """Blocking; run in a worker thread. Returns how many were left behind."""
+    failed = 0
+    for key in keys:
+        try:
+            storage_service.delete_object(key)
+        except Exception as exc:
+            failed += 1
+            log.error(
+                "stored file left behind after deletion",
+                extra={"key": key, "error": type(exc).__name__},
+            )
+    return failed
+
+
+async def delete_stored_files(keys: Iterable[str]) -> int:
+    """
+    Best-effort removal of stored objects. Never raises.
+
+    boto3 is synchronous, so the deletes run in a worker thread rather than
+    stalling the event loop for every other request. Returns the number that
+    could not be removed.
+    """
+    keys = list(keys)
+    if not keys:
+        return 0
+    return await to_thread.run_sync(_delete_all, keys)
 
 
 async def delete_drive(drive: Drive) -> int:
@@ -39,13 +110,20 @@ async def delete_drive(drive: Drive) -> int:
     Returns how many applicants went with it, so the caller can record that in
     the audit entry.
     """
+    keys = await _keys_for(Applicant.find(Applicant.drive_id == drive.id))
+
     result = await Applicant.find(Applicant.drive_id == drive.id).delete()
     removed = getattr(result, "deleted_count", 0) or 0
 
     await drive.delete()
+    await delete_stored_files(keys)
     log.info(
         "drive deleted",
-        extra={"drive_id": str(drive.id), "applicants_deleted": removed},
+        extra={
+            "drive_id": str(drive.id),
+            "applicants_deleted": removed,
+            "stored_files": len(keys),
+        },
     )
     return removed
 
@@ -61,6 +139,12 @@ async def delete_organisation(org: Organisation) -> dict[str, int]:
     """
     counts: dict[str, int] = {}
 
+    keys = await _keys_for(Applicant.find(Applicant.org_id == org.id))
+    if org.logo_url:
+        # delete_object ignores anything that is not one of our keys, so a
+        # logo supplied as a plain URL is left alone.
+        keys.append(org.logo_url)
+
     for label, query in (
         ("applicants", Applicant.find(Applicant.org_id == org.id)),
         ("drives", Drive.find(Drive.org_id == org.id)),
@@ -72,6 +156,8 @@ async def delete_organisation(org: Organisation) -> dict[str, int]:
         counts[label] = getattr(result, "deleted_count", 0) or 0
 
     await org.delete()
+    await delete_stored_files(keys)
+    counts["stored_files"] = len(keys)
     log.info("organisation deleted", extra={"org_id": str(org.id), **counts})
     return counts
 
