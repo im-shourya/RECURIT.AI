@@ -121,6 +121,139 @@ def test_extension_is_checked_before_any_network_call(monkeypatch):
 
 
 # ──────────────────────────────────────────────
+# Streaming (#48)
+# ──────────────────────────────────────────────
+class _ChunkRecordingClient:
+    """Reads the upload the way boto3 does, and records the largest read."""
+
+    def __init__(self):
+        self.received = b""
+        self.largest_read = 0
+        self.extra_args = None
+
+    def upload_fileobj(self, Fileobj, Bucket, Key, ExtraArgs):
+        self.extra_args = ExtraArgs
+        while True:
+            chunk = Fileobj.read(1024)
+            if not chunk:
+                break
+            self.largest_read = max(self.largest_read, len(chunk))
+            self.received += chunk
+
+
+class _Unseekable(io.RawIOBase):
+    """A stream that can only be read forward, like a socket."""
+
+    def __init__(self, data: bytes):
+        self._inner = io.BytesIO(data)
+
+    def readable(self):
+        return True
+
+    def seekable(self):
+        return False
+
+    def read(self, size=-1):
+        return self._inner.read(size)
+
+
+def test_upload_is_streamed_to_storage_not_buffered(monkeypatch):
+    """The body is handed to boto3 as a stream; nothing reads it whole first."""
+    monkeypatch.setattr(storage_service, "is_configured", lambda: True)
+    fake = _ChunkRecordingClient()
+    monkeypatch.setattr(storage_service, "_client", lambda: fake)
+    data = b"x" * (200 * 1024)
+
+    upload_submission_file(APPLICANT_ID, "cv.pdf", io.BytesIO(data))
+
+    assert fake.received == data
+    assert fake.largest_read <= 1024
+    assert fake.extra_args == {"ContentType": "application/pdf", "ACL": "private"}
+
+
+def test_oversized_seekable_upload_is_refused_before_any_network_call(monkeypatch):
+    monkeypatch.setattr(storage_service, "is_configured", lambda: True)
+    monkeypatch.setattr(
+        storage_service, "_client", lambda: pytest.fail("must not reach storage")
+    )
+    with pytest.raises(UploadTooLarge):
+        upload_submission_file(
+            APPLICANT_ID, "big.pdf", io.BytesIO(b"x" * (MAX_UPLOAD_BYTES + 1))
+        )
+
+
+def test_an_unseekable_stream_is_uploaded_intact(monkeypatch):
+    monkeypatch.setattr(storage_service, "is_configured", lambda: True)
+    fake = _ChunkRecordingClient()
+    monkeypatch.setattr(storage_service, "_client", lambda: fake)
+    data = bytes(range(256)) * 40
+
+    upload_submission_file(APPLICANT_ID, "cv.pdf", _Unseekable(data))
+
+    assert fake.received == data
+
+
+def test_an_unseekable_stream_is_cut_off_at_the_cap(monkeypatch):
+    monkeypatch.setattr(storage_service, "is_configured", lambda: True)
+    monkeypatch.setattr(storage_service, "_client", lambda: _ChunkRecordingClient())
+
+    with pytest.raises(UploadTooLarge):
+        upload_submission_file(
+            APPLICANT_ID, "big.pdf", _Unseekable(b"x" * (MAX_UPLOAD_BYTES + 1))
+        )
+
+
+def test_an_empty_unseekable_stream_is_rejected(monkeypatch):
+    monkeypatch.setattr(storage_service, "is_configured", lambda: True)
+    monkeypatch.setattr(
+        storage_service, "_client", lambda: pytest.fail("must not reach storage")
+    )
+    with pytest.raises(ValueError):
+        upload_submission_file(APPLICANT_ID, "cv.pdf", _Unseekable(b""))
+
+
+def test_a_boto_upload_failure_becomes_a_storage_error(monkeypatch):
+    from boto3.exceptions import S3UploadFailedError
+
+    monkeypatch.setattr(storage_service, "is_configured", lambda: True)
+
+    class _Failing:
+        def upload_fileobj(self, **kwargs):
+            raise S3UploadFailedError("AccessDenied")
+
+    monkeypatch.setattr(storage_service, "_client", lambda: _Failing())
+
+    with pytest.raises(storage_service.StorageError):
+        upload_submission_file(APPLICANT_ID, "cv.pdf", io.BytesIO(b"data"))
+
+
+async def test_the_endpoint_uploads_off_the_event_loop(applicant, monkeypatch):
+    """boto3 is blocking; the route must not call it on the event loop thread."""
+    import asyncio
+
+    monkeypatch.setattr(storage_service, "is_configured", lambda: True)
+    seen = {}
+
+    def fake_upload(applicant_id, filename, stream):
+        try:
+            asyncio.get_running_loop()
+            seen["on_event_loop"] = True
+        except RuntimeError:
+            seen["on_event_loop"] = False
+        return f"submissions/{applicant_id}/stored.pdf"
+
+    monkeypatch.setattr(storage_service, "upload_submission_file", fake_upload)
+
+    response = client.post(
+        f"/api/submit/{applicant.submit_token}/upload",
+        files={"file": ("cv.pdf", b"data", "application/pdf")},
+    )
+
+    assert response.status_code < 400
+    assert seen["on_event_loop"] is False
+
+
+# ──────────────────────────────────────────────
 # Presigned reads
 # ──────────────────────────────────────────────
 def test_presigning_refuses_values_that_are_not_our_keys(monkeypatch):
@@ -321,8 +454,8 @@ def test_logo_extensions_are_accepted(name, monkeypatch):
     captured = {}
 
     class _FakeClient:
-        def put_object(self, **kwargs):
-            captured.update(kwargs)
+        def upload_fileobj(self, Fileobj, Bucket, Key, ExtraArgs):
+            captured.update(ExtraArgs)
 
     monkeypatch.setattr(storage_service, "_client", lambda: _FakeClient())
 
@@ -359,7 +492,7 @@ def test_logo_cap_is_tighter_than_the_submission_cap():
 
 def test_logo_key_is_built_only_from_server_values(monkeypatch):
     monkeypatch.setattr(storage_service, "is_configured", lambda: True)
-    monkeypatch.setattr(storage_service, "_client", lambda: type("C", (), {"put_object": lambda self, **k: None})())
+    monkeypatch.setattr(storage_service, "_client", lambda: type("C", (), {"upload_fileobj": lambda self, **k: None})())
 
     key = storage_service.upload_org_logo(
         ORG_ID, "../../../etc/passwd.png", io.BytesIO(b"x")
