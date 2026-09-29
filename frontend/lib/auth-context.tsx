@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { api, setToken, clearToken, getToken, type OrgProfile, type Role } from '@/lib/api'
+import { api, type OrgProfile, type Role } from '@/lib/api'
 
 /**
  * Roles are ranked, matching ROLE_RANK on the backend: an owner can do
@@ -25,7 +25,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -36,22 +36,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
 
-  // Check for existing token on mount
+  // The session is an httpOnly cookie this code cannot see, so the only way
+  // to know whether there is one is to ask.
   useEffect(() => {
-    const token = getToken()
-    if (token) {
-      api.getMe()
-        .then((profile) => {
-          setUser(profile)
-        })
-        .catch(() => {
-          clearToken()
-          setUser(null)
-        })
-        .finally(() => setIsLoading(false))
-    } else {
-      setIsLoading(false)
-    }
+    api.getMe()
+      .then(setUser)
+      .catch(() => setUser(null))
+      .finally(() => setIsLoading(false))
   }, [])
 
   // Protect dashboard routes
@@ -61,18 +52,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [isLoading, user, pathname, router])
 
+  // Both set the session cookie and answer with the profile.
   const login = useCallback(async (email: string, password: string) => {
-    const res = await api.login({ email, password })
-    setToken(res.access_token)
-    const profile = await api.getMe()
-    setUser(profile)
+    setUser(await api.login({ email, password }))
   }, [])
 
   const register = useCallback(async (name: string, email: string, password: string) => {
-    const res = await api.register({ name, email, password })
-    setToken(res.access_token)
-    const profile = await api.getMe()
-    setUser(profile)
+    setUser(await api.register({ name, email, password }))
   }, [])
 
   // Defaults to the least privileged role, so a profile that arrives without
@@ -83,8 +69,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [role],
   )
 
-  const logout = useCallback(() => {
-    clearToken()
+  const logout = useCallback(async () => {
+    // Signed out locally even if the request fails; the cookie then simply
+    // expires on its own.
+    await api.logout().catch(() => {})
     setUser(null)
     router.push('/auth/login')
   }, [router])

@@ -71,15 +71,31 @@ backend/
 └── .gitignore
 ```
 
+## Sessions
+
+The session JWT lives in an `httpOnly`, `SameSite=Lax` cookie scoped to
+`/api` (and `Secure` in production), so no script on the page can read it.
+The browser reaches the API through the frontend's own origin, where
+`next.config.mjs` rewrites `/api/*` to this service. That keeps the cookie
+first-party; if the API set it on its own domain, the browser would treat it
+as a third-party cookie and Safari would drop it.
+
+A write that authenticates with the cookie must also send
+`X-Requested-With`, which a cross-site form cannot add. Non-browser clients
+can still send `Authorization: Bearer <token>` instead.
+
+"JWT" in the table below means either of those.
+
 ## API Endpoints
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/api/auth/register` | — | Org registration |
-| POST | `/api/auth/login` | — | Returns JWT |
+| POST | `/api/auth/login` | — | Sets the session cookie, returns the profile |
+| POST | `/api/auth/logout` | — | Clears the session cookie |
 | GET | `/api/auth/me` | JWT | Current org profile |
 | PATCH | `/api/auth/me` | admin | Update org profile |
-| POST | `/api/auth/change-password` | JWT | Change your password; signs out every other session and returns a new token |
+| POST | `/api/auth/change-password` | JWT | Change your password; signs out every other session and sets a fresh cookie |
 | POST | `/api/auth/forgot-password` | — | Request a reset link (always 204) |
 | POST | `/api/auth/reset-password` | — | Consume a reset token, set new password |
 | GET | `/api/team` | JWT | List organisation members |
