@@ -5,6 +5,7 @@ GET    /applicants/export                — CSV export
 GET    /applicants/{id}                  — Full profile
 GET    /applicants/{id}/submission-file  — Short-lived download link
 GET    /applicants/{id}/recording-file   — Short-lived interview playback link
+POST   /applicants/{id}/invite           — Invite a submitted candidate to interview
 POST   /applicants/{id}/decision         — Hire / reject
 POST   /applicants/{id}/resend-email     — Re-send a transactional email
 POST   /applicants/bulk-decision         — Decide up to 100 at once
@@ -50,6 +51,7 @@ from app.models.schemas import (
     StoredFileLinkResponse,
     SubmissionFileLinkResponse,
 )
+from app.routers.applicants import new_interview
 from app.services import audit, cascade, storage_service
 from app.services.auth_service import get_current_org, require_role
 from app.services.email_service import (
@@ -376,6 +378,64 @@ async def get_recording_file_link(
     return StoredFileLinkResponse(
         url=url, expires_in_seconds=storage_service.PRESIGNED_URL_TTL_SECONDS
     )
+
+
+# ──────────────────────────────────────────────
+# INVITE TO INTERVIEW
+# ──────────────────────────────────────────────
+@router.post(
+    "/{applicant_id}/invite",
+    response_model=ApplicantResponse,
+    # Sends mail in the organisation's name and moves the candidate forward,
+    # so it sits with the other hiring decisions.
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
+)
+async def invite_to_interview(
+    applicant_id: UUID,
+    background_tasks: BackgroundTasks,
+    org: Organisation = Depends(get_current_org),
+):
+    """
+    The recruiter checkpoint between "submitted work" and "interviewed".
+
+    Only a submitted candidate can be invited: earlier there is nothing to
+    review, and later they already hold an interview link, which the resend
+    endpoint re-sends without minting a second one.
+    """
+    applicant = await _owned_applicant(applicant_id, org)
+
+    if applicant.status != ApplicantStatus.SUBMITTED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Only a submitted candidate can be invited (this one is {applicant.status.value})",
+        )
+
+    applicant.interview = new_interview()
+    applicant.status = ApplicantStatus.INTERVIEW_SENT
+    applicant.email_logs.append(EmailLogEntry(type=EmailType.INTERVIEW))
+    await applicant.save()
+
+    drive = await Drive.get(applicant.drive_id)
+    drive_name = drive.name if drive else ""
+
+    await audit.record(
+        org_id=org.id,
+        action=AuditAction.APPLICANT_INVITED,
+        entity_type="applicant",
+        entity_id=applicant.id,
+        entity_label=applicant.name,
+        detail={"drive": drive_name},
+    )
+
+    background_tasks.add_task(
+        send_interview_email,
+        to_email=applicant.email,
+        to_name=applicant.name,
+        drive_name=drive_name,
+        interview_link=f"{settings.FRONTEND_URL}/interview/{applicant.interview.token}",
+    )
+
+    return applicant_to_response(applicant)
 
 
 # ──────────────────────────────────────────────
