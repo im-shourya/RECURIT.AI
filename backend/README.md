@@ -133,12 +133,15 @@ can still send `Authorization: Bearer <token>` instead.
 ## Tests
 
 ```bash
+pip install -r requirements-dev.txt
 ./venv/bin/python -m pytest tests/ -q
 ```
 
-The suite runs without a database. It covers the authentication boundary, the
-organisation-scoping filter (asserted against the compiled SQL) and request
-validation. End-to-end behaviour against PostgreSQL is not yet covered.
+The suite needs no database server. `mongomock-motor` provides an in-process
+MongoDB that Beanie initialises against normally, so tests run real queries,
+including requests driven through the FastAPI app. The stand-in does not
+enforce unique indexes, so the uniqueness tests check that each index is
+declared rather than that it is enforced.
 
 ## File uploads
 
