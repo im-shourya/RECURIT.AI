@@ -10,6 +10,7 @@ import {
   FileText,
   Github,
   Mail,
+  Play,
   ShieldCheck,
   Trash2,
   XSquare,
@@ -68,6 +69,8 @@ export default function ApplicantProfilePage() {
   const [applicant, setApplicant] = useState<ApplicantResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [deciding, setDeciding] = useState(false)
+  const [recordingUrl, setRecordingUrl] = useState('')
+  const [loadingRecording, setLoadingRecording] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -96,6 +99,25 @@ export default function ApplicantProfilePage() {
       toast.error('Could not record the decision', { description: err.message })
     } finally {
       setDeciding(false)
+    }
+  }
+
+  /**
+   * Swap the stored object key for a signed URL and play it inline.
+   *
+   * Loaded on click, not on mount: the link expires in minutes, so one minted
+   * at page load would be dead by the time a recruiter finished reading the
+   * transcript and scores above it.
+   */
+  const loadRecording = async () => {
+    setLoadingRecording(true)
+    try {
+      const { url } = await api.getRecordingFileLink(id)
+      setRecordingUrl(url)
+    } catch (err: any) {
+      toast.error('Could not load the recording', { description: err.message })
+    } finally {
+      setLoadingRecording(false)
     }
   }
 
@@ -325,6 +347,41 @@ export default function ApplicantProfilePage() {
                       No integrity flags raised
                     </div>
                   )}
+
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium">Recording</h3>
+
+                    {!interview.recording_url ? (
+                      <p className="text-sm text-muted-foreground">
+                        No recording was captured for this interview.
+                      </p>
+                    ) : recordingUrl ? (
+                      <video
+                        src={recordingUrl}
+                        controls
+                        preload="metadata"
+                        className="w-full rounded-lg border bg-black"
+                      >
+                        Your browser cannot play this recording.
+                      </video>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={loadRecording}
+                        disabled={loadingRecording}
+                      >
+                        {loadingRecording ? (
+                          <Spinner className="mr-2 h-4 w-4" />
+                        ) : (
+                          <Play className="mr-2 h-4 w-4" />
+                        )}
+                        Load recording
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ) : interview ? (
                 <p className="text-sm text-muted-foreground">
