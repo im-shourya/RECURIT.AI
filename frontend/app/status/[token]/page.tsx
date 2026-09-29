@@ -199,8 +199,9 @@ export default function StatusPage({ params }: { params: Promise<{ token: string
           </CardContent>
         </Card>
 
-        {/* The action the candidate can still take, if any. */}
-        {!view.has_submitted && !decided && (
+        {/* The action the candidate can still take, if any. A GitHub drive
+            takes the repository on the apply form, so it has nothing here. */}
+        {view.task_type === 'task' && !view.has_submitted && !decided && (
           <Card className="border-primary/30 bg-primary/5">
             <CardContent className="flex flex-wrap items-center justify-between gap-3 p-5">
               <div>
