@@ -94,7 +94,7 @@ backend/
 | DELETE | `/api/drives/{id}` | JWT | Delete drive (`?confirm=true` if it has applicants) |
 | GET | `/api/apply/{token}` | — | Fetch drive info for form |
 | POST | `/api/apply/{token}` | — | Submit application |
-| POST | `/api/submit/{submit_token}` | token | Task/GitHub submission |
+| POST | `/api/submit/{submit_token}` | token | Task submission; the candidate then waits for a recruiter |
 | POST | `/api/submit/{submit_token}/upload` | token | Upload a submission file (max 10MB) |
 | GET | `/api/applicants` | JWT | List applicants (filter / search; `X-Total-Count` header) |
 | GET | `/api/applicants/export` | JWT | CSV export (same filters as list) |
@@ -105,6 +105,7 @@ backend/
 | DELETE | `/api/applicants/{id}` | JWT | Erase a candidate and their stored files |
 | GET | `/api/audit` | JWT | This organisation's audit trail |
 | GET | `/api/status/{submit_token}` | token | Candidate's own application status |
+| POST | `/api/applicants/{id}/invite` | JWT | Invite a submitted candidate to interview |
 | POST | `/api/applicants/{id}/decision` | JWT | Record hire / reject, email the result |
 | GET | `/api/interview/{token}` | — | Get interview config |
 | POST | `/api/interview/{token}/start` | — | Begin interview |
