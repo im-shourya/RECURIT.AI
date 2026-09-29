@@ -26,6 +26,11 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { api } from '@/lib/api'
 
+// Mirrors ALLOWED_EXTENSIONS and MAX_UPLOAD_BYTES in the backend's storage
+// service, which remains the authority.
+const ACCEPTED_EXTENSIONS = ['.zip', '.pdf', '.doc', '.docx', '.png', '.jpg', '.jpeg', '.txt', '.md']
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+
 export default function SubmitPage({ params }: { params: Promise<{ token: string }> }) {
   // Unguessable submission token from the emailed link, not an applicant id.
   const { token } = use(params)
@@ -48,9 +53,22 @@ export default function SubmitPage({ params }: { params: Promise<{ token: string
   const [pageError, setPageError] = useState('')
 
   useEffect(() => {
-    // The submit page re-uses applicant info — we'll set defaults
-    // The backend POST endpoint handles the submission
-    setLoading(false)
+    // The candidate's own status view carries the task, so this page is also
+    // the task page the emails link to.
+    api
+      .getOwnStatus(token)
+      .then((view) => {
+        setApplicantName(view.name)
+        setDriveName(view.drive_name)
+        setOrgName(view.organisation_name)
+        setTaskDescription(view.task_description)
+        setTaskDeadline(view.task_deadline ?? '')
+        if (view.has_submitted) setIsComplete(true)
+      })
+      .catch((err: unknown) =>
+        setPageError(err instanceof Error ? err.message : 'This link is not valid'),
+      )
+      .finally(() => setLoading(false))
   }, [token])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -63,20 +81,30 @@ export default function SubmitPage({ params }: { params: Promise<{ token: string
     setIsDragging(false)
   }, [])
 
+  // Checked here as well as on the server so a candidate is told before a
+  // long upload, not after it.
+  const pickFile = useCallback((picked: File | undefined) => {
+    if (!picked) return
+    const extension = picked.name.slice(picked.name.lastIndexOf('.')).toLowerCase()
+    if (!ACCEPTED_EXTENSIONS.includes(extension)) {
+      toast.error('Unsupported file type', { description: `Allowed: ${ACCEPTED_EXTENSIONS.join(', ')}` })
+      return
+    }
+    if (picked.size > MAX_UPLOAD_BYTES) {
+      toast.error('File is too large', { description: 'The limit is 10MB.' })
+      return
+    }
+    setFile(picked)
+  }, [])
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-    const droppedFile = e.dataTransfer.files[0]
-    if (droppedFile) {
-      setFile(droppedFile)
-    }
-  }, [])
+    pickFile(e.dataTransfer.files[0])
+  }, [pickFile])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0]
-    if (selectedFile) {
-      setFile(selectedFile)
-    }
+    pickFile(e.target.files?.[0])
   }
 
   const removeFile = () => {
@@ -87,21 +115,26 @@ export default function SubmitPage({ params }: { params: Promise<{ token: string
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-
-    // Show progress animation
-    for (let i = 0; i <= 80; i += 10) {
-      await new Promise((resolve) => setTimeout(resolve, 100))
-      setUploadProgress(i)
-    }
+    setUploadProgress(0)
 
     try {
+      // The file goes first; the submission then refers to it by the key the
+      // server returned, never by a path the client chose.
+      let fileUrl: string | undefined
+      if (file) {
+        const uploaded = await api.uploadSubmissionFile(token, file, (fraction) =>
+          setUploadProgress(Math.round(fraction * 100)),
+        )
+        fileUrl = uploaded.file_url
+      }
+
       await api.submitTask(token, {
+        file_url: fileUrl,
         github_url: formData.githubUrl || undefined,
         description: formData.description || undefined,
       })
-      setUploadProgress(100)
       setIsComplete(true)
-      toast.success('Submission uploaded successfully!')
+      toast.success('Submission received')
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Submission failed'
       toast.error('Submission failed', { description: message })
@@ -113,7 +146,37 @@ export default function SubmitPage({ params }: { params: Promise<{ token: string
 
   const daysRemaining = taskDeadline ? Math.ceil(
     (new Date(taskDeadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-  ) : 7 // default to 7 days if no deadline
+  ) : null
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-4">
+        <Spinner className="h-8 w-8 text-primary" />
+        <p className="text-muted-foreground">Loading your task…</p>
+      </div>
+    )
+  }
+
+  if (pageError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-border/50">
+          <CardContent className="p-8 text-center">
+            <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-5">
+              <AlertCircle className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h1 className="text-xl font-bold mb-2">We couldn&apos;t find that task</h1>
+            <p className="text-muted-foreground text-sm mb-6">
+              {pageError} Check that you copied the whole link from your email.
+            </p>
+            <Button asChild variant="outline">
+              <Link href="/">Go to homepage</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   if (isComplete) {
     return (
@@ -143,10 +206,10 @@ export default function SubmitPage({ params }: { params: Promise<{ token: string
               <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 mb-6">
                 <div className="flex items-center justify-center gap-2 text-primary">
                   <Brain className="h-5 w-5" />
-                  <span className="font-medium">AI Interview Link Coming Soon</span>
+                  <span className="font-medium">Next: your AI interview</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
-                  You will receive an email with your AI interview link within 24 hours.
+                  We have emailed you the interview link. Check your inbox, and your spam folder if it is not there.
                 </p>
               </div>
 
@@ -187,7 +250,7 @@ export default function SubmitPage({ params }: { params: Promise<{ token: string
           <div className="mb-8">
             <h1 className="text-2xl font-bold">Submit Your Task</h1>
             <p className="text-muted-foreground mt-1">
-              Hello, submit your completed task for {driveName || 'this drive'}.
+              {applicantName ? `Hello ${applicantName.split(' ')[0]}, s` : 'S'}ubmit your completed task for {driveName || 'this drive'}.
             </p>
           </div>
 
@@ -201,6 +264,7 @@ export default function SubmitPage({ params }: { params: Promise<{ token: string
                     Task Assignment
                   </CardDescription>
                 </div>
+                {daysRemaining !== null && (
                 <Badge
                   variant="secondary"
                   className={cn(
@@ -214,12 +278,13 @@ export default function SubmitPage({ params }: { params: Promise<{ token: string
                   <Clock className="mr-1 h-3 w-3" />
                   {daysRemaining > 0 ? `${daysRemaining} days left` : 'Deadline passed'}
                 </Badge>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-4 rounded-lg bg-muted/50">
                 <h3 className="font-medium mb-2">Task Description</h3>
-                <p className="text-sm text-muted-foreground">{taskDescription || 'Complete the assigned task and submit your work.'}</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{taskDescription || 'Complete the assigned task and submit your work.'}</p>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="h-4 w-4" />
@@ -274,13 +339,13 @@ export default function SubmitPage({ params }: { params: Promise<{ token: string
                         <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
                         <p className="font-medium">Drag and drop your files here</p>
                         <p className="text-sm text-muted-foreground mt-1">
-                          or click to browse (ZIP, PDF, up to 50MB)
+                          or click to browse (ZIP, PDF, Word, image or text, up to 10MB)
                         </p>
                         <input
                           type="file"
                           onChange={handleFileChange}
                           className="absolute inset-0 opacity-0 cursor-pointer"
-                          accept=".zip,.pdf,.doc,.docx"
+                          accept={ACCEPTED_EXTENSIONS.join(',')}
                         />
                       </>
                     )}
@@ -329,7 +394,7 @@ export default function SubmitPage({ params }: { params: Promise<{ token: string
                 </div>
 
                 {/* Upload Progress */}
-                {isSubmitting && (
+                {isSubmitting && file && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span>Uploading...</span>
@@ -340,7 +405,7 @@ export default function SubmitPage({ params }: { params: Promise<{ token: string
                 )}
 
                 {/* Warning */}
-                {daysRemaining <= 0 && (
+                {daysRemaining !== null && daysRemaining <= 0 && (
                   <div className="flex items-start gap-3 p-4 rounded-lg bg-rose/10 border border-rose/20">
                     <AlertCircle className="h-5 w-5 text-rose flex-shrink-0 mt-0.5" />
                     <div>
