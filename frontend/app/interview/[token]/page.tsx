@@ -25,7 +25,7 @@ import {
   Volume2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { api, type InterviewConfig, type InterviewEndResponse } from '@/lib/api'
+import { api, type InterviewConfig } from '@/lib/api'
 
 // Interview configuration
 const TOTAL_TIME = 300 // 5 minutes in seconds
@@ -63,9 +63,6 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
   const [messages, setMessages] = useState<Array<{ role: 'ai' | 'user'; text: string }>>([])
   const [userResponse, setUserResponse] = useState('')
   const [showMalpracticeWarning, setShowMalpracticeWarning] = useState(false)
-  // Null until the server has actually scored the interview. Never filled in
-  // on the client: a number shown here is read as the candidate's result.
-  const [result, setResult] = useState<InterviewEndResponse | null>(null)
   const [endError, setEndError] = useState('')
   const [recordingSaved, setRecordingSaved] = useState<boolean | null>(null)
   const [interviewConfig, setInterviewConfig] = useState<InterviewConfig | null>(null)
@@ -299,11 +296,11 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
     const recording = await stopRecording()
 
     try {
-      setResult(await api.endInterview(token))
+      await api.endInterview(token)
     } catch (err) {
       const message = err instanceof Error ? err.message : ''
       // A retry after a response that was lost on the way back: the interview
-      // was saved, only the scores went missing. Finish without them.
+      // was saved, so there is nothing left to do but finish.
       if (!/already ended/i.test(message)) {
         console.error('Failed to end interview:', err)
         setEndError(message || 'We could not save your interview.')
@@ -364,10 +361,6 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
   }
 
   if (stage === 'complete') {
-    const scores = result
-      ? { intro: result.score_intro, project: result.score_project, domain: result.score_domain }
-      : null
-
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <motion.div
@@ -402,59 +395,9 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
                 </div>
               )}
 
-              {scores && result && (
-              <>
-              {/* Score Breakdown */}
-              <div className="grid grid-cols-3 gap-4 mb-8">
-                {ROUNDS.map((round) => (
-                  <div key={round.id} className="text-center">
-                    <div className="relative inline-flex items-center justify-center">
-                      <svg className="w-20 h-20 transform -rotate-90">
-                        <circle
-                          cx="40"
-                          cy="40"
-                          r="36"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          className="text-muted"
-                        />
-                        <motion.circle
-                          cx="40"
-                          cy="40"
-                          r="36"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          strokeLinecap="round"
-                          className={`text-${round.color}`}
-                          initial={{ strokeDasharray: '0 226' }}
-                          animate={{ strokeDasharray: `${(scores[round.id as keyof typeof scores] / 100) * 226} 226` }}
-                          transition={{ duration: 1, delay: 0.5 }}
-                        />
-                      </svg>
-                      <span className="absolute text-lg font-bold">
-                        {scores[round.id as keyof typeof scores]}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">{round.name}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Total Score */}
-              <div className="p-4 rounded-xl gradient-primary mb-6">
-                <div className="text-white">
-                  <span className="text-sm opacity-80">Total Score</span>
-                  <div className="text-4xl font-bold">{result.total_score}%</div>
-                </div>
-              </div>
-              </>
-              )}
-
               <p className="text-sm text-muted-foreground mb-6">
-                The recruiter will review your interview and get back to you soon.
-                You will receive an email with the detailed results.
+                The recruiter will review your interview and let you know the
+                outcome by email.
               </p>
 
               <Button variant="outline" onClick={() => window.close()}>
