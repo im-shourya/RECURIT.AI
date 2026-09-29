@@ -567,7 +567,7 @@ docker-compose ps
 | Variable | Required | Description |
 |:---------|:--------:|:------------|
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `SECRET_KEY` | Yes | JWT signing secret |
+| `SECRET_KEY` | Yes | JWT signing secret. In production it must be at least 32 characters and not a placeholder, or the backend refuses to start (`openssl rand -hex 32`) |
 | `ALGORITHM` | — | JWT algorithm (default: `HS256`) |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | — | Token TTL (default: `1440`) |
 | `REDIS_URL` | Yes | Redis connection string |
