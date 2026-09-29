@@ -11,6 +11,7 @@ import {
   Github,
   Mail,
   Play,
+  Send,
   ShieldCheck,
   Trash2,
   XSquare,
@@ -69,6 +70,7 @@ export default function ApplicantProfilePage() {
   const [applicant, setApplicant] = useState<ApplicantResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [deciding, setDeciding] = useState(false)
+  const [inviting, setInviting] = useState(false)
   const [recordingUrl, setRecordingUrl] = useState('')
   const [loadingRecording, setLoadingRecording] = useState(false)
 
@@ -99,6 +101,20 @@ export default function ApplicantProfilePage() {
       toast.error('Could not record the decision', { description: err.message })
     } finally {
       setDeciding(false)
+    }
+  }
+
+  const invite = async () => {
+    setInviting(true)
+    try {
+      setApplicant(await api.inviteToInterview(id))
+      toast.success('Invited to interview', {
+        description: 'They have been emailed their interview link.',
+      })
+    } catch (err: any) {
+      toast.error('Could not send the invitation', { description: err.message })
+    } finally {
+      setInviting(false)
     }
   }
 
@@ -423,6 +439,23 @@ export default function ApplicantProfilePage() {
                 </>
               ) : (
                 <>
+                  {applicant.status === 'submitted' && can('admin') && (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        Their work is in. Invite them to the interview if it
+                        is worth taking further — or decide now without one.
+                      </p>
+                      <Button onClick={invite} disabled={inviting} className="w-full">
+                        {inviting ? (
+                          <Spinner className="mr-2 h-4 w-4" />
+                        ) : (
+                          <Send className="mr-2 h-4 w-4" />
+                        )}
+                        Invite to interview
+                      </Button>
+                      <Separator />
+                    </>
+                  )}
                   <p className="text-sm text-muted-foreground">
                     {can('admin')
                       ? 'Review the evidence, then decide. The candidate is emailed the outcome immediately, and the decision cannot be undone.'
@@ -431,6 +464,7 @@ export default function ApplicantProfilePage() {
                   {can('admin') && (
                     <div className="flex flex-col gap-2">
                       <Button
+                        variant={applicant.status === 'submitted' ? 'outline' : 'default'}
                         onClick={() => decide('selected')}
                         disabled={deciding}
                         className="w-full"
