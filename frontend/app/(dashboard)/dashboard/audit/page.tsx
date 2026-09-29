@@ -7,6 +7,7 @@ import {
   FileText,
   KeyRound,
   ScrollText,
+  Send,
   Trash2,
   UserMinus,
   UserPlus,
@@ -31,6 +32,7 @@ const PAGE_SIZE = 50
 
 /** Action -> how it reads in the timeline, and the icon that carries it. */
 const ACTIONS: Record<string, { label: string; icon: typeof CheckSquare; tone: string }> = {
+  'applicant.invited': { label: 'invited to interview', icon: Send, tone: 'text-primary' },
   'applicant.selected': { label: 'selected', icon: CheckSquare, tone: 'text-emerald' },
   'applicant.rejected': { label: 'rejected', icon: XSquare, tone: 'text-muted-foreground' },
   'applicant.deleted': { label: 'erased', icon: Trash2, tone: 'text-destructive' },

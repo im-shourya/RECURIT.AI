@@ -634,6 +634,10 @@ export const api = {
   getApplicant: (id: string) =>
     request<ApplicantResponse>(`/api/applicants/${id}`, {}, true),
 
+  /** Moves a submitted candidate on to the interview and emails them the link. */
+  inviteToInterview: (id: string) =>
+    request<ApplicantResponse>(`/api/applicants/${id}/invite`, { method: 'POST' }, true),
+
   decideApplicant: (id: string, decision: 'selected' | 'rejected') =>
     request<{ id: string; status: string; result_email_sent: boolean }>(
       `/api/applicants/${id}/decision`,
