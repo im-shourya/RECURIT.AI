@@ -245,3 +245,38 @@ def test_status_view_still_withholds_the_recruiters_evidence():
     fields = ApplicantStatusView.model_fields
     for leaked in ("total_score", "score_intro", "transcript", "malpractice_flags"):
         assert leaked not in fields, f"{leaked} must not reach the candidate"
+
+
+def test_ending_an_interview_does_not_hand_the_candidate_their_score():
+    """
+    /interview/{token}/end is called by the candidate, unauthenticated. The
+    status view withholds scores, so returning them here undid that.
+    """
+    from app.models.schemas import InterviewEndResponse
+
+    fields = InterviewEndResponse.model_fields
+    for leaked in ("total_score", "score_intro", "score_project", "score_domain"):
+        assert leaked not in fields, f"{leaked} must not reach the candidate"
+
+
+async def test_the_end_endpoint_scores_but_returns_no_score(applicant):
+    from datetime import datetime, timedelta, timezone
+
+    from fastapi.testclient import TestClient
+
+    from app.models.documents import Applicant, Interview
+
+    applicant.interview = Interview(
+        token="interview-token-alex",
+        started_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc) + timedelta(days=1),
+        transcript=[{"round": "intro", "question": "q", "answer": "a"}],
+    )
+    await applicant.save()
+
+    response = TestClient(app).post("/api/interview/interview-token-alex/end", json={})
+
+    assert response.status_code == 200
+    assert "score" not in response.text
+    # Still scored and stored for the recruiter.
+    assert (await Applicant.get(applicant.id)).interview.score_intro == 25

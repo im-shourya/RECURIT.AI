@@ -361,10 +361,11 @@ class InterviewEndRequest(BaseModel):
 
 
 class InterviewEndResponse(BaseModel):
-    total_score: int
-    score_intro: int
-    score_project: int
-    score_domain: int
+    """
+    Carries no scores. The caller is the candidate, unauthenticated, and
+    ApplicantStatusView withholds scores for the same reason: seeing them
+    would tell a candidate how they are being graded while they still are.
+    """
     message: str = "Interview completed. Thank you!"
 
 
