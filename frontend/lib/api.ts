@@ -292,11 +292,8 @@ export interface InterviewAnswerResponse {
   is_last: boolean;
 }
 
+/** No scores: the recruiter sees those, the candidate does not. */
 export interface InterviewEndResponse {
-  total_score: number;
-  score_intro: number;
-  score_project: number;
-  score_domain: number;
   message: string;
 }
 
