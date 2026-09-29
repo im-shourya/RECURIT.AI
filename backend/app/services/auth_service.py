@@ -11,7 +11,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 
@@ -20,7 +20,16 @@ from app.models.documents import ROLE_RANK, Organisation, User, UserRole
 
 settings = get_settings()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+# auto_error off: the browser authenticates with the session cookie, and the
+# bearer header is only a fallback for API clients and the docs page.
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
+
+# Set by the frontend's fetch wrapper. A cross-site form cannot add a custom
+# header, and a cross-site script that tries needs a CORS preflight the API
+# refuses, so requiring it on cookie-authenticated writes closes CSRF even for
+# a browser that ignores SameSite.
+CSRF_HEADER = "X-Requested-With"
+_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 
 # ── Password utilities ──
@@ -47,6 +56,29 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
 def issue_token(user: User) -> str:
     """A session token for this user, bound to their current token_version."""
     return create_access_token(data={"sub": str(user.id), "ver": user.token_version})
+
+
+def set_session_cookie(response: Response, user: User) -> None:
+    """Sign the user in on this browser. The token never reaches JavaScript."""
+    response.set_cookie(
+        key=settings.SESSION_COOKIE_NAME,
+        value=issue_token(user),
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/api",
+        httponly=True,
+        secure=settings.session_cookie_secure,
+        samesite="lax",
+    )
+
+
+def clear_session_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=settings.SESSION_COOKIE_NAME,
+        path="/api",
+        httponly=True,
+        secure=settings.session_cookie_secure,
+        samesite="lax",
+    )
 
 
 def revoke_sessions(user: User) -> None:
@@ -90,7 +122,36 @@ def hash_reset_token(plaintext: str) -> str:
 
 
 # ── Request dependencies ──
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+_not_signed_in = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Not authenticated",
+    headers={"WWW-Authenticate": "Bearer"},
+)
+
+
+async def session_token(
+    request: Request, bearer: str | None = Depends(oauth2_scheme)
+) -> str:
+    """
+    The caller's token: the session cookie, or a bearer header for clients
+    that are not a browser.
+    """
+    if bearer:
+        # A header has to be attached deliberately, so it cannot be forged
+        # cross-site the way an ambient cookie can.
+        return bearer
+
+    cookie = request.cookies.get(settings.SESSION_COOKIE_NAME)
+    if not cookie:
+        raise _not_signed_in
+
+    if request.method not in _SAFE_METHODS and not request.headers.get(CSRF_HEADER):
+        raise HTTPException(status_code=403, detail="Missing CSRF header")
+
+    return cookie
+
+
+async def get_current_user(token: str = Depends(session_token)) -> User:
     """
     Resolve the signed-in user.
 
