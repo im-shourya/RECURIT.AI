@@ -9,11 +9,12 @@ protection otherwise.
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 
 from app.models.documents import PasswordResetToken
 from app.models.schemas import PasswordChangeRequest, ResetPasswordRequest
 from app.routers.auth import change_password, reset_password
+from app.config import get_settings
 from app.services.auth_service import (
     create_access_token,
     decode_token,
@@ -21,6 +22,14 @@ from app.services.auth_service import (
     get_current_user,
     issue_token,
 )
+
+
+def _session_cookie(response: Response) -> str:
+    """The token in the Set-Cookie header the endpoint wrote."""
+    name = get_settings().SESSION_COOKIE_NAME
+    header = response.headers["set-cookie"]
+    assert header.startswith(f"{name}=")
+    return header.split(";", 1)[0].split("=", 1)[1]
 
 
 @pytest.mark.asyncio
@@ -45,8 +54,10 @@ async def test_token_without_a_version_still_works_until_the_first_revocation(ow
 async def test_changing_the_password_revokes_existing_tokens(owner):
     stolen = issue_token(owner)
 
-    response = await change_password(
+    response = Response()
+    await change_password(
         PasswordChangeRequest(current_password="correct-horse", new_password="battery-staple"),
+        response=response,
         user=owner,
     )
 
@@ -54,8 +65,8 @@ async def test_changing_the_password_revokes_existing_tokens(owner):
         await get_current_user(stolen)
     assert exc.value.status_code == 401
 
-    # The tab the change was made from gets a working token back.
-    assert (await get_current_user(response.access_token)).id == owner.id
+    # The browser the change was made from gets a working session back.
+    assert (await get_current_user(_session_cookie(response))).id == owner.id
 
 
 @pytest.mark.asyncio
@@ -64,6 +75,7 @@ async def test_changing_the_password_revokes_legacy_tokens_too(owner):
 
     await change_password(
         PasswordChangeRequest(current_password="correct-horse", new_password="battery-staple"),
+        response=Response(),
         user=owner,
     )
 
@@ -78,6 +90,7 @@ async def test_a_failed_password_change_revokes_nothing(owner):
     with pytest.raises(HTTPException):
         await change_password(
             PasswordChangeRequest(current_password="wrong-password", new_password="battery-staple"),
+            response=Response(),
             user=owner,
         )
 
