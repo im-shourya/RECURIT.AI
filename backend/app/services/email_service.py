@@ -150,7 +150,6 @@ async def send_application_email(
     to_name: str,
     drive_name: str,
     org_name: str,
-    task_link: str = "",
     submission_link: str = "",
 ):
     """Confirm that an application was received."""
@@ -158,7 +157,6 @@ async def send_application_email(
         to_name=to_name,
         drive_name=drive_name,
         org_name=org_name,
-        task_link=task_link,
         submission_link=submission_link,
     )
     return await send_durable(to_email=to_email, subject=subject, html=html, text=text)
@@ -169,7 +167,6 @@ async def send_task_email(
     to_name: str,
     drive_name: str,
     task_description: str,
-    task_link: str,
     submission_link: str,
     deadline: str,
 ):
@@ -178,7 +175,6 @@ async def send_task_email(
         to_name=to_name,
         drive_name=drive_name,
         task_description=task_description,
-        task_link=task_link,
         submission_link=submission_link,
         deadline=deadline,
     )

@@ -244,7 +244,7 @@ def _p(text: str) -> str:
 # ══════════════════════════════════════════════
 def application_received(
     *, to_name: str, drive_name: str, org_name: str,
-    task_link: str = "", submission_link: str = "",
+    submission_link: str = "",
 ) -> tuple[str, str, str]:
     heading = "Application received"
     intro = (
@@ -273,14 +273,13 @@ def application_received(
         "", f"Role: {drive_name}", f"Organisation: {org_name}",
         *( ["", f"Submit your work: {submission_link}"] if submission_link else
            ["", "We will email you the moment there is an update."] ),
-        *( [f"Task details: {task_link}"] if task_link else [] ),
     ])
     return f"Application received — {drive_name}", html, text
 
 
 def task_assigned(
     *, to_name: str, drive_name: str, task_description: str,
-    task_link: str, submission_link: str, deadline: str,
+    submission_link: str, deadline: str,
 ) -> tuple[str, str, str]:
     heading = "Your task is ready"
     intro = (
@@ -309,7 +308,6 @@ def task_assigned(
         "", f"Submit by: {deadline}",
         *( ["", "Task:", task_description] if task_description else [] ),
         "", f"Submit your work: {submission_link}",
-        f"Task details: {task_link}",
     ])
     return f"Your task for {drive_name} — due {deadline}", html, text
 

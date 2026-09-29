@@ -159,6 +159,12 @@ def test_status_view_shows_progress():
     assert {"status", "has_submitted", "interview_completed", "decision"} <= fields
 
 
+def test_status_view_carries_the_task():
+    """The submit page reads the task from here; there is no separate task page."""
+    fields = set(ApplicantStatusView.model_fields)
+    assert {"task_type", "task_description", "task_deadline"} <= fields
+
+
 def test_status_reuses_the_existing_token():
     """No new credential: the candidate already holds this one."""
     import inspect

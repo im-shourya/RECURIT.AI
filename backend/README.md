@@ -78,7 +78,7 @@ backend/
 | POST | `/api/auth/register` | — | Org registration |
 | POST | `/api/auth/login` | — | Returns JWT |
 | GET | `/api/auth/me` | JWT | Current org profile |
-| PATCH | `/api/auth/me` | JWT | Update org profile |
+| PATCH | `/api/auth/me` | admin | Update org profile |
 | POST | `/api/auth/change-password` | JWT | Change org password |
 | POST | `/api/auth/forgot-password` | — | Request a reset link (always 204) |
 | POST | `/api/auth/reset-password` | — | Consume a reset token, set new password |
