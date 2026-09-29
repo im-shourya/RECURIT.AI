@@ -1,17 +1,41 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+/**
+ * Where the browser sends API calls.
+ *
+ * Every call goes to this app's own origin, and next.config.mjs rewrites
+ * /api/* to the backend. That keeps the session cookie first-party: set by
+ * the API's own domain it would be a third-party cookie, which Safari drops.
+ */
+const API_PROXY_BASE = '';
 
-// ── Token helpers ──
-export function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('recruit_ai_token');
+/**
+ * The backend itself, used only for the two large candidate uploads. They
+ * are authenticated by the token in the path rather than the session cookie,
+ * so they gain nothing from the proxy and would only pay for the extra hop.
+ */
+const API_DIRECT_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+/**
+ * Sent on every call. The API refuses cookie-authenticated writes without
+ * it: a cross-site form cannot set a custom header, so it closes CSRF.
+ */
+const CSRF_HEADERS = { 'X-Requested-With': 'fetch' };
+
+/**
+ * The session lives in an httpOnly cookie the browser attaches by itself, so
+ * no script, this one included, can read the token. A 401 inside the
+ * dashboard means it expired; anywhere else it is just "not signed in",
+ * which public pages expect.
+ */
+function handleUnauthorized(): never {
+  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard')) {
+    window.location.href = '/auth/login';
+  }
+  throw new Error('Unauthorized');
 }
 
-export function setToken(token: string) {
-  localStorage.setItem('recruit_ai_token', token);
-}
-
-export function clearToken() {
-  localStorage.removeItem('recruit_ai_token');
+async function failureMessage(res: Response, fallback: string): Promise<string> {
+  const body = await res.json().catch(() => ({}));
+  return body.detail || `${fallback}: ${res.status}`;
 }
 
 // ── Typed fetch wrapper ──
@@ -20,43 +44,8 @@ async function request<T>(
   options: RequestInit = {},
   auth: boolean = false,
 ): Promise<T> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string>),
-  };
-
-  if (auth) {
-    const token = getToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-  }
-
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
-
-  if (res.status === 401) {
-    clearToken();
-    if (typeof window !== 'undefined') {
-      window.location.href = '/auth/login';
-    }
-    throw new Error('Unauthorized');
-  }
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || `Request failed: ${res.status}`);
-  }
-
-  // 204 responses carry no body, so parsing one as JSON would throw on an
-  // otherwise successful request.
-  if (res.status === 204) {
-    return undefined as T;
-  }
-
-  return res.json();
+  const { data } = await requestWithResponse<T>(path, options, auth);
+  return data;
 }
 
 /**
@@ -70,27 +59,26 @@ async function requestWithResponse<T>(
   options: RequestInit = {},
   auth = false,
 ): Promise<{ data: T; response: Response }> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string>),
-  };
+  const response = await fetch(`${API_PROXY_BASE}${path}`, {
+    ...options,
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      ...CSRF_HEADERS,
+      ...(options.headers as Record<string, string>),
+    },
+  });
 
-  if (auth) {
-    const token = getToken();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
-
-  if (response.status === 401) {
-    clearToken();
-    if (typeof window !== 'undefined') window.location.href = '/auth/login';
-    throw new Error('Unauthorized');
-  }
+  if (response.status === 401 && auth) handleUnauthorized();
 
   if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body.detail || `Request failed: ${response.status}`);
+    throw new Error(await failureMessage(response, 'Request failed'));
+  }
+
+  // 204 responses carry no body, so parsing one as JSON would throw on an
+  // otherwise successful request.
+  if (response.status === 204) {
+    return { data: undefined as T, response };
   }
 
   return { data: await response.json(), response };
@@ -99,11 +87,6 @@ async function requestWithResponse<T>(
 // ══════════════════════════════════════════════
 // API TYPES (mirror backend Pydantic schemas)
 // ══════════════════════════════════════════════
-
-export interface TokenResponse {
-  access_token: string;
-  token_type: string;
-}
 
 export type Role = 'owner' | 'admin' | 'member';
 
@@ -359,10 +342,13 @@ export const api = {
     email: string;
     password: string;
     description?: string;
-  }) => request<TokenResponse>('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+  }) => request<OrgProfile>('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
 
   login: (data: { email: string; password: string }) =>
-    request<TokenResponse>('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+    request<OrgProfile>('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+
+  /** Clears the session cookie; the only way to, since no script can see it. */
+  logout: () => request<void>('/api/auth/logout', { method: 'POST' }),
 
   getMe: () => request<OrgProfile>('/api/auth/me', {}, true),
 
@@ -384,21 +370,15 @@ export const api = {
     const form = new FormData();
     form.append('file', file);
 
-    const res = await fetch(`${API_BASE_URL}/api/auth/me/logo`, {
+    const res = await fetch(`${API_PROXY_BASE}/api/auth/me/logo`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+      credentials: 'same-origin',
+      headers: CSRF_HEADERS,
       body: form,
     });
 
-    if (res.status === 401) {
-      clearToken();
-      if (typeof window !== 'undefined') window.location.href = '/auth/login';
-      throw new Error('Unauthorized');
-    }
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.detail || `Upload failed: ${res.status}`);
-    }
+    if (res.status === 401) handleUnauthorized();
+    if (!res.ok) throw new Error(await failureMessage(res, 'Upload failed'));
     return res.json();
   },
 
@@ -406,7 +386,8 @@ export const api = {
     request<OrgProfile>('/api/auth/me/logo', { method: 'DELETE' }, true),
 
   changePassword: (data: { current_password: string; new_password: string }) =>
-    request<TokenResponse>('/api/auth/change-password', { method: 'POST', body: JSON.stringify(data) }, true),
+    // Signs out every other session; this browser gets a fresh cookie back.
+    request<void>('/api/auth/change-password', { method: 'POST', body: JSON.stringify(data) }, true),
 
   // Always resolves, whether or not the address is registered — the API
   // deliberately does not reveal which, so the UI must not either.
@@ -542,7 +523,7 @@ export const api = {
       form.append('file', file);
 
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `${API_BASE_URL}/api/submit/${submitToken}/upload`);
+      xhr.open('POST', `${API_DIRECT_BASE}/api/submit/${submitToken}/upload`);
       xhr.responseType = 'json';
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) onProgress?.(e.loaded / e.total);
@@ -573,7 +554,7 @@ export const api = {
     const form = new FormData();
     form.append('file', file, filename);
 
-    const res = await fetch(`${API_BASE_URL}/api/interview/${token}/recording`, {
+    const res = await fetch(`${API_DIRECT_BASE}/api/interview/${token}/recording`, {
       method: 'POST',
       body: form,
     });
@@ -676,17 +657,19 @@ export const api = {
   /**
    * CSV export.
    *
-   * Fetched as a blob rather than linked directly, because the endpoint needs
-   * the Authorization header and a plain <a href> cannot send one.
+   * Fetched as a blob rather than parsed, so it cannot go through request(),
+   * which reads every body as JSON.
    */
   exportApplicants: async (params: { drive_id?: string; status?: string; q?: string } = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '') as [string, string][],
     ).toString();
-    const res = await fetch(`${API_BASE_URL}/api/applicants/export${query ? `?${query}` : ''}`, {
-      headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+    const res = await fetch(`${API_PROXY_BASE}/api/applicants/export${query ? `?${query}` : ''}`, {
+      credentials: 'same-origin',
+      headers: CSRF_HEADERS,
     });
-    if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+    if (res.status === 401) handleUnauthorized();
+    if (!res.ok) throw new Error(await failureMessage(res, 'Export failed'));
     return res.blob();
   },
 
