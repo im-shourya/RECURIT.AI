@@ -155,6 +155,41 @@ export interface ApplicantResponse {
   interview?: InterviewSummary | null;
 }
 
+/**
+ * The response to a successful application.
+ *
+ * Separate from ApplicantResponse because it carries `submit_token` — the
+ * candidate's own capability token, which must not appear in the
+ * organisation-facing list and detail responses.
+ */
+export interface ApplyAcceptedResponse {
+  id: string;
+  drive_id: string;
+  name: string;
+  email: string;
+  status: string;
+  applied_at: string;
+  submit_token: string;
+}
+
+/**
+ * What a candidate may see about their own application.
+ *
+ * Mirrors the backend schema, which deliberately excludes interview scores,
+ * the transcript and malpractice flags.
+ */
+export interface ApplicantStatusView {
+  name: string;
+  drive_name: string;
+  organisation_name: string;
+  status: string;
+  applied_at: string;
+  task_deadline: string | null;
+  has_submitted: boolean;
+  interview_completed: boolean;
+  decision: string | null;
+}
+
 export interface TeamMember {
   id: string;
   name: string;
@@ -448,7 +483,7 @@ export const api = {
     skills: string[];
     primary_domain: string;
     github_url?: string;
-  }) => request<ApplicantResponse>(`/api/apply/${token}`, { method: 'POST', body: JSON.stringify(data) }),
+  }) => request<ApplyAcceptedResponse>(`/api/apply/${token}`, { method: 'POST', body: JSON.stringify(data) }),
 
   // ── Submit (public) ──
   // Keyed on the submission token from the emailed link, never an applicant id.
@@ -649,18 +684,10 @@ export const api = {
   },
 
   // ── Candidate self-service ──
+  // Reuses the token the candidate already holds, so no new credential is
+  // introduced. Backs the /status/[token] page.
   getOwnStatus: (submitToken: string) =>
-    request<{
-      name: string;
-      drive_name: string;
-      organisation_name: string;
-      status: string;
-      applied_at: string;
-      task_deadline: string | null;
-      has_submitted: boolean;
-      interview_completed: boolean;
-      decision: string | null;
-    }>(`/api/status/${submitToken}`),
+    request<ApplicantStatusView>(`/api/status/${submitToken}`),
 
   getAnalytics: () => request<AnalyticsResponse>('/api/analytics/dashboard', {}, true),
 };
