@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Select,
@@ -24,6 +25,9 @@ import {
 } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { api, AuditEntry } from '@/lib/api'
+
+/** Matches the applicants list, so the two pagers behave identically. */
+const PAGE_SIZE = 50
 
 /** Action -> how it reads in the timeline, and the icon that carries it. */
 const ACTIONS: Record<string, { label: string; icon: typeof CheckSquare; tone: string }> = {
@@ -51,28 +55,41 @@ function when(iso: string): string {
 
 export default function AuditPage() {
   const [entries, setEntries] = useState<AuditEntry[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [action, setAction] = useState('all')
+  const [offset, setOffset] = useState(0)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      setEntries(
-        await api.listAudit({
-          action: action === 'all' ? undefined : action,
-          limit: 100,
-        }),
-      )
+      const page = await api.listAudit({
+        action: action === 'all' ? undefined : action,
+        limit: PAGE_SIZE,
+        offset,
+      })
+      setEntries(page.items)
+      setTotal(page.total)
     } catch (err: any) {
       toast.error('Could not load the audit trail', { description: err.message })
     } finally {
       setLoading(false)
     }
-  }, [action])
+  }, [action, offset])
 
   useEffect(() => {
     load()
   }, [load])
+
+  /**
+   * Changing the filter has to reset the offset too. Without this, filtering
+   * while on page three asks for entries 100-150 of a set that may only have
+   * four, and the page reads as empty.
+   */
+  const changeAction = (next: string) => {
+    setAction(next)
+    setOffset(0)
+  }
 
   return (
     <motion.div
@@ -91,7 +108,7 @@ export default function AuditPage() {
           </p>
         </div>
 
-        <Select value={action} onValueChange={setAction}>
+        <Select value={action} onValueChange={changeAction}>
           <SelectTrigger className="w-[210px]">
             <SelectValue placeholder="All activity" />
           </SelectTrigger>
@@ -173,6 +190,30 @@ export default function AuditPage() {
             })}
           </div>
         </Card>
+      )}
+
+      {total > PAGE_SIZE && (
+        <div className="flex items-center justify-between">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={offset === 0 || loading}
+            onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+          >
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground tabular-nums">
+            {offset + 1}–{Math.min(offset + PAGE_SIZE, total)} of {total}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={offset + PAGE_SIZE >= total || loading}
+            onClick={() => setOffset(offset + PAGE_SIZE)}
+          >
+            Next
+          </Button>
+        </div>
       )}
     </motion.div>
   )

@@ -71,6 +71,7 @@ export default function ApplyPage({ params }: { params: Promise<{ token: string 
     githubUrl: '',
   })
 
+  const [statusToken, setStatusToken] = useState('')
   const [drive, setDrive] = useState<DrivePublicResponse | null>(null)
   const [loadingDrive, setLoadingDrive] = useState(true)
   const [driveError, setDriveError] = useState('')
@@ -112,7 +113,7 @@ export default function ApplyPage({ params }: { params: Promise<{ token: string 
     setIsSubmitting(true)
 
     try {
-      await api.submitApplication(token, {
+      const accepted = await api.submitApplication(token, {
         name: formData.name,
         email: formData.email,
         reg_no: formData.regNo || undefined,
@@ -121,6 +122,10 @@ export default function ApplyPage({ params }: { params: Promise<{ token: string 
         github_url: formData.githubUrl || undefined,
       })
 
+      // Shown on the success screen so the emailed link is no longer the only
+      // copy the candidate ever receives. If that email bounces or lands in
+      // spam, this is their way back in.
+      setStatusToken(accepted.submit_token)
       setIsComplete(true)
       toast.success('Application submitted successfully!')
     } catch (err: unknown) {
@@ -181,6 +186,34 @@ export default function ApplyPage({ params }: { params: Promise<{ token: string 
                   </li>
                 </ul>
               </div>
+
+              {statusToken && (
+                <div className="mb-6 rounded-lg border border-primary/30 bg-primary/5 p-4 text-left">
+                  <h3 className="font-medium text-sm mb-1">Save your status link</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Bookmark this. It is how you check your progress and submit
+                    your work if the email does not reach you.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button asChild size="sm">
+                      <Link href={`/status/${statusToken}`}>Open my status page</Link>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          `${window.location.origin}/status/${statusToken}`,
+                        )
+                        toast.success('Status link copied')
+                      }}
+                    >
+                      Copy link
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               <Button asChild variant="outline">
                 <Link href="/">

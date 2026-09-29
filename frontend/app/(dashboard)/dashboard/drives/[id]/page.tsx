@@ -14,13 +14,26 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
-  MoreHorizontal
+  MoreHorizontal,
+  Pencil,
+  Trash2
 } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +53,13 @@ export default function DriveDetailsPage() {
   const [drive, setDrive] = useState<DriveDetailResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({ name: '', domain: '', task_description: '' })
+  const [savingEdit, setSavingEdit] = useState(false)
+
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     async function fetchDrive() {
@@ -97,6 +117,48 @@ export default function DriveDetailsPage() {
     }
   }
 
+  const openEdit = () => {
+    setEditForm({
+      name: drive.name,
+      domain: drive.domain,
+      task_description: drive.task_description ?? '',
+    })
+    setEditOpen(true)
+  }
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSavingEdit(true)
+    try {
+      const updated = await api.updateDrive(drive.id, editForm)
+      // The PATCH response is a DriveResponse; the page holds a detail object,
+      // so merge rather than replace or the applicant list disappears.
+      setDrive({ ...drive, ...updated })
+      setEditOpen(false)
+      toast.success('Drive updated')
+    } catch (err: any) {
+      toast.error('Could not update the drive', { description: err.message })
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  /**
+   * Deleting takes every applicant with it, so the API refuses with 409 unless
+   * ?confirm=true. The dialog spells out the count before we send it.
+   */
+  const confirmDelete = async () => {
+    setDeleting(true)
+    try {
+      await api.deleteDrive(drive.id, true)
+      toast.success('Drive deleted')
+      router.push('/dashboard/drives')
+    } catch (err: any) {
+      toast.error('Could not delete the drive', { description: err.message })
+      setDeleting(false)
+    }
+  }
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -130,15 +192,121 @@ export default function DriveDetailsPage() {
             Copy Link
           </Button>
           {can('admin') && (
-            <Button 
-              variant={drive.status === 'active' ? 'destructive' : 'default'} 
-              onClick={toggleStatus}
+            <>
+              <Button variant="outline" onClick={openEdit}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+              <Button
+                variant={drive.status === 'active' ? 'destructive' : 'default'}
+                onClick={toggleStatus}
+              >
+                {drive.status === 'active' ? 'Close Drive' : 'Reopen Drive'}
+              </Button>
+            </>
+          )}
+          {can('owner') && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-destructive"
+              aria-label="Delete drive"
+              onClick={() => setDeleteOpen(true)}
             >
-              {drive.status === 'active' ? 'Close Drive' : 'Reopen Drive'}
+              <Trash2 className="h-4 w-4" />
             </Button>
           )}
         </div>
       </div>
+
+      {/* Edit. task_type and the apply link are deliberately not editable:
+          switching flows mid-round strands applicants, and rotating the token
+          breaks every share and QR code already handed out. */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <form onSubmit={saveEdit}>
+            <DialogHeader>
+              <DialogTitle>Edit drive</DialogTitle>
+              <DialogDescription>
+                The apply link and the task type stay as they are.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="drive-name">Name</Label>
+                <Input
+                  id="drive-name"
+                  value={editForm.name}
+                  minLength={2}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="drive-domain">Domain</Label>
+                <Input
+                  id="drive-domain"
+                  value={editForm.domain}
+                  minLength={2}
+                  onChange={(e) => setEditForm({ ...editForm, domain: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="drive-task">Task description</Label>
+                <Textarea
+                  id="drive-task"
+                  rows={4}
+                  value={editForm.task_description}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, task_description: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={savingEdit}>
+                {savingEdit && <Spinner className="mr-2 h-4 w-4" />}
+                Save changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete this drive?</DialogTitle>
+            <DialogDescription>
+              {drive.applicant_count > 0 ? (
+                <>
+                  This also permanently erases{' '}
+                  <strong>{drive.applicant_count} applicant(s)</strong>, including
+                  their submissions and interview transcripts. This cannot be
+                  undone. Closing the drive keeps the data.
+                </>
+              ) : (
+                <>This drive has no applicants. This cannot be undone.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
+              {deleting && <Spinner className="mr-2 h-4 w-4" />}
+              Delete permanently
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Drive Info */}
