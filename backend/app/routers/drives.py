@@ -35,7 +35,6 @@ from app.models.schemas import (
 from app.services import audit
 from app.services import cascade
 from app.services.auth_service import get_current_org, require_role
-from app.services.qr_service import generate_qr_for_drive
 
 router = APIRouter(prefix="/drives", tags=["Drives"])
 
@@ -67,7 +66,6 @@ def _to_response(drive: Drive, applicant_count: int = 0) -> DriveResponse:
         apply_deadline=drive.apply_deadline,
         task_deadline=drive.task_deadline,
         link_token=drive.link_token,
-        qr_code_url=drive.qr_code_url,
         status=drive.status.value,
         created_at=drive.created_at,
         applicant_count=applicant_count,
@@ -126,7 +124,6 @@ async def create_drive(
         apply_deadline=body.apply_deadline,
         task_deadline=body.task_deadline,
         link_token=link_token,
-        qr_code_url=generate_qr_for_drive(link_token),
     )
     await drive.insert()
 
