@@ -130,8 +130,8 @@ doesn't exist and the interview invitation is sent when they apply.
 
 | Layer | Technology |
 |:------|:-----------|
-| Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui on Radix, Framer Motion, Recharts |
-| Backend | FastAPI, Beanie ODM on Motor (MongoDB), Pydantic v2, python-jose (JWT), bcrypt, boto3, qrcode |
+| Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui on Radix, Framer Motion, Recharts, qrcode.react |
+| Backend | FastAPI, Beanie ODM on Motor (MongoDB), Pydantic v2, python-jose (JWT), bcrypt, boto3 |
 | Data | MongoDB (Atlas in production), Redis for shared rate-limit counters (optional) |
 | Files | Any S3-compatible bucket, with private objects served through short-lived signed links |
 | Email | Resend, with versioned templates in `backend/app/services/email_templates.py` |
@@ -224,7 +224,7 @@ RECURIT.AI/
 │   │   ├── routers/           auth, drives, applicants, applicant_admin,
 │   │   │                      interviews, analytics, audit, team
 │   │   ├── services/          auth, email + outbox, storage, cascade
-│   │   │                      deletes, audit, rate limiting, QR codes
+│   │   │                      deletes, audit, rate limiting
 │   │   └── models/            Beanie documents and API schemas
 │   ├── scripts/               One-off maintenance, e.g. the Postgres→Mongo migration
 │   └── tests/                 pytest suite (runs against an in-memory MongoDB)
