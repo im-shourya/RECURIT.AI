@@ -48,7 +48,14 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-2xl font-semibold text-foreground">4. Contact Us</h2>
+            <h2 className="text-2xl font-semibold text-foreground">4. Data Retention</h2>
+            <p>
+              Hiring organisations keep an activity log of decisions made about applicants, such as invitations, selections, rejections and deletions. Each entry records the applicant&apos;s name as it was at the time, so it stays in the log even after the applicant&apos;s record is deleted. Entries are deleted automatically two years after they are written, or straight away if the organisation deletes its account.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-2xl font-semibold text-foreground">5. Contact Us</h2>
             <p>
               If you have any questions about this Privacy Policy, your data, or would like to request account deletion, please consult the organisation you applied to or contact us directly at support@shouryaparashar.in.
             </p>
