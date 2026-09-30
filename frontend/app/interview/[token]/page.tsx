@@ -52,7 +52,9 @@ function pickRecordingType() {
 
 export default function InterviewPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params)
-  const [stage, setStage] = useState<'setup' | 'ready' | 'interview' | 'processing' | 'complete' | 'failed' | 'error'>('setup')
+  const [stage, setStage] = useState<
+    'checking' | 'unavailable' | 'setup' | 'ready' | 'interview' | 'processing' | 'complete' | 'failed' | 'error'
+  >('checking')
   const [currentRound, setCurrentRound] = useState(0)
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [timeRemaining, setTimeRemaining] = useState(TOTAL_TIME)
@@ -66,6 +68,7 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
   const [endError, setEndError] = useState('')
   const [recordingSaved, setRecordingSaved] = useState<boolean | null>(null)
   const [interviewConfig, setInterviewConfig] = useState<InterviewConfig | null>(null)
+  const [linkError, setLinkError] = useState('')
   
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -86,6 +89,30 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
       }
     }
   }, [])
+
+  // Check the link before asking for anything. Camera and microphone access
+  // is the most invasive thing this page requests, so nobody holding an
+  // expired, used or mistyped link should be asked for it.
+  useEffect(() => {
+    let active = true
+
+    api
+      .getInterviewConfig(token)
+      .then((config) => {
+        if (!active) return
+        setInterviewConfig(config)
+        setStage('setup')
+      })
+      .catch((err) => {
+        if (!active) return
+        setLinkError(err instanceof Error ? err.message : '')
+        setStage('unavailable')
+      })
+
+    return () => {
+      active = false
+    }
+  }, [token])
 
   // Setup camera
   useEffect(() => {
@@ -211,10 +238,7 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
     startRecording()
     
     try {
-      const config = await api.getInterviewConfig(token)
-      setInterviewConfig(config)
-      
-      const res = await api.startInterview(token)
+      await api.startInterview(token)
       // Show first AI question from config or a default
       setTimeout(() => {
         setMessages([{ role: 'ai', text: "Hello! Welcome to your interview. Let's start with you telling me a bit about yourself - your background, interests, and what motivates you." }])
@@ -339,6 +363,34 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
   // Calculate progress percentage
   const progressPercentage = ((TOTAL_TIME - timeRemaining) / TOTAL_TIME) * 100
   const progressColor = progressPercentage < 60 ? 'bg-cyan' : progressPercentage < 85 ? 'bg-primary' : 'bg-rose'
+
+  if (stage === 'checking') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Spinner className="h-8 w-8 text-primary" />
+      </div>
+    )
+  }
+
+  if (stage === 'unavailable') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-border/50">
+          <CardContent className="p-8 text-center">
+            <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-rose/10 mb-5">
+              <AlertCircle className="h-8 w-8 text-rose" />
+            </div>
+            <h1 className="text-xl font-bold mb-2">This interview link cannot be used</h1>
+            <p className="text-muted-foreground text-sm">
+              {/* Server messages carry no trailing full stop. */}
+              {(linkError || 'The link is invalid').replace(/\.?$/, '.')} If you
+              think this is a mistake, reply to the email that sent you the link.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   if (stage === 'failed') {
     return (
