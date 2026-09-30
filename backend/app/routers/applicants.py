@@ -195,6 +195,11 @@ async def submit_application(
 
     submission_link = f"{settings.FRONTEND_URL}/submit/{applicant.submit_token}"
 
+    # The log entry names the outbox document that will carry the
+    # confirmation, and the outbox writes the delivery outcome back to it.
+    applied_log = EmailLogEntry(type=EmailType.APPLIED)
+    applicant.email_logs.append(applied_log)
+
     if drive.task_type == TaskType.TASK:
         applicant.status = ApplicantStatus.TASK_SENT
         background_tasks.add_task(
@@ -204,12 +209,15 @@ async def submit_application(
             drive_name=drive.name,
             org_name=org_name,
             submission_link=submission_link,
+            outbox_id=applied_log.outbox_id,
         )
 
     elif drive.task_type == TaskType.GITHUB:
         if body.github_url:
             applicant.interview = new_interview()
             applicant.status = ApplicantStatus.INTERVIEW_SENT
+            interview_log = EmailLogEntry(type=EmailType.INTERVIEW)
+            applicant.email_logs.append(interview_log)
 
             background_tasks.add_task(
                 send_application_email,
@@ -217,6 +225,7 @@ async def submit_application(
                 to_name=applicant.name,
                 drive_name=drive.name,
                 org_name=org_name,
+                outbox_id=applied_log.outbox_id,
             )
             background_tasks.add_task(
                 send_interview_email,
@@ -224,6 +233,7 @@ async def submit_application(
                 to_name=applicant.name,
                 drive_name=drive.name,
                 interview_link=f"{settings.FRONTEND_URL}/interview/{applicant.interview.token}",
+                outbox_id=interview_log.outbox_id,
             )
             # TODO: trigger RepoLens analysis once the GitAnalyser service is wired in
         else:
@@ -233,9 +243,9 @@ async def submit_application(
                 to_name=applicant.name,
                 drive_name=drive.name,
                 org_name=org_name,
+                outbox_id=applied_log.outbox_id,
             )
 
-    applicant.email_logs.append(EmailLogEntry(type=EmailType.APPLIED))
     await applicant.save()
 
     return ApplyAcceptedResponse(

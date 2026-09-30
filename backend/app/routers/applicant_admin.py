@@ -412,7 +412,8 @@ async def invite_to_interview(
 
     applicant.interview = new_interview()
     applicant.status = ApplicantStatus.INTERVIEW_SENT
-    applicant.email_logs.append(EmailLogEntry(type=EmailType.INTERVIEW))
+    email_log = EmailLogEntry(type=EmailType.INTERVIEW)
+    applicant.email_logs.append(email_log)
     await applicant.save()
 
     drive = await Drive.get(applicant.drive_id)
@@ -433,6 +434,7 @@ async def invite_to_interview(
         to_name=applicant.name,
         drive_name=drive_name,
         interview_link=f"{settings.FRONTEND_URL}/interview/{applicant.interview.token}",
+        outbox_id=email_log.outbox_id,
     )
 
     return applicant_to_response(applicant)
@@ -471,7 +473,8 @@ async def decide_applicant(
     applicant.status = (
         ApplicantStatus.SELECTED if body.decision == "selected" else ApplicantStatus.REJECTED
     )
-    applicant.email_logs.append(EmailLogEntry(type=EmailType.RESULT))
+    email_log = EmailLogEntry(type=EmailType.RESULT)
+    applicant.email_logs.append(email_log)
     await applicant.save()
 
     drive = await Drive.get(applicant.drive_id)
@@ -498,6 +501,7 @@ async def decide_applicant(
         drive_name=drive_name,
         result_status=applicant.status.value,
         score=score or 0,
+        outbox_id=email_log.outbox_id,
     )
 
     return ApplicantDecisionResponse(
@@ -534,6 +538,7 @@ async def resend_email(
         raise HTTPException(status_code=404, detail="Drive not found")
 
     kind = body.type
+    email_log = EmailLogEntry(type=EmailType(kind))
 
     if kind == "task":
         if not drive.task_deadline or drive.task_type != TaskType.TASK:
@@ -546,6 +551,7 @@ async def resend_email(
             task_description=drive.task_description or "",
             submission_link=f"{settings.FRONTEND_URL}/submit/{applicant.submit_token}",
             deadline=str(drive.task_deadline),
+            outbox_id=email_log.outbox_id,
         )
     elif kind == "interview":
         if not applicant.interview:
@@ -556,6 +562,7 @@ async def resend_email(
             to_name=applicant.name,
             drive_name=drive.name,
             interview_link=f"{settings.FRONTEND_URL}/interview/{applicant.interview.token}",
+            outbox_id=email_log.outbox_id,
         )
     elif kind == "result":
         if applicant.status not in (ApplicantStatus.SELECTED, ApplicantStatus.REJECTED):
@@ -570,6 +577,7 @@ async def resend_email(
             drive_name=drive.name,
             result_status=applicant.status.value,
             score=(applicant.interview.total_score if applicant.interview else 0) or 0,
+            outbox_id=email_log.outbox_id,
         )
     else:  # "applied"
         background_tasks.add_task(
@@ -578,9 +586,10 @@ async def resend_email(
             to_name=applicant.name,
             drive_name=drive.name,
             org_name=org.name,
+            outbox_id=email_log.outbox_id,
         )
 
-    applicant.email_logs.append(EmailLogEntry(type=EmailType(kind)))
+    applicant.email_logs.append(email_log)
     await applicant.save()
     return None
 
@@ -658,6 +667,8 @@ async def bulk_decision(
             drive_name=drive_name,
             result_status=target.value,
             score=(applicant.interview.total_score if applicant.interview else 0) or 0,
+            # The entry appended above, in the same pass that saved the decision.
+            outbox_id=applicant.email_logs[-1].outbox_id,
         )
 
     return BulkDecisionResponse(
