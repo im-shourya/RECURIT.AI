@@ -26,6 +26,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  switchOrganisation: (orgId: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -69,6 +70,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [role],
   )
 
+  // Every page holds data fetched for the organisation it was opened under,
+  // so a switch reloads the dashboard rather than patching state in place.
+  const switchOrganisation = useCallback(async (orgId: string) => {
+    await api.switchOrganisation(orgId)
+    window.location.assign('/dashboard')
+  }, [])
+
   const logout = useCallback(async () => {
     // Signed out locally even if the request fails; the cookie then simply
     // expires on its own.
@@ -88,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        switchOrganisation,
       }}
     >
       {children}

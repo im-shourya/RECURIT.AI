@@ -75,6 +75,10 @@ async def invite_member(
     The member is created without a password and receives a reset link, so a
     password is never transmitted or chosen on their behalf.
 
+    The invitation is its own membership, pending until the link is used, even
+    when the person already belongs to another organisation: being invited
+    must not by itself grant a way in.
+
     An invitation cannot grant OWNER: promoting someone is a separate,
     deliberate act.
     """
@@ -84,8 +88,13 @@ async def invite_member(
             detail="An invitation cannot grant the owner role. Invite, then promote.",
         )
 
-    if await User.find_one(User.email == body.email):
-        raise HTTPException(status_code=400, detail="That email is already in use")
+    # Only a second membership of *this* organisation is refused. Someone who
+    # already belongs to another organisation can be invited here too; the
+    # invitation link then sets the one password their memberships share.
+    if await User.find_one(User.email == body.email, User.org_id == actor.org_id):
+        raise HTTPException(
+            status_code=400, detail="That person is already a member of this organisation"
+        )
 
     member = User(
         org_id=actor.org_id,

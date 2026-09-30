@@ -3,6 +3,7 @@ RECRUIT.AI — Auth Router
 POST /auth/register          — Organisation + owner registration
 POST /auth/login             — Sets the session cookie
 POST /auth/logout            — Clears the session cookie
+POST /auth/switch            — Move the session to another of your organisations
 GET  /auth/me                — Current org profile
 PATCH /auth/me               — Update org profile
 POST /auth/me/logo           — Upload the organisation logo
@@ -34,22 +35,25 @@ from app.services.auth_service import require_role
 from app.models.schemas import (
     AccountDeleteRequest,
     ForgotPasswordRequest,
+    MembershipSummary,
     OrgLoginRequest,
     OrgProfileResponse,
     OrgProfileUpdate,
     OrgRegisterRequest,
     PasswordChangeRequest,
     ResetPasswordRequest,
+    SwitchOrganisationRequest,
 )
 from app.services import audit, cascade, storage_service
 from app.services.auth_service import (
+    accepted_memberships,
     clear_session_cookie,
     generate_reset_token,
     get_current_org,
     get_current_user,
     hash_password,
     hash_reset_token,
-    revoke_sessions,
+    set_password,
     set_session_cookie,
     verify_password,
 )
@@ -71,10 +75,16 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
     dependencies=[Depends(RateLimit("register", limit=5, window_seconds=3600))],
 )
 async def register(body: OrgRegisterRequest, response: Response):
-    # Checked against users: that is where the unique index governing sign-in
-    # lives. The index is the real guard; this check is for the error message.
-    if await User.find_one(User.email == body.email):
-        raise HTTPException(status_code=400, detail="Email already registered")
+    # Someone who already belongs to an organisation may register another,
+    # but only with their existing password: the new organisation shares
+    # their one credential, and anything weaker would let a stranger attach
+    # an organisation to somebody else's address.
+    existing = await accepted_memberships(body.email)
+    if existing and not verify_password(body.password, existing[0].password_hash or ""):
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered. Use your existing password to add another organisation.",
+        )
 
     org = Organisation(
         name=body.name,
@@ -95,7 +105,7 @@ async def register(body: OrgRegisterRequest, response: Response):
     await owner.insert()
 
     set_session_cookie(response, owner)
-    return _profile(org, owner)
+    return await _profile(org, owner)
 
 
 # ──────────────────────────────────────────────
@@ -112,28 +122,77 @@ async def login(body: OrgLoginRequest, response: Response):
     Sets the session cookie and returns the profile. The token itself is
     never in the body: anything a script can read, an XSS can steal.
     """
-    user = await User.find_one(User.email == body.email)
-
-    # An invited member who has not set a password has no hash. Treated
-    # exactly like a wrong password, so the response cannot be used to work
-    # out which addresses have an invitation pending.
-    if not user or not user.password_hash or not verify_password(
-        body.password, user.password_hash
-    ):
+    # An invited member who has not set a password has no hash, so a pending
+    # invitation is never a match. It fails exactly like a wrong password, so
+    # the response cannot be used to work out which addresses have an
+    # invitation pending.
+    memberships = [
+        m for m in await accepted_memberships(body.email)
+        if verify_password(body.password, m.password_hash or "")
+    ]
+    if not memberships:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    if not user.is_active:
+    active = [m for m in memberships if m.is_active]
+    if not active:
         raise HTTPException(status_code=401, detail="This account is disabled")
 
-    org = await Organisation.get(user.org_id)
-    if org is None:
+    # Someone in several organisations lands in the one they used last and
+    # can switch from there.
+    oldest = datetime.min.replace(tzinfo=timezone.utc)
+    active.sort(key=lambda m: _aware(m.last_login_at) or oldest, reverse=True)
+    for user in active:
+        org = await Organisation.get(user.org_id)
+        if org is not None:
+            break
+    else:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     user.last_login_at = datetime.now(timezone.utc)
     await user.save()
 
     set_session_cookie(response, user)
-    return _profile(org, user)
+    return await _profile(org, user)
+
+
+# ──────────────────────────────────────────────
+# SWITCH ORGANISATION
+# ──────────────────────────────────────────────
+@router.post(
+    "/switch",
+    response_model=OrgProfileResponse,
+    dependencies=[Depends(RateLimit("switch_org", limit=30, window_seconds=300))],
+)
+async def switch_organisation(
+    body: SwitchOrganisationRequest,
+    response: Response,
+    user: User = Depends(get_current_user),
+):
+    """
+    Move this session to another organisation the same person belongs to.
+
+    No password is asked for: accepted memberships share one, and the caller
+    has just proved they hold this session. Anything that is not an accepted,
+    active membership of theirs answers 404, so this cannot be used to find
+    out which organisations exist.
+    """
+    target = await User.find_one(User.email == user.email, User.org_id == body.org_id)
+    org = await Organisation.get(body.org_id) if target else None
+    if not target or target.password_hash is None or not target.is_active or not org:
+        raise HTTPException(status_code=404, detail="Organisation not found")
+
+    target.last_login_at = datetime.now(timezone.utc)
+    await target.save()
+
+    set_session_cookie(response, target)
+    return await _profile(org, target)
+
+
+def _aware(value: datetime | None) -> datetime | None:
+    """MongoDB hands datetimes back without a timezone; they are UTC."""
+    if value is not None and value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
 
 
 # ──────────────────────────────────────────────
@@ -156,8 +215,24 @@ async def logout(response: Response):
 # ──────────────────────────────────────────────
 # PROFILE
 # ──────────────────────────────────────────────
-def _profile(org: Organisation, user: User) -> OrgProfileResponse:
-    """The organisation, plus who is looking at it."""
+async def _profile(org: Organisation, user: User) -> OrgProfileResponse:
+    """The organisation, plus who is looking at it and where else they belong."""
+    memberships = [m for m in await accepted_memberships(user.email) if m.is_active]
+    names = {
+        o.id: o.name
+        for o in await Organisation.find(
+            {"_id": {"$in": [m.org_id for m in memberships]}}
+        ).to_list()
+    }
+    organisations = sorted(
+        (
+            MembershipSummary(org_id=m.org_id, name=names[m.org_id], role=m.role.value)
+            for m in memberships
+            if m.org_id in names
+        ),
+        key=lambda o: o.name.lower(),
+    )
+
     return OrgProfileResponse(
         id=org.id,
         name=org.name,
@@ -173,6 +248,7 @@ def _profile(org: Organisation, user: User) -> OrgProfileResponse:
         user_name=user.name,
         user_email=user.email,
         role=user.role.value,
+        organisations=organisations,
     )
 
 
@@ -181,7 +257,7 @@ async def get_me(
     org: Organisation = Depends(get_current_org),
     user: User = Depends(get_current_user),
 ):
-    return _profile(org, user)
+    return await _profile(org, user)
 
 
 @router.patch(
@@ -206,7 +282,7 @@ async def update_me(
         org.logo_url = body.logo_url
 
     await org.save()
-    return _profile(org, user)
+    return await _profile(org, user)
 
 
 # ──────────────────────────────────────────────
@@ -265,7 +341,7 @@ async def upload_logo(
     # logo, and an orphaned object is cheaper than a broken avatar.
     _discard_old_logo(previous)
 
-    return _profile(org, user)
+    return await _profile(org, user)
 
 
 @router.delete(
@@ -283,7 +359,7 @@ async def remove_logo(
     await org.save()
 
     _discard_old_logo(previous)
-    return _profile(org, user)
+    return await _profile(org, user)
 
 
 def _discard_old_logo(stored: str) -> None:
@@ -330,9 +406,9 @@ async def change_password(
             status_code=400, detail="New password must differ from the current password"
         )
 
-    user.password_hash = hash_password(body.new_password)
-    revoke_sessions(user)
-    await user.save()
+    # Applies to every organisation this person belongs to, and signs out
+    # every session in all of them.
+    await set_password(user, body.new_password)
 
     await audit.record(
         org_id=user.org_id,
@@ -360,7 +436,12 @@ async def forgot_password(body: ForgotPasswordRequest, background_tasks: Backgro
     Always returns 204, whether or not the email is registered. Reporting "no
     such account" would turn this into an enumeration oracle.
     """
-    user = await User.find_one(User.email == body.email)
+    # Any one membership will do: accepted memberships share a password, so
+    # resetting through one resets them all. An accepted one is preferred so
+    # the link does not quietly accept a pending invitation instead.
+    candidates = await User.find(User.email == body.email).to_list()
+    candidates.sort(key=lambda m: m.password_hash is None)
+    user = candidates[0] if candidates else None
 
     if user:
         now = datetime.now(timezone.utc)
@@ -428,13 +509,11 @@ async def reset_password(body: ResetPasswordRequest):
     if not user:
         raise invalid
 
-    user.password_hash = hash_password(body.new_password)
-    # Someone resetting may believe an attacker has their session, so every
-    # existing token stops working.
-    revoke_sessions(user)
     # Setting a password is also how an invited member activates.
     user.is_active = True
-    await user.save()
+    # Someone resetting may believe an attacker has their session, so every
+    # existing token stops working, in every organisation they belong to.
+    await set_password(user, body.new_password)
 
     # Burn the token before returning, so a replayed link cannot set the
     # password a second time.
