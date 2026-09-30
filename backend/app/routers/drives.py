@@ -44,6 +44,17 @@ router = APIRouter(prefix="/drives", tags=["Drives"])
 DRIVE_DETAIL_APPLICANT_PREVIEW = 25
 
 
+def _as_uuid(value) -> UUID:
+    """
+    A UUID read back from a raw aggregation.
+
+    Beanie decodes UUIDs on documents, but `$group` keys come back as whatever
+    the driver hands over: a UUID under uuidRepresentation="standard", raw BSON
+    Binary where that setting is not applied.
+    """
+    return value if isinstance(value, UUID) else value.as_uuid()
+
+
 def _to_response(drive: Drive, applicant_count: int = 0) -> DriveResponse:
     return DriveResponse(
         id=drive.id,
@@ -136,11 +147,20 @@ async def create_drive(
 async def list_drives(org: Organisation = Depends(get_current_org)):
     drives = await Drive.find(Drive.org_id == org.id).sort(-Drive.created_at).to_list()
 
+    # One grouped count for the whole organisation instead of one count per
+    # drive. Scoped by org_id, which every applicant carries, so the pipeline
+    # uses the org index rather than scanning other organisations' candidates.
+    rows = await (
+        Applicant.find(Applicant.org_id == org.id)
+        .aggregate([{"$group": {"_id": "$drive_id", "n": {"$sum": 1}}}])
+        .to_list()
+    )
+    counts = {_as_uuid(row["_id"]): row["n"] for row in rows}
+
     out = []
     for drive in drives:
         await _close_if_past_deadline(drive)
-        count = await Applicant.find(Applicant.drive_id == drive.id).count()
-        out.append(_to_response(drive, applicant_count=count))
+        out.append(_to_response(drive, applicant_count=counts.get(drive.id, 0)))
     return out
 
 
