@@ -83,6 +83,9 @@ def test_no_organisation_write_is_left_unguarded():
         "/api/auth/logout",
         # Acts on the caller's own account, not the organisation.
         "/api/auth/change-password",
+        # Moves the caller's own session to another of their memberships,
+        # which carries its own role from then on.
+        "/api/auth/switch",
     }
     unguarded = []
 
