@@ -117,7 +117,6 @@ export interface DriveResponse {
   apply_deadline: string;
   task_deadline: string | null;
   link_token: string;
-  qr_code_url: string;
   status: 'active' | 'closed';
   created_at: string;
   applicant_count: number;

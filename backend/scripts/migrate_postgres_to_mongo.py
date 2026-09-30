@@ -181,7 +181,6 @@ async def run(dry_run: bool) -> int:
             apply_deadline=row["apply_deadline"],
             task_deadline=row.get("task_deadline"),
             link_token=row["link_token"],
-            qr_code_url=row.get("qr_code_url") or "",
             status=row.get("status") or "active",
             created_at=row["created_at"],
         ))

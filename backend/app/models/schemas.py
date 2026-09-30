@@ -102,7 +102,6 @@ class DriveResponse(BaseModel):
     apply_deadline: date
     task_deadline: Optional[date]
     link_token: str
-    qr_code_url: str
     status: str
     created_at: datetime
     applicant_count: int = 0
@@ -119,7 +118,7 @@ class DriveDetailResponse(DriveResponse):
 class DriveUpdateRequest(BaseModel):
     """
     Partial update of a drive. Every field is optional; only the ones sent are
-    applied. `link_token`, `qr_code_url` and `org_id` are deliberately absent —
+    applied. `link_token` and `org_id` are deliberately absent —
     rotating the public link would silently break every share and QR code
     already handed out.
     """
