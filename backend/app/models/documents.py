@@ -184,6 +184,17 @@ class Organisation(Document):
 
 
 class User(Document):
+    """
+    One person's membership of one organisation.
+
+    The same email may appear once per organisation, so someone who runs one
+    club and helps with another holds two of these. Memberships the person has
+    accepted (password set) share one password: setting it on one sets it on
+    all, so there is a single credential per email however many
+    organisations it opens. Signing in picks one membership, and
+    POST /auth/switch moves the session to another.
+    """
+
     id: UUID = Field(default_factory=uuid4)
     org_id: UUID
     name: str = ""
@@ -204,9 +215,15 @@ class User(Document):
         name = "users"
         indexes = [
             pymongo.IndexModel([("org_id", pymongo.ASCENDING)]),
-            # Email is the sign-in identifier, so it is unique across the
-            # whole deployment, not per organisation.
-            pymongo.IndexModel([("email", pymongo.ASCENDING)], unique=True),
+            # Sign-in looks a person up by email across every organisation.
+            pymongo.IndexModel([("email", pymongo.ASCENDING)], name="email_lookup"),
+            # One membership per person per organisation. This replaced a
+            # deployment-wide unique index on email, which db.connect drops.
+            pymongo.IndexModel(
+                [("email", pymongo.ASCENDING), ("org_id", pymongo.ASCENDING)],
+                unique=True,
+                name="uq_user_email_org",
+            ),
         ]
 
 

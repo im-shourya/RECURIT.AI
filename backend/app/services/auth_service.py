@@ -89,6 +89,41 @@ def revoke_sessions(user: User) -> None:
     user.token_version += 1
 
 
+async def accepted_memberships(email: str) -> list[User]:
+    """
+    Every membership this email has accepted, across all organisations.
+
+    A pending invitation has no password yet, so it is not a way in until the
+    person sets one through the invitation link.
+    """
+    return [
+        m for m in await User.find(User.email == email).to_list()
+        if m.password_hash is not None
+    ]
+
+
+async def set_password(user: User, password: str) -> None:
+    """
+    Set the password for this membership and every other accepted membership
+    of the same email, and sign all of them out.
+
+    One person has one password, however many organisations they belong to.
+    Pending invitations are left alone: they are accepted one at a time through
+    their own link. Saves `user`; the caller does not need to.
+    """
+    password_hash = hash_password(password)
+    for other in await accepted_memberships(user.email):
+        if other.id == user.id:
+            continue
+        other.password_hash = password_hash
+        revoke_sessions(other)
+        await other.save()
+
+    user.password_hash = password_hash
+    revoke_sessions(user)
+    await user.save()
+
+
 def decode_token(token: str) -> dict:
     try:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])

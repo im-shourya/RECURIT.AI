@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -26,11 +27,14 @@ import {
   Menu,
   LogOut,
   User,
+  Building2,
+  Check,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth-context'
+import type { OrgProfile } from '@/lib/api'
 import { Spinner } from '@/components/ui/spinner'
 
 const navItems = [
@@ -50,7 +54,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const { user, isLoading, logout } = useAuth()
+  const { user, isLoading, logout, switchOrganisation } = useAuth()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
 
@@ -171,7 +175,7 @@ export default function DashboardLayout({
             <Bell className="h-5 w-5" />
             <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary border-2 border-background" />
           </Button>
-          <UserMenu user={user} onLogout={logout} />
+          <UserMenu user={user} onLogout={logout} onSwitch={switchOrganisation} />
         </div>
       </header>
 
@@ -198,7 +202,7 @@ export default function DashboardLayout({
               <Bell className="h-5 w-5" />
               <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary border-2 border-background" />
             </Button>
-            <UserMenu user={user} onLogout={logout} />
+            <UserMenu user={user} onLogout={logout} onSwitch={switchOrganisation} />
           </div>
         </header>
 
@@ -211,7 +215,23 @@ export default function DashboardLayout({
   )
 }
 
-function UserMenu({ user, onLogout }: { user: { name: string; email: string } | null; onLogout: () => void }) {
+function UserMenu({
+  user,
+  onLogout,
+  onSwitch,
+}: {
+  user: OrgProfile | null
+  onLogout: () => void
+  onSwitch: (orgId: string) => Promise<void>
+}) {
+  const organisations = user?.organisations ?? []
+
+  const switchTo = (orgId: string) => {
+    onSwitch(orgId).catch((err) => {
+      toast.error(err instanceof Error ? err.message : 'Could not switch organisation')
+    })
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -232,6 +252,30 @@ function UserMenu({ user, onLogout }: { user: { name: string; email: string } | 
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {/* Only offered to someone who belongs to more than one. */}
+        {organisations.length > 1 && (
+          <>
+            <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+              Organisations
+            </DropdownMenuLabel>
+            {organisations.map((org) => {
+              const current = org.org_id === user?.id
+              return (
+                <DropdownMenuItem
+                  key={org.org_id}
+                  className="cursor-pointer"
+                  disabled={current}
+                  onSelect={() => !current && switchTo(org.org_id)}
+                >
+                  <Building2 className="mr-2 h-4 w-4" />
+                  <span className="flex-1 truncate">{org.name}</span>
+                  {current && <Check className="ml-2 h-4 w-4 text-primary" aria-label="Current" />}
+                </DropdownMenuItem>
+              )
+            })}
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem className="cursor-pointer">
           <User className="mr-2 h-4 w-4" />
           Profile

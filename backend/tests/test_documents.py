@@ -189,10 +189,10 @@ def test_duplicate_application_index_is_declared():
     ), "no unique (drive_id, email) index declared"
 
 
-def test_sign_in_email_is_uniquely_indexed():
-    assert any(
-        fields == {"email"} and unique for fields, unique in _indexes(User)
-    ), "users.email must be uniquely indexed; it is the sign-in identifier"
+def test_sign_in_email_is_indexed_and_unique_per_organisation():
+    indexes = _indexes(User)
+    assert ({"email"}, False) in indexes, "sign-in looks users up by email"
+    assert ({"email", "org_id"}, True) in indexes, "one membership per organisation"
 
 
 def test_interview_token_is_indexed_on_the_parent():
