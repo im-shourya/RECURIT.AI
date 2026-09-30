@@ -232,4 +232,6 @@ entries after `AUDIT_RETENTION_DAYS` (730) in `app/models/documents.py`.
 There is none at the database level. Every cascade PostgreSQL used to enforce
 now lives in `app/services/cascade.py`, deliberately in one file: a delete
 added elsewhere that skips it leaves orphans, and MongoDB will not object.
-`cascade.count_orphans()` is the diagnostic for exactly that.
+`cascade.count_orphans()` is the diagnostic for exactly that. It runs one
+`$lookup` aggregation per relationship inside MongoDB, so it is safe to run
+against a full-size deployment.

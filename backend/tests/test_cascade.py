@@ -191,6 +191,24 @@ async def test_orphan_check_notices_a_skipped_cascade(org, drive, applicant):
     assert orphans["applicants"] == 1
 
 
+async def test_orphan_check_counts_each_kind_and_only_orphans(
+    org, owner, drive, applicant, other_org
+):
+    """
+    Deleting an organisation directly strands its drive and its member, but
+    the applicant still has its drive, and nothing under another organisation
+    is touched.
+    """
+    from app.models.documents import User, UserRole
+
+    await User(org_id=other_org.id, email="rival@example.com", role=UserRole.OWNER).insert()
+    await org.delete()
+
+    assert await cascade.count_orphans() == {
+        "drives": 1, "applicants": 0, "users": 1,
+    }
+
+
 # ──────────────────────────────────────────────
 # Stored files (#51)
 # ──────────────────────────────────────────────
