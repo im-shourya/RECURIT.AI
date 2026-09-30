@@ -247,8 +247,26 @@ async def update_drive_status(
     org: Organisation = Depends(get_current_org),
 ):
     drive = await _owned_drive(drive_id, org)
+    previous = drive.status
     drive.status = DriveStatus(body.status)
     await drive.save()
+
+    # Closing a drive stops a live round taking applications, so it belongs in
+    # the trail as much as an edit does. A no-op (closing a closed drive) is
+    # not a change and records nothing.
+    if drive.status != previous:
+        await audit.record(
+            org_id=org.id,
+            action=(
+                AuditAction.DRIVE_CLOSED
+                if drive.status == DriveStatus.CLOSED
+                else AuditAction.DRIVE_OPENED
+            ),
+            entity_type="drive",
+            entity_id=drive.id,
+            entity_label=drive.name,
+            detail={"from": previous.value, "to": drive.status.value},
+        )
 
     count = await Applicant.find(Applicant.drive_id == drive.id).count()
     return _to_response(drive, applicant_count=count)

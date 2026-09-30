@@ -174,3 +174,29 @@ def test_status_reuses_the_existing_token():
 
     source = inspect.getsource(applicants.get_own_status)
     assert "_applicant_by_submit_token" in source
+
+
+# ──────────────────────────────────────────────
+# Drive open / close
+# ──────────────────────────────────────────────
+async def test_closing_and_reopening_a_drive_is_audited(org, drive):
+    from app.models.schemas import DriveStatusUpdate
+    from app.routers.drives import update_drive_status
+
+    await update_drive_status(drive.id, DriveStatusUpdate(status="closed"), org=org)
+    await update_drive_status(drive.id, DriveStatusUpdate(status="active"), org=org)
+
+    entries = await AuditLog.find(AuditLog.org_id == org.id).sort(+AuditLog.created_at).to_list()
+    assert [e.action for e in entries] == [AuditAction.DRIVE_CLOSED, AuditAction.DRIVE_OPENED]
+    assert entries[0].entity_id == drive.id
+    assert entries[0].entity_label == drive.name
+    assert entries[0].detail == {"from": "active", "to": "closed"}
+
+
+async def test_setting_a_drive_to_its_current_status_records_nothing(org, drive):
+    from app.models.schemas import DriveStatusUpdate
+    from app.routers.drives import update_drive_status
+
+    await update_drive_status(drive.id, DriveStatusUpdate(status="active"), org=org)
+
+    assert await AuditLog.find(AuditLog.org_id == org.id).count() == 0
