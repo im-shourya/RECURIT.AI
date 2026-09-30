@@ -210,6 +210,11 @@ either 1:1 with an applicant or an append-only list only ever read through
 one, so they are **embedded in the applicant document**. That removes three
 collections, three joins and three cascade rules.
 
+Each embedded email-log entry carries the `outbox_id` of the `email_outbox`
+document that sends it. It reads `pending` until the outbox delivers the
+message (`sent`, with the Resend message id) or gives up on it (`failed`), so
+the log never shows a delivery that did not happen.
+
 `audit_log` is deliberately *not* embedded. It has to outlive the documents it
 describes, or erasing a candidate would also erase the record that they were
 erased.

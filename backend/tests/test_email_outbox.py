@@ -228,3 +228,91 @@ async def test_sweeper_stops_promptly_when_asked(monkeypatch):
 
 def test_retry_delay_is_configured():
     assert settings.OUTBOX_RETRY_DELAY_SECONDS > 0
+
+
+# ──────────────────────────────────────────────
+# Applicant email log follows the outbox
+# ──────────────────────────────────────────────
+async def _logged_message(applicant):
+    from app.models.documents import EmailLogEntry, EmailType
+    from app.services import email_outbox
+
+    entry = EmailLogEntry(type=EmailType.RESULT)
+    applicant.email_logs.append(entry)
+    await applicant.save()
+    await email_outbox.enqueue(
+        to_email=applicant.email, subject="s", html="<p>h</p>", text="t",
+        outbox_id=entry.outbox_id,
+    )
+    return entry
+
+
+async def test_email_log_entry_is_pending_until_delivered(applicant):
+    from app.models.documents import EmailStatus
+
+    entry = await _logged_message(applicant)
+
+    assert entry.status == EmailStatus.PENDING
+    assert entry.sent_at is None
+    assert await EmailOutbox.get(entry.outbox_id) is not None
+
+
+async def test_delivery_is_written_back_to_the_email_log(applicant, monkeypatch):
+    from app.models.documents import Applicant, EmailStatus
+    from app.services import email_outbox, email_service
+
+    entry = await _logged_message(applicant)
+
+    async def accepted(**_):
+        return "resend-msg-123"
+
+    monkeypatch.setattr(email_service, "send_email", accepted)
+    assert await email_outbox.deliver(entry.outbox_id) is True
+
+    fetched = (await Applicant.get(applicant.id)).email_logs[-1]
+    assert fetched.status == EmailStatus.SENT
+    assert fetched.provider_message_id == "resend-msg-123"
+    assert fetched.sent_at is not None
+
+
+async def test_rejected_mail_is_not_recorded_as_sent(applicant, monkeypatch):
+    from app.models.documents import Applicant, EmailStatus
+    from app.services import email_outbox, email_service
+
+    entry = await _logged_message(applicant)
+
+    async def rejected(**_):
+        return "failed"
+
+    monkeypatch.setattr(email_service, "send_email", rejected)
+
+    # Still retrying: the entry stays pending rather than claiming a send.
+    await email_outbox.deliver(entry.outbox_id)
+    assert (await Applicant.get(applicant.id)).email_logs[-1].status == EmailStatus.PENDING
+
+    for _ in range(email_outbox.MAX_ATTEMPTS):
+        await email_outbox.deliver(entry.outbox_id)
+
+    fetched = (await Applicant.get(applicant.id)).email_logs[-1]
+    assert fetched.status == EmailStatus.FAILED
+    assert fetched.sent_at is None
+    assert fetched.provider_message_id == ""
+
+
+async def test_other_log_entries_are_left_alone(applicant, monkeypatch):
+    from app.models.documents import Applicant, EmailLogEntry, EmailStatus, EmailType
+    from app.services import email_outbox, email_service
+
+    applicant.email_logs.append(EmailLogEntry(type=EmailType.APPLIED))
+    await applicant.save()
+    entry = await _logged_message(applicant)
+
+    async def accepted(**_):
+        return "resend-msg-456"
+
+    monkeypatch.setattr(email_service, "send_email", accepted)
+    await email_outbox.deliver(entry.outbox_id)
+
+    first, second = (await Applicant.get(applicant.id)).email_logs
+    assert first.status == EmailStatus.PENDING
+    assert second.status == EmailStatus.SENT
