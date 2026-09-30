@@ -224,7 +224,8 @@ because `init_beanie` only ever creates indexes and never drops them.
 
 `audit_log` is deliberately *not* embedded. It has to outlive the documents it
 describes, or erasing a candidate would also erase the record that they were
-erased.
+erased. It is not kept forever either: a TTL index on `created_at` removes
+entries after `AUDIT_RETENTION_DAYS` (730) in `app/models/documents.py`.
 
 ### Referential integrity
 
