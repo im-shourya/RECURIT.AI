@@ -45,6 +45,7 @@ a fixed pipeline, and a recruiter makes every hiring decision.
 - **Interview checkpoint:** a submitted candidate is only interviewed if a recruiter invites them.
 - **Decisions:** select or reject one candidate or up to 100 at once. The candidate is emailed the outcome.
 - **Teams and roles:** owner, admin and member. Members can review but not decide. The API enforces roles; the interface only reflects them.
+- **Several organisations per person:** the same email can belong to more than one organisation, with one password shared across all of them. Sign-in opens the organisation used most recently, and the account menu switches between them.
 - **Audit trail:** decisions, interview invitations, erasures, drive creation, edits, opening, closing and deletion, membership changes and password changes are all recorded.
 - **Analytics:** applicant counts per status, per drive and over time.
 - **Data rights:** CSV export, per-candidate erasure (including stored files), and whole-account deletion.

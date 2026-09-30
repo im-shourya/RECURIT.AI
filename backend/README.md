@@ -92,6 +92,7 @@ can still send `Authorization: Bearer <token>` instead.
 | POST | `/api/auth/register` | — | Org registration |
 | POST | `/api/auth/login` | — | Sets the session cookie, returns the profile |
 | POST | `/api/auth/logout` | — | Clears the session cookie |
+| POST | `/api/auth/switch` | JWT | Move the session to another organisation the caller belongs to |
 | GET | `/api/auth/me` | JWT | Current org profile |
 | PATCH | `/api/auth/me` | admin | Update org profile |
 | POST | `/api/auth/change-password` | JWT | Change your password; signs out every other session and sets a fresh cookie |
@@ -213,6 +214,13 @@ Each embedded email-log entry carries the `outbox_id` of the `email_outbox`
 document that sends it. It reads `pending` until the outbox delivers the
 message (`sent`, with the Resend message id) or gives up on it (`failed`), so
 the log never shows a delivery that did not happen.
+
+A `users` document is one person's membership of one organisation, unique on
+`(email, org_id)`. The same person can therefore belong to several
+organisations. The memberships they have accepted share one password, so
+changing or resetting it on one changes it on all and signs out every session.
+`app/db.py` drops the old deployment-wide unique `email_1` index on boot,
+because `init_beanie` only ever creates indexes and never drops them.
 
 `audit_log` is deliberately *not* embedded. It has to outlive the documents it
 describes, or erasing a candidate would also erase the record that they were
