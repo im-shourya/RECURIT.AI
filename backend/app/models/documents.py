@@ -318,6 +318,16 @@ class PasswordResetToken(Document):
         ]
 
 
+# How long an audit entry is kept. Long enough to answer a challenge to a
+# hiring decision after the round has closed; short enough that a deleted
+# candidate's name does not sit in the trail indefinitely.
+#
+# MongoDB fixes a TTL when the index is created, so changing this means
+# renaming the index below and adding the old name to SUPERSEDED_INDEXES in
+# app/db.py; otherwise boot fails on the option conflict.
+AUDIT_RETENTION_DAYS = 730
+
+
 class AuditLog(Document):
     """
     Append-only record of consequential actions.
@@ -325,6 +335,9 @@ class AuditLog(Document):
     Its own collection on purpose. It must outlive the documents it describes,
     so erasing a candidate cannot also erase the record that they were erased.
     The subject is stored as an id plus a label captured at write time.
+
+    Entries expire after AUDIT_RETENTION_DAYS, and all of an organisation's
+    entries go when the organisation is deleted.
     """
     id: UUID = Field(default_factory=uuid4)
     org_id: UUID
@@ -341,7 +354,13 @@ class AuditLog(Document):
             pymongo.IndexModel([("org_id", pymongo.ASCENDING)]),
             pymongo.IndexModel([("action", pymongo.ASCENDING)]),
             pymongo.IndexModel([("entity_id", pymongo.ASCENDING)]),
-            pymongo.IndexModel([("created_at", pymongo.DESCENDING)]),
+            # Serves the newest-first listing and, as a TTL index, the
+            # retention period. Replaced a plain created_at index.
+            pymongo.IndexModel(
+                [("created_at", pymongo.DESCENDING)],
+                expireAfterSeconds=60 * 60 * 24 * AUDIT_RETENTION_DAYS,
+                name="ttl_created_at",
+            ),
         ]
 
 
