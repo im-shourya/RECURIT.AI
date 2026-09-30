@@ -200,3 +200,34 @@ async def test_setting_a_drive_to_its_current_status_records_nothing(org, drive)
     await update_drive_status(drive.id, DriveStatusUpdate(status="active"), org=org)
 
     assert await AuditLog.find(AuditLog.org_id == org.id).count() == 0
+
+
+# ──────────────────────────────────────────────
+# Retention
+# ──────────────────────────────────────────────
+def test_audit_entries_expire_after_the_retention_period():
+    """
+    Entries hold names captured at write time, including those of candidates
+    who have since been deleted, so they must not be kept indefinitely.
+    """
+    from app.models.documents import AUDIT_RETENTION_DAYS
+
+    ttl = [
+        index.document for index in AuditLog.Settings.indexes
+        if index.document.get("expireAfterSeconds") is not None
+    ]
+    assert len(ttl) == 1
+    assert list(ttl[0]["key"]) == ["created_at"]
+    assert ttl[0]["expireAfterSeconds"] == AUDIT_RETENTION_DAYS * 24 * 60 * 60
+
+
+def test_the_plain_created_at_index_is_retired():
+    """
+    The TTL index shares its key with the index it replaced. Left in place,
+    that index would sit alongside it for no purpose, so boot drops it.
+    """
+    from app.db import SUPERSEDED_INDEXES
+
+    assert "created_at_-1" in SUPERSEDED_INDEXES["audit_log"]
+    names = {index.document.get("name") for index in AuditLog.Settings.indexes}
+    assert "created_at_-1" not in names
