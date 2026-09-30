@@ -153,24 +153,19 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
     }
   }, [stage])
 
-  // Timer
+  // Timer. One interval for the whole interview: it depends on the stage
+  // alone, so it is not torn down and rebuilt on every tick. It only counts;
+  // ending at zero is a separate effect below, because a state updater must
+  // stay free of side effects.
   useEffect(() => {
-    let interval: NodeJS.Timeout
+    if (stage !== 'interview') return
 
-    if (stage === 'interview' && timeRemaining > 0) {
-      interval = setInterval(() => {
-        setTimeRemaining((prev) => {
-          if (prev <= 1) {
-            endInterview()
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
-    }
+    const interval = setInterval(() => {
+      setTimeRemaining((prev) => Math.max(prev - 1, 0))
+    }, 1000)
 
     return () => clearInterval(interval)
-  }, [stage, timeRemaining])
+  }, [stage])
 
   // Toggle media
   const toggleMic = () => {
@@ -313,8 +308,9 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
     }
   }
 
-  // End interview
-  const endInterview = async () => {
+  // End interview. Reached from the timer, the stop button and the last
+  // answer; endingRef makes every call after the first a no-op.
+  const endInterview = useCallback(async () => {
     if (endingRef.current) return
     endingRef.current = true
     setStage('processing')
@@ -354,7 +350,12 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
     }
 
     setStage('complete')
-  }
+    // stopRecording reads only refs, so it can be left out of the deps.
+  }, [token])
+
+  useEffect(() => {
+    if (stage === 'interview' && timeRemaining === 0) endInterview()
+  }, [stage, timeRemaining, endInterview])
 
   // Format time
   const formatTime = (seconds: number) => {
