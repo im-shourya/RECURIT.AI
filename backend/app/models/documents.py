@@ -105,6 +105,8 @@ class AuditAction(str, Enum):
     APPLICANT_DELETED = "applicant.deleted"
     DRIVE_CREATED = "drive.created"
     DRIVE_UPDATED = "drive.updated"
+    DRIVE_OPENED = "drive.opened"
+    DRIVE_CLOSED = "drive.closed"
     DRIVE_DELETED = "drive.deleted"
     PASSWORD_CHANGED = "org.password_changed"
 

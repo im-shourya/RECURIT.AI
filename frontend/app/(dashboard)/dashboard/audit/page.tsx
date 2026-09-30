@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   CheckSquare,
+  DoorClosed,
+  DoorOpen,
   FileText,
   KeyRound,
   ScrollText,
@@ -38,6 +40,8 @@ const ACTIONS: Record<string, { label: string; icon: typeof CheckSquare; tone: s
   'applicant.deleted': { label: 'erased', icon: Trash2, tone: 'text-destructive' },
   'drive.created': { label: 'created drive', icon: FileText, tone: 'text-primary' },
   'drive.updated': { label: 'updated drive', icon: FileText, tone: 'text-muted-foreground' },
+  'drive.opened': { label: 'opened drive', icon: DoorOpen, tone: 'text-primary' },
+  'drive.closed': { label: 'closed drive', icon: DoorClosed, tone: 'text-muted-foreground' },
   'drive.deleted': { label: 'deleted drive', icon: Trash2, tone: 'text-destructive' },
   'member.invited': { label: 'invited', icon: UserPlus, tone: 'text-primary' },
   'member.role_changed': { label: 'changed role of', icon: UserPlus, tone: 'text-muted-foreground' },
