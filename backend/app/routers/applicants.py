@@ -12,7 +12,9 @@ Every route here is reached by an unguessable token, never by a database id.
 import logging
 import secrets
 from datetime import date, datetime, timedelta, timezone
+from functools import partial
 
+from anyio import to_thread
 from fastapi import (
     APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status,
 )
@@ -318,10 +320,15 @@ async def upload_submission_file(
         )
 
     try:
-        key = storage_service.upload_submission_file(
-            applicant_id=applicant.id,
-            filename=file.filename or "",
-            stream=file.file,
+        # Blocking S3 I/O: run it in a worker thread so one slow upload does
+        # not stall every other request on this worker.
+        key = await to_thread.run_sync(
+            partial(
+                storage_service.upload_submission_file,
+                applicant_id=applicant.id,
+                filename=file.filename or "",
+                stream=file.file,
+            )
         )
     except storage_service.UnsupportedFileType as exc:
         raise HTTPException(status_code=400, detail=str(exc))
