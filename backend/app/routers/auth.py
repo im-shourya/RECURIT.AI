@@ -40,12 +40,13 @@ from app.models.schemas import (
 )
 from app.services import audit, cascade, storage_service
 from app.services.auth_service import (
-    create_access_token,
     generate_reset_token,
     get_current_org,
     get_current_user,
     hash_password,
     hash_reset_token,
+    issue_token,
+    revoke_sessions,
     verify_password,
 )
 from app.services.email_service import send_password_reset_email
@@ -89,7 +90,7 @@ async def register(body: OrgRegisterRequest):
     )
     await owner.insert()
 
-    return TokenResponse(access_token=create_access_token(data={"sub": str(owner.id)}))
+    return TokenResponse(access_token=issue_token(owner))
 
 
 # ──────────────────────────────────────────────
@@ -118,7 +119,7 @@ async def login(body: OrgLoginRequest):
     user.last_login_at = datetime.now(timezone.utc)
     await user.save()
 
-    return TokenResponse(access_token=create_access_token(data={"sub": str(user.id)}))
+    return TokenResponse(access_token=issue_token(user))
 
 
 # ──────────────────────────────────────────────
@@ -272,7 +273,7 @@ def _discard_old_logo(stored: str) -> None:
 # ──────────────────────────────────────────────
 # CHANGE PASSWORD
 # ──────────────────────────────────────────────
-@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/change-password", response_model=TokenResponse)
 async def change_password(
     body: PasswordChangeRequest,
     user: User = Depends(get_current_user),
@@ -280,6 +281,9 @@ async def change_password(
     """
     Requires the current password even though the caller is authenticated, so
     a leaked or borrowed token alone cannot lock the owner out.
+
+    Every other session is signed out. The caller gets a fresh token back so
+    the tab they changed it from stays signed in.
     """
     if not verify_password(body.current_password, user.password_hash or ""):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
@@ -290,6 +294,7 @@ async def change_password(
         )
 
     user.password_hash = hash_password(body.new_password)
+    revoke_sessions(user)
     await user.save()
 
     await audit.record(
@@ -300,9 +305,7 @@ async def change_password(
         entity_label=user.email,
     )
 
-    # Existing JWTs stay valid: tokens carry no password state and there is no
-    # revocation list yet.
-    return None
+    return TokenResponse(access_token=issue_token(user))
 
 
 # ──────────────────────────────────────────────
@@ -388,6 +391,9 @@ async def reset_password(body: ResetPasswordRequest):
         raise invalid
 
     user.password_hash = hash_password(body.new_password)
+    # Someone resetting may believe an attacker has their session, so every
+    # existing token stops working.
+    revoke_sessions(user)
     # Setting a password is also how an invited member activates.
     user.is_active = True
     await user.save()
