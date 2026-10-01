@@ -3,8 +3,17 @@ RECRUIT.AI — Backend Configuration
 Loads environment variables and exposes typed settings.
 """
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+
+# Placeholders published in this repository. Anyone can sign a token with
+# them, so they are only acceptable where nothing real is at stake.
+KNOWN_PLACEHOLDER_SECRETS = frozenset({
+    "change-me-to-a-random-secret-key-in-production",
+    "change-me-generate-with-openssl-rand-hex-32",
+})
+MIN_SECRET_KEY_LENGTH = 32
 
 
 class Settings(BaseSettings):
@@ -92,6 +101,26 @@ class Settings(BaseSettings):
 
     # ── AI Service URL ──
     AI_SERVICE_URL: str = "http://localhost:8001"
+
+    @model_validator(mode="after")
+    def _refuse_a_weak_signing_key_in_production(self):
+        """
+        Same pattern as the CORS wildcard check: refuse to boot rather than
+        run with a setting that silently makes every session forgeable.
+        """
+        if self.ENVIRONMENT.strip().lower() != "production":
+            return self
+        if self.SECRET_KEY in KNOWN_PLACEHOLDER_SECRETS:
+            raise ValueError(
+                "SECRET_KEY is a published placeholder, so anyone could sign a "
+                "valid token. Set a random value: openssl rand -hex 32"
+            )
+        if len(self.SECRET_KEY) < MIN_SECRET_KEY_LENGTH:
+            raise ValueError(
+                f"SECRET_KEY must be at least {MIN_SECRET_KEY_LENGTH} characters "
+                "in production. Generate one with: openssl rand -hex 32"
+            )
+        return self
 
     class Config:
         env_file = ".env"
