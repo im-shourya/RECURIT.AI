@@ -269,12 +269,7 @@ async def end_interview(
             review_url=f"{settings.FRONTEND_URL}/dashboard/drives/{applicant.drive_id}",
         )
 
-    return InterviewEndResponse(
-        total_score=interview.total_score,
-        score_intro=interview.score_intro,
-        score_project=interview.score_project,
-        score_domain=interview.score_domain,
-    )
+    return InterviewEndResponse()
 
 
 # ──────────────────────────────────────────────
