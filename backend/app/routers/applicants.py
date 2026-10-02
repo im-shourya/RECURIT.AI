@@ -65,6 +65,30 @@ async def _applicant_by_submit_token(submit_token: str) -> Applicant:
     return applicant
 
 
+async def _drive_open_for_submission(applicant: Applicant) -> Drive:
+    """
+    The drive, if it will still take this applicant's work.
+
+    Applied to both the submission and the upload route, so a closed drive
+    does not keep accepting files it will never look at.
+    """
+    drive = await Drive.get(applicant.drive_id)
+    if not drive:
+        raise HTTPException(status_code=404, detail="Recruitment drive not found")
+    # A GitHub drive takes the repository on the apply form; it has no task.
+    if drive.task_type != TaskType.TASK:
+        raise HTTPException(status_code=400, detail="This drive does not take task submissions")
+    # The same rule the apply endpoint uses: a submit token issued while the
+    # drive was open is not a way around it being closed.
+    if drive.status != DriveStatus.ACTIVE:
+        raise HTTPException(
+            status_code=400, detail="This drive is no longer accepting submissions"
+        )
+    if drive.task_deadline and drive.task_deadline < date.today():
+        raise HTTPException(status_code=400, detail="Submission deadline has passed")
+    return drive
+
+
 def new_interview() -> Interview:
     """A fresh interview with its own capability token and expiry."""
     return Interview(
@@ -253,9 +277,7 @@ async def submit_task(
     if applicant.submission:
         raise HTTPException(status_code=400, detail="You have already submitted")
 
-    drive = await Drive.get(applicant.drive_id)
-    if drive and drive.task_deadline and drive.task_deadline < date.today():
-        raise HTTPException(status_code=400, detail="Submission deadline has passed")
+    await _drive_open_for_submission(applicant)
 
     applicant.submission = Submission(
         file_url=body.file_url,
@@ -303,6 +325,8 @@ async def upload_submission_file(
 
     if applicant.submission:
         raise HTTPException(status_code=400, detail="You have already submitted")
+
+    await _drive_open_for_submission(applicant)
 
     if not storage_service.is_configured():
         raise HTTPException(
