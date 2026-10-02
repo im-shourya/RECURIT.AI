@@ -79,6 +79,8 @@ def test_no_organisation_write_is_left_unguarded():
         "/api/auth/login",
         "/api/auth/forgot-password",
         "/api/auth/reset-password",
+        # Clears the caller's own cookie and nothing else.
+        "/api/auth/logout",
         # Acts on the caller's own account, not the organisation.
         "/api/auth/change-password",
     }

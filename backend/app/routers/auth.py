@@ -1,7 +1,8 @@
 """
 RECRUIT.AI — Auth Router
 POST /auth/register          — Organisation + owner registration
-POST /auth/login             — Returns JWT
+POST /auth/login             — Sets the session cookie
+POST /auth/logout            — Clears the session cookie
 GET  /auth/me                — Current org profile
 PATCH /auth/me               — Update org profile
 POST /auth/me/logo           — Upload the organisation logo
@@ -17,7 +18,8 @@ from functools import partial
 
 from anyio import to_thread
 from fastapi import (
-    APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status,
+    APIRouter, BackgroundTasks, Depends, File, HTTPException, Response, UploadFile,
+    status,
 )
 
 from app.config import get_settings
@@ -38,17 +40,17 @@ from app.models.schemas import (
     OrgRegisterRequest,
     PasswordChangeRequest,
     ResetPasswordRequest,
-    TokenResponse,
 )
 from app.services import audit, cascade, storage_service
 from app.services.auth_service import (
+    clear_session_cookie,
     generate_reset_token,
     get_current_org,
     get_current_user,
     hash_password,
     hash_reset_token,
-    issue_token,
     revoke_sessions,
+    set_session_cookie,
     verify_password,
 )
 from app.services.email_service import send_password_reset_email
@@ -64,11 +66,11 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 # ──────────────────────────────────────────────
 @router.post(
     "/register",
-    response_model=TokenResponse,
+    response_model=OrgProfileResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(RateLimit("register", limit=5, window_seconds=3600))],
 )
-async def register(body: OrgRegisterRequest):
+async def register(body: OrgRegisterRequest, response: Response):
     # Checked against users: that is where the unique index governing sign-in
     # lives. The index is the real guard; this check is for the error message.
     if await User.find_one(User.email == body.email):
@@ -92,7 +94,8 @@ async def register(body: OrgRegisterRequest):
     )
     await owner.insert()
 
-    return TokenResponse(access_token=issue_token(owner))
+    set_session_cookie(response, owner)
+    return _profile(org, owner)
 
 
 # ──────────────────────────────────────────────
@@ -100,11 +103,15 @@ async def register(body: OrgRegisterRequest):
 # ──────────────────────────────────────────────
 @router.post(
     "/login",
-    response_model=TokenResponse,
+    response_model=OrgProfileResponse,
     # Sign-in is the brute-force target; keep this tight.
     dependencies=[Depends(RateLimit("login", limit=10, window_seconds=300))],
 )
-async def login(body: OrgLoginRequest):
+async def login(body: OrgLoginRequest, response: Response):
+    """
+    Sets the session cookie and returns the profile. The token itself is
+    never in the body: anything a script can read, an XSS can steal.
+    """
     user = await User.find_one(User.email == body.email)
 
     # An invited member who has not set a password has no hash. Treated
@@ -118,10 +125,32 @@ async def login(body: OrgLoginRequest):
     if not user.is_active:
         raise HTTPException(status_code=401, detail="This account is disabled")
 
+    org = await Organisation.get(user.org_id)
+    if org is None:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
     user.last_login_at = datetime.now(timezone.utc)
     await user.save()
 
-    return TokenResponse(access_token=issue_token(user))
+    set_session_cookie(response, user)
+    return _profile(org, user)
+
+
+# ──────────────────────────────────────────────
+# LOGOUT
+# ──────────────────────────────────────────────
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(RateLimit("logout", limit=30, window_seconds=300))],
+)
+async def logout(response: Response):
+    """
+    Unauthenticated on purpose: clearing a cookie needs no proof of who you
+    are, and an expired session must still be able to sign out.
+    """
+    clear_session_cookie(response)
+    return None
 
 
 # ──────────────────────────────────────────────
@@ -280,17 +309,18 @@ def _discard_old_logo(stored: str) -> None:
 # ──────────────────────────────────────────────
 # CHANGE PASSWORD
 # ──────────────────────────────────────────────
-@router.post("/change-password", response_model=TokenResponse)
+@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
 async def change_password(
     body: PasswordChangeRequest,
+    response: Response,
     user: User = Depends(get_current_user),
 ):
     """
     Requires the current password even though the caller is authenticated, so
     a leaked or borrowed token alone cannot lock the owner out.
 
-    Every other session is signed out. The caller gets a fresh token back so
-    the tab they changed it from stays signed in.
+    Every other session is signed out. The caller gets a fresh session cookie
+    so the browser they changed it from stays signed in.
     """
     if not verify_password(body.current_password, user.password_hash or ""):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
@@ -312,7 +342,8 @@ async def change_password(
         entity_label=user.email,
     )
 
-    return TokenResponse(access_token=issue_token(user))
+    set_session_cookie(response, user)
+    return None
 
 
 # ──────────────────────────────────────────────
@@ -419,6 +450,7 @@ async def reset_password(body: ResetPasswordRequest):
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_account(
     body: AccountDeleteRequest,
+    response: Response,
     user: User = Depends(require_role(UserRole.OWNER)),
 ):
     """
@@ -444,4 +476,5 @@ async def delete_account(
         raise HTTPException(status_code=404, detail="Organisation not found")
 
     await cascade.delete_organisation(org)
+    clear_session_cookie(response)
     return None

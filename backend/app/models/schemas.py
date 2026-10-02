@@ -27,11 +27,6 @@ class OrgLoginRequest(BaseModel):
     password: str
 
 
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-
-
 class OrgProfileResponse(BaseModel):
     id: UUID
     name: str

@@ -32,6 +32,22 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
 
+    # ── Session cookie ──
+    # The session JWT travels in an httpOnly cookie so no script on the page
+    # can read it. The browser reaches the API through the frontend's own
+    # origin (a rewrite in next.config.mjs), which keeps the cookie
+    # first-party; set on the API's own domain it would be a third-party
+    # cookie, and Safari would drop it.
+    SESSION_COOKIE_NAME: str = "recruit_session"
+    # Unset means "production only", so plain-http local development works.
+    SESSION_COOKIE_SECURE: bool | None = None
+
+    @property
+    def session_cookie_secure(self) -> bool:
+        if self.SESSION_COOKIE_SECURE is not None:
+            return self.SESSION_COOKIE_SECURE
+        return self.ENVIRONMENT.strip().lower() == "production"
+
     # ── AWS S3 / MinIO ──
     S3_BUCKET_NAME: str = "recruit-ai-uploads"
     S3_REGION: str = "ap-south-1"
