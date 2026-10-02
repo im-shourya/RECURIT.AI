@@ -569,7 +569,8 @@ docker-compose ps
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `SECRET_KEY` | Yes | JWT signing secret. In production it must be at least 32 characters and not a placeholder, or the backend refuses to start (`openssl rand -hex 32`) |
 | `ALGORITHM` | — | JWT algorithm (default: `HS256`) |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | — | Token TTL (default: `1440`) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | — | Session lifetime (default: `1440`) |
+| `SESSION_COOKIE_SECURE` | — | Force the session cookie's `Secure` flag on or off (default: on only in production) |
 | `REDIS_URL` | Yes | Redis connection string |
 | `FRONTEND_URL` | Yes | Frontend URL for link generation |
 | `AI_SERVICE_URL` | — | GitAnalyser URL (default: `http://localhost:8001`) |
@@ -584,7 +585,7 @@ docker-compose ps
 
 | Variable | Required | Description |
 |:---------|:--------:|:------------|
-| `NEXT_PUBLIC_API_URL` | Yes | Backend API base URL |
+| `NEXT_PUBLIC_API_URL` | Yes | Backend API base URL. Read at build time by the `/api` rewrite that carries the session cookie |
 
 ### GitAnalyser (`aiml/GitAnalyser/.env`)
 

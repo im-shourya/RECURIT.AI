@@ -12,7 +12,6 @@ const appRoot = dirname(fileURLToPath(import.meta.url))
 
 const isDev = process.env.NODE_ENV !== 'production'
 
-// The only origin besides this one that the browser talks to.
 const apiOrigin = new URL(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').origin
 
 /**
@@ -31,6 +30,8 @@ const contentSecurityPolicy = [
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob: https:",
   "font-src 'self' data:",
+  // The API is reached through the /api rewrite below, except for the two
+  // candidate uploads, which go to it directly.
   `connect-src 'self' ${apiOrigin}${isDev ? ' ws:' : ''}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -67,6 +68,16 @@ const nextConfig = {
   },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }]
+  },
+  /**
+   * The browser calls the API on this origin, and this forwards it.
+   *
+   * The session is an httpOnly cookie. Set by the API on its own domain it
+   * would be a third-party cookie here, which Safari refuses outright; set
+   * through this origin it is first-party and SameSite=Lax can protect it.
+   */
+  async rewrites() {
+    return [{ source: '/api/:path*', destination: `${apiOrigin}/api/:path*` }]
   },
 }
 
