@@ -49,6 +49,7 @@ def _is_guarded(method: str, path: str) -> bool:
         ("PATCH", "/api/drives/{drive_id}"),
         ("PATCH", "/api/drives/{drive_id}/status"),
         ("DELETE", "/api/drives/{drive_id}"),
+        ("POST", "/api/applicants/{applicant_id}/invite"),
         ("POST", "/api/applicants/{applicant_id}/decision"),
         ("POST", "/api/applicants/{applicant_id}/resend-email"),
         ("POST", "/api/applicants/bulk-decision"),

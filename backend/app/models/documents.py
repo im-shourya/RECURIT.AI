@@ -99,6 +99,7 @@ class AuditAction(str, Enum):
     MEMBER_INVITED = "member.invited"
     MEMBER_ROLE_CHANGED = "member.role_changed"
     MEMBER_REMOVED = "member.removed"
+    APPLICANT_INVITED = "applicant.invited"
     APPLICANT_SELECTED = "applicant.selected"
     APPLICANT_REJECTED = "applicant.rejected"
     APPLICANT_DELETED = "applicant.deleted"

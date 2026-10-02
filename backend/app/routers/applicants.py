@@ -65,7 +65,8 @@ async def _applicant_by_submit_token(submit_token: str) -> Applicant:
     return applicant
 
 
-def _new_interview() -> Interview:
+def new_interview() -> Interview:
+    """A fresh interview with its own capability token and expiry."""
     return Interview(
         token=secrets.token_urlsafe(32),
         expires_at=datetime.now(timezone.utc)
@@ -183,7 +184,7 @@ async def submit_application(
 
     elif drive.task_type == TaskType.GITHUB:
         if body.github_url:
-            applicant.interview = _new_interview()
+            applicant.interview = new_interview()
             applicant.status = ApplicantStatus.INTERVIEW_SENT
 
             background_tasks.add_task(
@@ -241,7 +242,6 @@ async def submit_application(
 async def submit_task(
     submit_token: str,
     body: SubmissionCreateRequest,
-    background_tasks: BackgroundTasks,
 ):
     """
     Keyed on an unguessable token rather than the applicant's id. The old
@@ -262,20 +262,11 @@ async def submit_task(
         github_url=body.github_url,
         description=body.description,
     )
+    # The candidate waits here until a recruiter has looked at the work and
+    # invites them (POST /applicants/{id}/invite). Inviting straight from
+    # submission meant everyone who submitted anything was interviewed.
     applicant.status = ApplicantStatus.SUBMITTED
-
-    applicant.interview = _new_interview()
-    applicant.status = ApplicantStatus.INTERVIEW_SENT
-    applicant.email_logs.append(EmailLogEntry(type=EmailType.INTERVIEW))
     await applicant.save()
-
-    background_tasks.add_task(
-        send_interview_email,
-        to_email=applicant.email,
-        to_name=applicant.name,
-        drive_name=drive.name if drive else "",
-        interview_link=f"{settings.FRONTEND_URL}/interview/{applicant.interview.token}",
-    )
     # TODO: trigger RepoLens analysis once the GitAnalyser service is wired in
 
     return SubmissionResponse(
