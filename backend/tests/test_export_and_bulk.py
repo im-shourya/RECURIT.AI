@@ -133,3 +133,65 @@ def test_bulk_decision_rejects_invalid_decisions(decision):
 def test_requires_authentication(method, path, payload):
     kwargs = {"json": payload} if payload is not None else {}
     assert getattr(client, method)(path, **kwargs).status_code == 401
+
+
+# ──────────────────────────────────────────────
+# Query shape
+# ──────────────────────────────────────────────
+async def test_bulk_decision_looks_up_each_drive_once(org, drive, monkeypatch):
+    from fastapi import BackgroundTasks
+
+    from app.models.documents import Applicant, AuditLog, Drive
+    from app.routers.applicant_admin import bulk_decision
+
+    applicants = []
+    for i in range(5):
+        a = Applicant(
+            drive_id=drive.id, org_id=org.id, name=f"Candidate {i}",
+            email=f"c{i}@example.com", reg_no=f"R{i}", submit_token=f"tok-{i}",
+        )
+        await a.insert()
+        applicants.append(a)
+
+    async def per_row_lookup(*_a, **_k):
+        raise AssertionError("bulk_decision fetched a drive per applicant")
+
+    monkeypatch.setattr(Drive, "get", per_row_lookup)
+
+    result = await bulk_decision(
+        BulkDecisionRequest(applicant_ids=[a.id for a in applicants], decision="rejected"),
+        BackgroundTasks(),
+        org=org,
+    )
+
+    assert result.updated == 5
+    entries = await AuditLog.find(AuditLog.org_id == org.id).to_list()
+    assert {e.detail["drive"] for e in entries} == {drive.name}
+
+
+async def test_drive_list_counts_applicants_per_drive(org, other_org, drive):
+    from datetime import date, timedelta
+
+    from app.models.documents import Applicant, Drive, TaskType
+    from app.routers.drives import list_drives
+
+    empty = Drive(
+        org_id=org.id, name="Empty", domain="Design", task_type=TaskType.GITHUB,
+        apply_deadline=date.today() + timedelta(days=7), link_token="empty-link",
+    )
+    await empty.insert()
+
+    for i in range(3):
+        await Applicant(
+            drive_id=drive.id, org_id=org.id, name=f"A{i}",
+            email=f"a{i}@example.com", reg_no=f"A{i}", submit_token=f"a-{i}",
+        ).insert()
+
+    # Another organisation's candidates must not leak into the counts.
+    await Applicant(
+        drive_id=drive.id, org_id=other_org.id, name="Stray",
+        email="stray@example.com", reg_no="S", submit_token="stray",
+    ).insert()
+
+    counts = {d.name: d.applicant_count for d in await list_drives(org=org)}
+    assert counts == {drive.name: 3, "Empty": 0}
