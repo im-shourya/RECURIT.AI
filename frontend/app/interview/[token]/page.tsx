@@ -29,10 +29,13 @@ import { api, type InterviewConfig } from '@/lib/api'
 
 // Interview configuration
 const TOTAL_TIME = 300 // 5 minutes in seconds
+// Badge classes are written out in full: Tailwind generates only the class
+// names it finds in source, so a name assembled at runtime such as
+// `bg-${color}/10` is never generated and renders with no colour.
 const ROUNDS = [
-  { id: 'intro', name: 'Introduction', duration: 60, color: 'primary' },
-  { id: 'project', name: 'Project Round', duration: 90, color: 'indigo' },
-  { id: 'domain', name: 'Domain Knowledge', duration: 90, color: 'cyan' },
+  { id: 'intro', name: 'Introduction', duration: 60, badge: 'bg-primary/10 text-primary border-primary/20' },
+  { id: 'project', name: 'Project Round', duration: 90, badge: 'bg-indigo/10 text-indigo border-indigo/20' },
+  { id: 'domain', name: 'Domain Knowledge', duration: 90, badge: 'bg-cyan/10 text-cyan border-cyan/20' },
 ]
 
 // Keeps a five-minute session well under the server's 200MB recording cap.
@@ -497,7 +500,7 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
           </div>
           <div className="flex items-center justify-between px-4 py-2">
             <div className="flex items-center gap-4">
-              <Badge variant="secondary" className={`bg-${ROUNDS[currentRound].color}/10 text-${ROUNDS[currentRound].color}`}>
+              <Badge variant="secondary" className={ROUNDS[currentRound].badge}>
                 {ROUNDS[currentRound].name}
               </Badge>
               {isRecording && (
@@ -629,7 +632,7 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
                           <Badge
                             key={round.id}
                             variant="secondary"
-                            className={`bg-${round.color}/10 text-${round.color} border-${round.color}/20`}
+                            className={round.badge}
                           >
                             {round.name} ({round.duration}s)
                           </Badge>
