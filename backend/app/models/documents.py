@@ -144,9 +144,24 @@ class Interview(BaseModel):
 
 
 class EmailLogEntry(BaseModel):
-    """One sent email. Embedded list on Applicant."""
+    """
+    One email to the applicant. Embedded list on Applicant.
+
+    The entry is written when the message is queued, which is before anyone
+    knows whether it will be delivered. `outbox_id` names the outbox document
+    that carries the send, and the outbox writes the outcome back here, so the
+    entry reads "pending" until delivery succeeds or is given up on rather
+    than claiming a send that Resend may have rejected.
+
+    Entries written before the link existed have no `outbox_id` and keep the
+    status they were given.
+    """
     type: EmailType
-    sent_at: datetime = Field(default_factory=_now)
+    outbox_id: Optional[UUID] = Field(default_factory=uuid4)
+    status: EmailStatus = EmailStatus.PENDING
+    queued_at: datetime = Field(default_factory=_now)
+    # Set by the outbox on delivery. Null while the message is still pending.
+    sent_at: Optional[datetime] = None
     provider_message_id: str = ""
 
 
