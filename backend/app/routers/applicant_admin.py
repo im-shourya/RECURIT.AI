@@ -644,9 +644,18 @@ async def bulk_decision(
 
     # Audit and mail only after the writes have landed, so nobody is told an
     # outcome that was not saved.
+    # A batch usually spans one or two drives, so fetch each distinct drive
+    # once rather than once per applicant.
+    drive_names = {
+        d.id: d.name
+        for d in await Drive.find(
+            Drive.org_id == org.id,
+            {"_id": {"$in": list({a.drive_id for a in updated})}},
+        ).to_list()
+    }
+
     for applicant in updated:
-        drive = await Drive.get(applicant.drive_id)
-        drive_name = drive.name if drive else ""
+        drive_name = drive_names.get(applicant.drive_id, "")
 
         await audit.record(
             org_id=org.id,
