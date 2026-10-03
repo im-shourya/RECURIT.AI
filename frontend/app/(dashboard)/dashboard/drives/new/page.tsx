@@ -602,16 +602,17 @@ function StepThree({ formData, updateFormData }: {
           <Label>Interview Structure</Label>
           <div className="grid gap-3">
             {[
-              { round: 'Round 1', title: 'Introduction', duration: '60 sec', color: 'primary' },
-              { round: 'Round 2', title: 'Project Deep-Dive', duration: '90 sec', color: 'indigo' },
-              { round: 'Round 3', title: 'Domain Knowledge', duration: '90 sec', color: 'cyan' },
+              // Full literal class names, so Tailwind can see and generate them.
+              { round: 'Round 1', title: 'Introduction', duration: '60 sec', badge: 'bg-primary/10 text-primary border-primary/20' },
+              { round: 'Round 2', title: 'Project Deep-Dive', duration: '90 sec', badge: 'bg-indigo/10 text-indigo border-indigo/20' },
+              { round: 'Round 3', title: 'Domain Knowledge', duration: '90 sec', badge: 'bg-cyan/10 text-cyan border-cyan/20' },
             ].map((item) => (
               <div
                 key={item.round}
                 className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-muted/30"
               >
                 <div className="flex items-center gap-3">
-                  <Badge variant="secondary" className={`bg-${item.color}/10 text-${item.color} border-${item.color}/20`}>
+                  <Badge variant="secondary" className={item.badge}>
                     {item.round}
                   </Badge>
                   <span className="font-medium">{item.title}</span>
