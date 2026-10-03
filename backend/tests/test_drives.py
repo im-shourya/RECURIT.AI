@@ -48,7 +48,7 @@ def test_partial_update_only_carries_supplied_fields():
 
 @pytest.mark.parametrize(
     "field",
-    ["link_token", "qr_code_url", "org_id", "task_type", "id"],
+    ["link_token", "org_id", "task_type", "id"],
 )
 def test_immutable_fields_are_not_editable(field):
     """
@@ -108,3 +108,17 @@ def test_delete_exposes_a_confirm_guard():
     delete = app.openapi()["paths"]["/api/drives/{drive_id}"]["delete"]
     params = {p["name"] for p in delete.get("parameters", [])}
     assert "confirm" in params
+
+
+def test_no_qr_image_is_stored_or_returned():
+    """
+    The QR code is drawn by the dashboard from link_token. A stored PNG made
+    every drive list 5-15KB per drive heavier and kept pointing at whatever
+    FRONTEND_URL was when the drive was created.
+    """
+    from app.models.documents import Drive
+    from app.models.schemas import DriveResponse
+
+    assert "qr_code_url" not in Drive.model_fields
+    assert "qr_code_url" not in DriveResponse.model_fields
+    assert "link_token" in DriveResponse.model_fields

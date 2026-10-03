@@ -63,8 +63,7 @@ backend/
 │       ├── email_templates.py  # Branded HTML + text templates
 │       ├── email_outbox.py     # Durable queue + retry sweeper
 │       ├── storage_service.py  # S3 uploads and presigned reads
-│       ├── rate_limit.py       # Redis or in-process limiting
-│       └── qr_service.py       # QR code generation
+│       └── rate_limit.py       # Redis or in-process limiting
 ├── tests/                      # 300 tests, real queries via mongomock-motor
 ├── requirements.txt
 ├── .env / .env.example
@@ -102,7 +101,7 @@ can still send `Authorization: Bearer <token>` instead.
 | POST | `/api/team` | owner | Invite a member |
 | PATCH | `/api/team/{id}` | owner | Change a member's role |
 | DELETE | `/api/team/{id}` | owner | Remove a member |
-| POST | `/api/drives` | JWT | Create drive (returns link + QR) |
+| POST | `/api/drives` | JWT | Create drive (returns its apply-link token) |
 | GET | `/api/drives` | JWT | List org drives |
 | GET | `/api/drives/{id}` | JWT | Drive detail + applicants |
 | PATCH | `/api/drives/{id}/status` | JWT | Open / close drive |

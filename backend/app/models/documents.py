@@ -221,7 +221,8 @@ class Drive(Document):
     apply_deadline: date
     task_deadline: Optional[date] = None
     link_token: str
-    qr_code_url: str = ""
+    # No stored QR code. The dashboard draws it from link_token at render time,
+    # so it always points at the current domain and costs nothing to store.
     status: DriveStatus = DriveStatus.ACTIVE
     created_at: datetime = Field(default_factory=_now)
 
