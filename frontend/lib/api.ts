@@ -104,6 +104,14 @@ export interface OrgProfile {
   user_name?: string;
   user_email?: string;
   role?: Role;
+  // Every organisation this person belongs to, the current one included.
+  organisations?: Membership[];
+}
+
+export interface Membership {
+  org_id: string;
+  name: string;
+  role: Role;
 }
 
 export interface DriveResponse {
@@ -350,6 +358,10 @@ export const api = {
   logout: () => request<void>('/api/auth/logout', { method: 'POST' }),
 
   getMe: () => request<OrgProfile>('/api/auth/me', {}, true),
+
+  /** Move the session to another organisation this person belongs to. */
+  switchOrganisation: (orgId: string) =>
+    request<OrgProfile>('/api/auth/switch', { method: 'POST', body: JSON.stringify({ org_id: orgId }) }, true),
 
   updateMe: (data: {
     name?: string;

@@ -51,11 +51,37 @@ async def connect() -> None:
         serverSelectionTimeoutMS=settings.MONGODB_TIMEOUT_MS,
     )
 
-    await init_beanie(
-        database=_client[settings.MONGODB_DB],
-        document_models=ALL_DOCUMENTS,
-    )
+    database = _client[settings.MONGODB_DB]
+    await drop_superseded_indexes(database)
+    await init_beanie(database=database, document_models=ALL_DOCUMENTS)
     log.info("connected to MongoDB", extra={"database": settings.MONGODB_DB})
+
+
+# Indexes a model used to declare and no longer does. init_beanie only ever
+# creates indexes, so without this a retired unique index keeps enforcing its
+# rule in every existing deployment.
+SUPERSEDED_INDEXES = {
+    # Email was unique across the whole deployment, which stopped anyone
+    # belonging to two organisations. Now unique per organisation.
+    "users": ["email_1"],
+}
+
+
+async def drop_superseded_indexes(database) -> None:
+    """Drop retired indexes that are still present. Safe to run on every boot."""
+    for collection, names in SUPERSEDED_INDEXES.items():
+        try:
+            existing = await database[collection].index_information()
+        except Exception as exc:
+            log.error(
+                "could not read indexes",
+                extra={"collection": collection, "error": type(exc).__name__},
+            )
+            continue
+        for name in names:
+            if name in existing:
+                await database[collection].drop_index(name)
+                log.info("dropped superseded index", extra={"collection": collection, "index": name})
 
 
 async def disconnect() -> None:

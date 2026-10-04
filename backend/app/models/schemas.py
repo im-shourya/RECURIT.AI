@@ -27,6 +27,17 @@ class OrgLoginRequest(BaseModel):
     password: str
 
 
+class MembershipSummary(BaseModel):
+    """An organisation the signed-in person can switch to."""
+    org_id: UUID
+    name: str
+    role: str
+
+
+class SwitchOrganisationRequest(BaseModel):
+    org_id: UUID
+
+
 class OrgProfileResponse(BaseModel):
     id: UUID
     name: str
@@ -43,6 +54,9 @@ class OrgProfileResponse(BaseModel):
     user_name: str | None = None
     user_email: str | None = None
     role: str | None = None
+
+    # Every organisation this person belongs to, the current one included.
+    organisations: list[MembershipSummary] = []
 
     class Config:
         from_attributes = True
