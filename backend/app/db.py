@@ -64,6 +64,9 @@ SUPERSEDED_INDEXES = {
     # Email was unique across the whole deployment, which stopped anyone
     # belonging to two organisations. Now unique per organisation.
     "users": ["email_1"],
+    # A plain created_at index, replaced by a TTL index on the same key that
+    # gives the audit log a retention period.
+    "audit_log": ["created_at_-1"],
 }
 
 
