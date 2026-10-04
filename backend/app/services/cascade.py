@@ -182,26 +182,31 @@ async def count_orphans() -> dict[str, int]:
     Diagnostic only. The database cannot enforce these relationships any more,
     so this is how a bug that skips the cascades above becomes visible instead
     of silently accumulating.
-    """
-    org_ids = {o.id async for o in Organisation.find_all().project(Organisation)}
-    drive_ids = {d.id async for d in Drive.find_all().project(Drive)}
 
-    orphans = {
-        "drives": 0,
-        "applicants": 0,
-        "users": 0,
+    Each count is one aggregation that joins every child to its parent by id
+    inside MongoDB and returns a single number. Nothing is loaded into this
+    process, so it stays usable on a large deployment. The earlier version
+    built id sets from whole collections in memory.
+    """
+    return {
+        "drives": await _count_missing_parent(Drive, "org_id", Organisation),
+        "applicants": await _count_missing_parent(Applicant, "drive_id", Drive),
+        "users": await _count_missing_parent(User, "org_id", Organisation),
     }
 
-    async for drive in Drive.find_all():
-        if drive.org_id not in org_ids:
-            orphans["drives"] += 1
 
-    async for applicant in Applicant.find_all():
-        if applicant.drive_id not in drive_ids:
-            orphans["applicants"] += 1
-
-    async for user in User.find_all():
-        if user.org_id not in org_ids:
-            orphans["users"] += 1
-
-    return orphans
+async def _count_missing_parent(child, field: str, parent) -> int:
+    """How many `child` documents point, through `field`, at no `parent`."""
+    rows = await child.find_all().aggregate([
+        # Only the reference travels through the rest of the pipeline.
+        {"$project": {field: 1}},
+        {"$lookup": {
+            "from": parent.get_settings().name,
+            "localField": field,
+            "foreignField": "_id",
+            "as": "parent",
+        }},
+        {"$match": {"parent": {"$size": 0}}},
+        {"$count": "n"},
+    ]).to_list()
+    return rows[0]["n"] if rows else 0
