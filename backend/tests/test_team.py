@@ -65,21 +65,24 @@ def test_password_hash_is_optional_for_pending_invites():
     assert User.model_fields["password_hash"].default is None
 
 
-def test_email_is_globally_unique():
+def test_email_is_unique_per_organisation():
     """
-    Email is the sign-in identifier, so it cannot repeat across orgs.
+    One membership per person per organisation, but the same person may
+    belong to several organisations.
 
-    Enforced by a unique index rather than a column constraint now. The
-    in-process stand-in does not enforce indexes, so this asserts the index is
-    declared; real enforcement is noted as unverified in the PR.
+    The in-process stand-in does not enforce indexes, so this asserts the index
+    is declared; real enforcement is unverified here.
     """
     declared = [
         index.document for index in User.Settings.indexes
         if hasattr(index, "document")
     ]
     assert any(
-        set(d["key"]) == {"email"} and d.get("unique") for d in declared
+        set(d["key"]) == {"email", "org_id"} and d.get("unique") for d in declared
     )
+    assert not any(
+        set(d["key"]) == {"email"} and d.get("unique") for d in declared
+    ), "a deployment-wide unique email stops anyone joining a second organisation"
 
 
 def test_reset_tokens_can_point_at_a_user():
@@ -159,17 +162,24 @@ def test_invite_does_not_set_a_password():
     assert "generate_reset_token" in source
 
 
-def test_login_treats_a_pending_invite_like_a_wrong_password():
+async def test_login_treats_a_pending_invite_like_a_wrong_password(org):
     """
     Otherwise the response would reveal which addresses have an unaccepted
     invitation waiting.
     """
-    import inspect
-    from app.routers import auth
+    from fastapi import HTTPException, Response
 
-    source = inspect.getsource(auth.login)
-    assert "not user.password_hash" in source
-    assert source.count("Invalid email or password") >= 1
+    from app.models.schemas import OrgLoginRequest
+    from app.routers.auth import login
+
+    await User(org_id=org.id, email="pending@example.com", password_hash=None).insert()
+
+    with pytest.raises(HTTPException) as exc:
+        await login(
+            OrgLoginRequest(email="pending@example.com", password="anything"), Response()
+        )
+    assert exc.value.status_code == 401
+    assert exc.value.detail == "Invalid email or password"
 
 
 def test_deactivated_user_is_rejected_on_the_next_request():
