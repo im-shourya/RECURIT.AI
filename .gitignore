@@ -20,8 +20,10 @@ venv/
 env/
 .env
 
-brag-output
+# Local tooling
+brag-output/
 .agents/
 skill/
+
 # Build artefacts
 *.tsbuildinfo
