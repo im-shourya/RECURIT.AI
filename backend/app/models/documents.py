@@ -103,6 +103,7 @@ class AuditAction(str, Enum):
     APPLICANT_SELECTED = "applicant.selected"
     APPLICANT_REJECTED = "applicant.rejected"
     APPLICANT_DELETED = "applicant.deleted"
+    APPLICANTS_EXPORTED = "applicant.exported"
     DRIVE_CREATED = "drive.created"
     DRIVE_UPDATED = "drive.updated"
     DRIVE_OPENED = "drive.opened"
