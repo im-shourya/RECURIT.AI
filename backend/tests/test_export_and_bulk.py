@@ -195,3 +195,54 @@ async def test_drive_list_counts_applicants_per_drive(org, other_org, drive):
 
     counts = {d.name: d.applicant_count for d in await list_drives(org=org)}
     assert counts == {drive.name: 3, "Empty": 0}
+
+
+# ──────────────────────────────────────────────
+# Export bounds
+# ──────────────────────────────────────────────
+async def _export(org, user):
+    from app.routers.applicant_admin import export_applicants
+
+    response = await export_applicants(drive_id=None, status=None, q=None, org=org, user=user)
+    body = b"".join([chunk.encode() async for chunk in response.body_iterator])
+    return response, body.decode()
+
+
+async def test_export_is_capped_and_says_so(org, owner, drive, monkeypatch):
+    from app.models.documents import Applicant
+    from app.routers import applicant_admin
+
+    monkeypatch.setattr(applicant_admin, "MAX_EXPORT_ROWS", 2)
+    for i in range(3):
+        await Applicant(
+            drive_id=drive.id, org_id=org.id, name=f"Person {i}", email=f"p{i}@example.com"
+        ).insert()
+
+    response, body = await _export(org, owner)
+
+    assert len(body.strip().splitlines()) == 1 + 2  # header + capped rows
+    assert response.headers["X-Export-Truncated"] == "true"
+
+
+async def test_export_is_recorded_in_the_audit_log(org, owner, applicant):
+    from app.models.documents import AuditAction, AuditLog
+
+    response, _ = await _export(org, owner)
+
+    assert response.headers["X-Export-Truncated"] == "false"
+    [entry] = await AuditLog.find(AuditLog.action == AuditAction.APPLICANTS_EXPORTED).to_list()
+    assert entry.detail["changed_by"] == owner.email
+    assert entry.entity_label == "1 applicants"
+
+
+def test_export_is_rate_limited():
+    from fastapi.routing import APIRoute
+
+    from app.main import app
+    from app.services.rate_limit import RateLimit
+
+    [route] = [
+        r for r in app.routes
+        if isinstance(r, APIRoute) and r.path == "/api/applicants/export"
+    ]
+    assert any(isinstance(d.call, RateLimit) for d in route.dependant.dependencies)
