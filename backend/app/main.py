@@ -64,13 +64,24 @@ async def lifespan(app: FastAPI):
     log.info("shutting down")
 
 
+def docs_urls(production: bool) -> dict:
+    """
+    Where the interactive docs and schema are served, or nowhere.
+
+    In production they are free reconnaissance: every route, model and field
+    name, readable by anyone. Local development keeps them.
+    """
+    if production:
+        return {"docs_url": None, "redoc_url": None, "openapi_url": None}
+    return {"docs_url": "/docs", "redoc_url": "/redoc", "openapi_url": "/openapi.json"}
+
+
 app = FastAPI(
     title="RECRUIT.AI",
     description="AI-powered recruitment platform for college clubs and organisations",
     version="2.0.0",
     lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc",
+    **docs_urls(settings.is_production),
 )
 
 
