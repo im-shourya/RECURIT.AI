@@ -133,3 +133,17 @@ def test_openapi_schema_builds():
     assert "/api/applicants/{applicant_id}" in paths
     assert "/api/applicants/{applicant_id}/decision" in paths
     assert "/api/auth/change-password" in paths
+
+
+def test_retired_schemas_are_not_in_the_openapi_document():
+    """Dead models confused readers of the schema about what the API does."""
+    names = set(app.openapi()["components"]["schemas"])
+    assert not names & {"EmailLogResponse", "ApplicantStatusUpdate"}
+
+
+def test_ending_an_interview_still_accepts_the_retired_recording_field():
+    """An older client that still sends recording_url must not get a 422."""
+    from app.models.schemas import InterviewEndRequest
+
+    assert InterviewEndRequest.model_validate({"recording_url": "https://x.test/a.webm"})
+    assert "recording_url" not in InterviewEndRequest.model_fields
