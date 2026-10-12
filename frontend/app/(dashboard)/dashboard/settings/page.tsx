@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Spinner } from '@/components/ui/spinner'
 import { api, OrgProfile } from '@/lib/api'
@@ -149,6 +150,7 @@ export default function SettingsPage() {
         name: profile.name,
         description: profile.description,
         domain_tags: profile.domain_tags,
+        notify_on_interview: profile.notify_on_interview ?? true,
       })
       setProfile(updated)
       toast.success('Settings saved successfully!')
@@ -293,6 +295,29 @@ export default function SettingsPage() {
                  placeholder="Engineering, Marketing, Data Science..." 
                />
              </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50 bg-card/50">
+          <CardHeader>
+            <CardTitle>Email notifications</CardTitle>
+            <CardDescription>What the organisation&apos;s address is emailed about</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-4">
+              <Label htmlFor="notify-interview" className="flex flex-col items-start gap-1">
+                <span>Interview completed</span>
+                <span className="text-sm font-normal text-muted-foreground">
+                  Email when a candidate finishes their interview
+                </span>
+              </Label>
+              <Switch
+                id="notify-interview"
+                checked={profile.notify_on_interview ?? true}
+                onCheckedChange={checked => setProfile({ ...profile, notify_on_interview: checked })}
+                disabled={!canEdit}
+              />
+            </div>
           </CardContent>
         </Card>
 
