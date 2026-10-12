@@ -87,7 +87,7 @@ async def deliver(row_id) -> bool:
     """Attempt one delivery and record the outcome. Never raises."""
     # Imported here rather than at module scope: email_service imports this
     # module, so a top-level import would be circular.
-    from app.services.email_service import send_email
+    from app.services.email_service import SKIPPED_NO_CONFIG, send_email
 
     try:
         row = await EmailOutbox.get(row_id)
@@ -112,9 +112,19 @@ async def deliver(row_id) -> bool:
                 await _record_outcome_on_applicant(row)
             return False
 
-        # "skipped-no-config" counts as delivered: there is no provider to
-        # retry against, so leaving it pending would accumulate documents
-        # forever on a machine that simply has no email configured.
+        if result == SKIPPED_NO_CONFIG and settings.is_production:
+            # In production a missing key is a misconfiguration, not a quiet
+            # local machine. Recording it as sent would show a clean delivery
+            # history while candidates received nothing.
+            row.status = EmailStatus.FAILED
+            row.last_error = "Resend is not configured"
+            await row.save()
+            await _record_outcome_on_applicant(row)
+            return False
+
+        # Elsewhere a skip counts as delivered: there is no provider to retry
+        # against, so leaving it pending would accumulate documents forever on
+        # a machine that simply has no email configured.
         row.status = EmailStatus.SENT
         row.sent_at = datetime.now(timezone.utc)
         row.provider_message_id = result
