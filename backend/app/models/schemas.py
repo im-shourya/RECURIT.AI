@@ -5,9 +5,40 @@ Request / Response models for all API endpoints.
 
 from datetime import date, datetime
 from typing import Optional
+from urllib.parse import urlsplit
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+MAX_URL_LENGTH = 2048
+GITHUB_HOSTS = frozenset({"github.com", "www.github.com"})
+
+
+def web_url(value: Optional[str], *, github: bool = False) -> Optional[str]:
+    """
+    Accept an http(s) URL, or an empty string meaning "none".
+
+    These values end up in an href, a window.open and an <img src> on pages
+    other people view, so a `javascript:` or `data:` URL here would run in a
+    recruiter's session. A bare "github.com/name" gains https:// rather than
+    being rejected, since that is how most people type it.
+    """
+    if value is None:
+        return None
+    value = value.strip()
+    if not value:
+        return ""
+    if len(value) > MAX_URL_LENGTH:
+        raise ValueError(f"URL must be at most {MAX_URL_LENGTH} characters")
+    if "://" not in value and not value.lower().startswith(("javascript:", "data:", "vbscript:")):
+        value = f"https://{value}"
+
+    parts = urlsplit(value)
+    if parts.scheme.lower() not in ("http", "https") or not parts.hostname:
+        raise ValueError("Must be a web address starting with http:// or https://")
+    if github and parts.hostname.lower() not in GITHUB_HOSTS:
+        raise ValueError("Must be a github.com address")
+    return value
 
 
 # ══════════════════════════════════════════════
@@ -22,6 +53,11 @@ class OrgRegisterRequest(BaseModel):
     description: str = ""
     domain_tags: list[str] = []
     logo_url: str = ""
+
+    @field_validator("logo_url")
+    @classmethod
+    def _logo_is_a_web_url(cls, value):
+        return web_url(value)
 
 
 class OrgLoginRequest(BaseModel):
@@ -92,6 +128,11 @@ class OrgProfileUpdate(BaseModel):
     description: Optional[str] = None
     domain_tags: Optional[list[str]] = None
     logo_url: Optional[str] = None
+
+    @field_validator("logo_url")
+    @classmethod
+    def _logo_is_a_web_url(cls, value):
+        return web_url(value)
 
 
 # ══════════════════════════════════════════════
@@ -179,6 +220,11 @@ class ApplyRequest(BaseModel):
     skills: list[str] = []
     primary_domain: str = ""
     github_url: str = ""
+
+    @field_validator("github_url")
+    @classmethod
+    def _github_url_is_on_github(cls, value):
+        return web_url(value, github=True)
 
 
 class ApplicantResponse(BaseModel):
@@ -293,6 +339,11 @@ class SubmissionCreateRequest(BaseModel):
     file_url: str = ""
     github_url: str = ""
     description: str = ""
+
+    @field_validator("github_url")
+    @classmethod
+    def _github_url_is_on_github(cls, value):
+        return web_url(value, github=True)
 
 
 class FileUploadResponse(BaseModel):
