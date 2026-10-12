@@ -119,6 +119,16 @@ class Settings(BaseSettings):
     # app is actually served.
     FRONTEND_URL: str = "http://localhost:3000"
 
+    # ── Sign in with Google / GitHub (optional) ──
+    # Each provider is offered only when both its values are set. The
+    # callback is FRONTEND_URL/api/auth/oauth/<provider>/callback, which must
+    # be registered with the provider exactly. It goes through the frontend's
+    # /api rewrite so the session cookie is first-party, like every other one.
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GITHUB_CLIENT_ID: str = ""
+    GITHUB_CLIENT_SECRET: str = ""
+
     # ── AI Service URL ──
     AI_SERVICE_URL: str = "http://localhost:8001"
 

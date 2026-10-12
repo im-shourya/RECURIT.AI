@@ -85,6 +85,25 @@ can still send `Authorization: Bearer <token>` instead.
 
 "JWT" in the table below means either of those.
 
+### Google and GitHub sign-in
+
+Set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` and/or `GITHUB_CLIENT_ID` /
+`GITHUB_CLIENT_SECRET`. Register the callback with each provider as
+`<FRONTEND_URL>/api/auth/oauth/<google|github>/callback`. It goes through the
+frontend's `/api` rewrite like everything else, so the session cookie stays
+first-party.
+
+A sign-in is matched to accounts by the provider's *verified* email address,
+ignoring case. That address either signs in to an existing account, accepts
+pending invitations sent to it, or, for someone new, leads to
+`/auth/oauth/complete` to name their organisation. The `state` value and
+Google's PKCE verifier travel in a signed, httpOnly cookie, so a callback only
+completes in the browser that started it.
+
+People who sign up this way have no password. Signing in with a password, or
+anything that asks for the current one (changing it, deleting the account),
+needs one to be set first through "forgot password".
+
 ## API Endpoints
 
 | Method | Endpoint | Auth | Description |
@@ -98,6 +117,11 @@ can still send `Authorization: Bearer <token>` instead.
 | POST | `/api/auth/change-password` | JWT | Change your password; signs out every other session and sets a fresh cookie |
 | POST | `/api/auth/forgot-password` | — | Request a reset link (always 204) |
 | POST | `/api/auth/reset-password` | — | Consume a reset token, set new password |
+| GET | `/api/auth/oauth/providers` | — | Which of Google / GitHub are configured |
+| GET | `/api/auth/oauth/{provider}/start` | — | Redirect to the provider |
+| GET | `/api/auth/oauth/{provider}/callback` | — | Provider returns here; signs in or starts sign-up |
+| GET | `/api/auth/oauth/signup` | cookie | The verified identity waiting to sign up |
+| POST | `/api/auth/oauth/signup` | cookie | Name the organisation and create the account |
 | GET | `/api/team` | JWT | List organisation members |
 | POST | `/api/team` | owner | Invite a member |
 | PATCH | `/api/team/{id}` | owner | Change a member's role |
