@@ -16,7 +16,9 @@ from pydantic import BaseModel, EmailStr, Field
 class OrgRegisterRequest(BaseModel):
     name: str = Field(..., min_length=2, max_length=255)
     email: EmailStr
-    password: str = Field(..., min_length=6)
+    # Same bounds as a password change or reset. Signup used to accept six
+    # characters, which made the owner's password the weakest in the system.
+    password: str = Field(..., min_length=8, max_length=128)
     description: str = ""
     domain_tags: list[str] = []
     logo_url: str = ""
