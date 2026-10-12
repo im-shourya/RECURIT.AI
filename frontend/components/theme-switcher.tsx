@@ -13,10 +13,12 @@ const OPTIONS = [
 ] as const
 
 /**
- * Light / dark / system, as a segmented control. Lives in the footer, the
- * way apple.com keeps its region and appearance settings out of the way.
+ * Light / dark / system, as a segmented control.
+ *
+ * Compact (icons only) in the footer and the account menu; labelled on the
+ * settings page, where there is room to say what each option is.
  */
-export function ThemeSwitcher() {
+export function ThemeSwitcher({ labelled = false }: { labelled?: boolean }) {
   const { theme, setTheme } = useTheme()
   // The stored theme is only known after mount; until then nothing is
   // shown as selected, so the server and client render the same markup.
@@ -24,7 +26,11 @@ export function ThemeSwitcher() {
   useEffect(() => setMounted(true), [])
 
   return (
-    <div role="radiogroup" aria-label="Appearance" className="inline-flex rounded-lg border p-0.5">
+    <div
+      role="radiogroup"
+      aria-label="Appearance"
+      className={cn('inline-flex rounded-lg border p-0.5', labelled && 'bg-muted')}
+    >
       {OPTIONS.map(({ value, label, icon: Icon }) => {
         const selected = mounted && theme === value
         return (
@@ -33,15 +39,21 @@ export function ThemeSwitcher() {
             type="button"
             role="radio"
             aria-checked={selected}
-            aria-label={label}
-            title={label}
+            aria-label={labelled ? undefined : label}
+            title={labelled ? undefined : label}
             onClick={() => setTheme(value)}
             className={cn(
-              'flex h-7 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors',
-              selected ? 'bg-secondary text-foreground' : 'hover:text-foreground',
+              'flex items-center justify-center gap-2 rounded-md text-muted-foreground transition-colors',
+              labelled ? 'h-9 px-4 text-sm font-medium' : 'h-7 w-8',
+              selected
+                ? labelled
+                  ? 'bg-card text-foreground shadow-elevation-1'
+                  : 'bg-secondary text-foreground'
+                : 'hover:text-foreground',
             )}
           >
-            <Icon className="h-4 w-4" aria-hidden="true" />
+            <Icon className="size-4" aria-hidden="true" />
+            {labelled && label}
           </button>
         )
       })}
