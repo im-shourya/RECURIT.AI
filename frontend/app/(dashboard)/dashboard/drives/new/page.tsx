@@ -35,6 +35,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { QRCodeSVG } from 'qrcode.react'
 import { api } from '@/lib/api'
+import { Stepper } from '@/components/ui/stepper'
 
 const steps = [
   { id: 1, title: 'Basic Info', description: 'Drive name and domain' },
@@ -187,7 +188,7 @@ export default function CreateDrivePage() {
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={copyLink} className="gradient-primary border-0">
+              <Button onClick={copyLink} className="border-0">
                 <Copy className="mr-2 h-4 w-4" />
                 Copy Link
               </Button>
@@ -241,47 +242,7 @@ export default function CreateDrivePage() {
 
       {/* Progress Steps */}
       <div className="mb-8">
-        <div className="flex items-center justify-between">
-          {steps.map((step, index) => (
-            <div key={step.id} className="flex items-center">
-              <div className="flex flex-col items-center">
-                <div
-                  className={cn(
-                    'flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-all',
-                    currentStep === step.id
-                      ? 'gradient-primary text-white animate-pulse-glow'
-                      : currentStep > step.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground'
-                  )}
-                >
-                  {currentStep > step.id ? (
-                    <Check className="h-5 w-5" />
-                  ) : (
-                    step.id
-                  )}
-                </div>
-                <div className="mt-2 text-center hidden sm:block">
-                  <div className={cn(
-                    'text-sm font-medium',
-                    currentStep >= step.id ? 'text-foreground' : 'text-muted-foreground'
-                  )}>
-                    {step.title}
-                  </div>
-                  <div className="text-xs text-muted-foreground">{step.description}</div>
-                </div>
-              </div>
-              {index < steps.length - 1 && (
-                <div
-                  className={cn(
-                    'h-0.5 w-full min-w-8 mx-2 sm:mx-4',
-                    currentStep > step.id ? 'bg-primary' : 'bg-muted'
-                  )}
-                />
-              )}
-            </div>
-          ))}
-        </div>
+        <Stepper steps={steps} current={currentStep} />
       </div>
 
       {/* Form Card */}
@@ -324,7 +285,7 @@ export default function CreateDrivePage() {
               <Button
                 onClick={handleNext}
                 disabled={!canProceed()}
-                className="gradient-primary border-0"
+                className="border-0"
               >
                 Continue
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -333,7 +294,7 @@ export default function CreateDrivePage() {
               <Button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="gradient-primary border-0"
+                className="border-0"
               >
                 {isSubmitting ? (
                   <Spinner className="h-4 w-4" />
@@ -681,7 +642,7 @@ function StepFour({ formData }: { formData: any }) {
             )}
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Question Level</span>
-              <Badge className="gradient-primary border-0 capitalize">
+              <Badge className="border-0 capitalize">
                 <Brain className="mr-1 h-3 w-3" />
                 {formData.questionLevel}
               </Badge>
