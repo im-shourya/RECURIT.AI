@@ -91,7 +91,7 @@ export default function DrivesPage() {
           </p>
         </div>
         {can('admin') && (
-          <Button asChild className="gradient-primary border-0 hover:opacity-90">
+          <Button asChild className="border-0">
             <Link href="/dashboard/drives/new">
               <Plus className="mr-2 h-4 w-4" />
               Create Drive
@@ -266,7 +266,7 @@ export default function DrivesPage() {
                 : 'Get started by creating your first recruitment drive.'}
             </p>
             {!searchQuery && statusFilter === 'all' && can('admin') && (
-              <Button asChild className="gradient-primary border-0">
+              <Button asChild className="border-0">
                 <Link href="/dashboard/drives/new">
                   <Plus className="mr-2 h-4 w-4" />
                   Create Drive
