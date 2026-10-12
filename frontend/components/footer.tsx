@@ -1,106 +1,175 @@
 import Link from 'next/link'
-import { Github, Twitter, Linkedin ,Globe } from 'lucide-react'
+import { Github, Globe, Linkedin, Twitter } from 'lucide-react'
 
-const footerLinks = {
-  product: [
-    { label: 'Features', href: '/#features' },
-    { label: 'How it Works', href: '/#how-it-works' },
-    { label: 'For Organizations', href: '/#trusted' },
-  ],
-  legal: [
-    { label: 'Privacy Policy', href: '/privacy' },
-    { label: 'Terms of Service', href: '/terms' },
-    { label: 'Cookie Policy', href: '/cookies' },
-  ],
-}
+import { ThemeSwitcher } from '@/components/theme-switcher'
+import { version } from '../package.json'
 
-const socialLinks = [
-  { icon: Github, href: 'https://github.com/im-shourya', label: 'GitHub' },
-  { icon: Twitter, href: 'https://x.com/im_SParashar/', label: 'Twitter' },
-  { icon: Linkedin, href: 'https://www.linkedin.com/in/im-shourya/', label: 'LinkedIn' },
-  { icon: Globe, href: 'https://www.shouryaparashar.in/', label: 'Personal Website' }
+const REPOSITORY = 'https://github.com/im-shourya/RECURIT.AI'
+const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@shouryaparashar.in'
+
+type FooterLink = { label: string; href: string; external?: boolean }
+
+/** Every href here resolves: an existing route, a section id, or a public URL. */
+const COLUMNS: { title: string; links: FooterLink[] }[] = [
+  {
+    title: 'Product',
+    links: [
+      { label: 'Features', href: '/#features' },
+      { label: 'How it works', href: '/#how-it-works' },
+      { label: 'The pipeline', href: '/#pipeline' },
+      { label: 'For organizations', href: '/#for-organizations' },
+    ],
+  },
+  {
+    title: 'Account',
+    links: [
+      { label: 'Create an account', href: '/auth/register' },
+      { label: 'Sign in', href: '/auth/login' },
+      { label: 'Reset your password', href: '/auth/forgot-password' },
+      { label: 'Dashboard', href: '/dashboard' },
+    ],
+  },
+  {
+    title: 'For candidates',
+    links: [
+      { label: 'How applying works', href: '/#for-candidates' },
+      { label: 'Contact support', href: `mailto:${SUPPORT_EMAIL}`, external: true },
+    ],
+  },
+  {
+    title: 'Resources',
+    links: [
+      { label: 'Source code', href: REPOSITORY, external: true },
+      { label: 'Release notes', href: `${REPOSITORY}/releases`, external: true },
+      { label: 'Report an issue', href: `${REPOSITORY}/issues`, external: true },
+    ],
+  },
 ]
 
-export function Footer() {
+const LEGAL: FooterLink[] = [
+  { label: 'Privacy Policy', href: '/privacy' },
+  { label: 'Terms of Service', href: '/terms' },
+  { label: 'Cookie Policy', href: '/cookies' },
+]
+
+const SOCIAL = [
+  { icon: Github, href: 'https://github.com/im-shourya', label: 'GitHub' },
+  { icon: Twitter, href: 'https://x.com/im_SParashar/', label: 'X (Twitter)' },
+  { icon: Linkedin, href: 'https://www.linkedin.com/in/im-shourya/', label: 'LinkedIn' },
+  { icon: Globe, href: 'https://www.shouryaparashar.in/', label: 'Personal website' },
+]
+
+function FooterAnchor({ link, className }: { link: FooterLink; className: string }) {
+  if (link.external) {
+    const isMail = link.href.startsWith('mailto:')
+    return (
+      <a
+        href={link.href}
+        className={className}
+        {...(isMail ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+      >
+        {link.label}
+      </a>
+    )
+  }
   return (
-    <footer className="relative bg-background">
-      {/* Gradient top edge instead of hard border */}
-      <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+    <Link href={link.href} className={className}>
+      {link.label}
+    </Link>
+  )
+}
+
+export function Footer() {
+  const linkClass =
+    'text-[13px] text-muted-foreground transition-colors duration-200 hover:text-foreground hover:underline underline-offset-4'
+
+  return (
+    <footer className="border-t bg-muted/60" aria-labelledby="footer-heading">
+      <h2 id="footer-heading" className="sr-only">
+        Footer
+      </h2>
+
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 gap-8 py-12 md:grid-cols-3 lg:py-16">
-          {/* Brand */}
-          <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-0.5 group">
-              <span className="text-base font-extrabold tracking-tight text-foreground">
-                RECRUIT
-              </span>
-              <span className="text-primary transition-transform group-hover:scale-125">.</span>
-              <span className="text-base font-extrabold tracking-tight text-foreground">
-                AI
-              </span>
+        {/* Brand and directory */}
+        <div className="grid gap-10 py-12 lg:grid-cols-[1.2fr_3fr] lg:gap-16 lg:py-16">
+          <div>
+            <Link href="/" className="inline-flex items-center gap-0.5" aria-label="RECRUIT.AI home">
+              <span className="text-base font-extrabold tracking-tight text-foreground">RECRUIT</span>
+              <span className="text-primary">.</span>
+              <span className="text-base font-extrabold tracking-tight text-foreground">AI</span>
             </Link>
-            <p className="mt-4 text-sm text-muted-foreground max-w-xs leading-relaxed">
-              AI-powered recruitment platform for teams and organizations of every scale.
+            <p className="mt-4 max-w-xs text-[13px] leading-relaxed text-muted-foreground">
+              Recruitment drives for college clubs and small teams: one apply link, task
+              submissions, recorded interviews and your decision.
             </p>
-            <div className="mt-6 flex gap-4">
-              {socialLinks.map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-foreground transition-colors duration-200"
-                  aria-label={social.label}
-                >
-                  <social.icon className="h-5 w-5" />
-                </a>
-              ))}
-            </div>
-          </div>
-
-          {/* Product Links */}
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">Product</h3>
-            <ul className="mt-4 space-y-3">
-              {footerLinks.product.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
+            <ul className="mt-6 flex gap-1" aria-label="Social links">
+              {SOCIAL.map(({ icon: Icon, href, label }) => (
+                <li key={label}>
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                   >
-                    {link.label}
-                  </Link>
+                    <Icon className="size-4.5" aria-hidden="true" />
+                  </a>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Legal Links */}
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">Legal</h3>
-            <ul className="mt-4 space-y-3">
-              {footerLinks.legal.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <nav aria-label="Footer" className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-4">
+            {COLUMNS.map((column) => (
+              <div key={column.title}>
+                <h3 className="text-[13px] font-semibold text-foreground">{column.title}</h3>
+                <ul className="mt-4 space-y-3">
+                  {column.links.map((link) => (
+                    <li key={link.label}>
+                      <FooterAnchor link={link} className={linkClass} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </nav>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="border-t border-border/50 py-6">
-          <p className="text-center text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} RECRUIT.AI. All rights reserved.
-          </p>
-          <p className="text-center text-xs text-muted-foreground/50 mt-1">
-            Built for teams who value their time. With love by <a href="https://shouryaparashar.in" target="_blank" rel="me noreferrer" className="text-foreground hover:underline hover:font-bold ">Shourya Parashar</a>.
-          </p>
+        {/* Bottom bar: copyright, policies, version and appearance */}
+        <div className="flex flex-col gap-4 border-t py-6 text-xs text-muted-foreground md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <p>&copy; {new Date().getFullYear()} RECRUIT.AI. All rights reserved.</p>
+            <ul className="flex flex-wrap gap-x-4 gap-y-1">
+              {LEGAL.map((link) => (
+                <li key={link.label}>
+                  <FooterAnchor link={link} className="transition-colors hover:text-foreground" />
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 md:justify-end">
+            <a
+              href={`${REPOSITORY}/releases`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono transition-colors hover:text-foreground"
+            >
+              v{version}
+            </a>
+            <span>
+              Made by{' '}
+              <a
+                href="https://shouryaparashar.in"
+                target="_blank"
+                rel="me noopener noreferrer"
+                className="text-foreground hover:underline underline-offset-4"
+              >
+                Shourya Parashar
+              </a>
+            </span>
+            <ThemeSwitcher />
+          </div>
         </div>
       </div>
     </footer>

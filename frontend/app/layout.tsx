@@ -1,10 +1,18 @@
 import type { Metadata, Viewport } from 'next'
-import { JetBrains_Mono } from 'next/font/google'
+import { Inter, JetBrains_Mono } from 'next/font/google'
 
 import { ThemeProvider } from '@/components/theme-provider'
 import { Providers } from '@/components/providers'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
+
+// The fallback for platforms without SF Pro; Apple devices never load it
+// into use, because the system font comes first in --font-sans.
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
@@ -16,7 +24,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://recruitai.shouryaparashar.in'),
   title: 'RECRUIT.AI',
-  description: 'Streamline your recruitment process with AI-powered interviews, automated screening, and intelligent candidate evaluation for organizations of every scale.',
+  description: 'Run recruitment drives for college clubs and small teams: one apply link, task submissions, recorded interviews and recruiter decisions in one place.',
   keywords: ['recruitment', 'AI', 'interviews', 'hiring', 'organizations', 'automation', 'AI recruitment platform',
     'automated interviews',
     'AI hiring software',
@@ -31,8 +39,8 @@ export const metadata: Metadata = {
     canonical: 'https://recruitai.shouryaparashar.in',
   },
   openGraph: {
-    title: 'RECRUIT.AI – AI Powered Recruitment & Interview Platform',
-    description: 'Streamline your recruitment process with AI-powered interviews, automated screening, and intelligent candidate evaluation for organizations of every scale.',
+    title: 'RECRUIT.AI – Recruitment drives for clubs and small teams',
+    description: 'Run recruitment drives for college clubs and small teams: one apply link, task submissions, recorded interviews and recruiter decisions in one place.',
     url: 'https://recruitai.shouryaparashar.in',
     siteName: 'RECRUIT.AI',
     images: [
@@ -48,7 +56,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'RECRUIT.AI',
-    description: 'AI-powered recruitment platform',
+    description: 'Recruitment drives for clubs and small teams',
     images: ['/og-image.png'],
   },
   icons: {
@@ -72,8 +80,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#F5F5F7' },
-    { media: '(prefers-color-scheme: dark)', color: '#000000' },
+    { media: '(prefers-color-scheme: light)', color: '#FBFBFD' },
+    { media: '(prefers-color-scheme: dark)', color: '#0B0B0C' },
   ],
   width: 'device-width',
   initialScale: 1,
@@ -86,7 +94,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-          <body className={`${jetbrainsMono.variable} font-sans antialiased`}>
+          <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
             <ThemeProvider
               attribute="class"
               defaultTheme="light"
