@@ -140,10 +140,12 @@ needs one to be set first through "forgot password".
 | GET | `/api/applicants/export` | JWT | CSV export (same filters as list) |
 | GET | `/api/applicants/{id}` | JWT | Applicant profile + submission + interview |
 | GET | `/api/applicants/{id}/submission-file` | JWT | Short-lived download link |
+| GET | `/api/applicants/{id}/recording-file` | JWT | Short-lived interview playback link |
+| GET | `/api/applicants/{id}/interview` | JWT | Interview transcript, scores and flags |
 | POST | `/api/applicants/{id}/resend-email` | JWT | Re-send applied / task / interview / result |
 | POST | `/api/applicants/bulk-decision` | JWT | Decide up to 100 applicants at once |
 | DELETE | `/api/applicants/{id}` | JWT | Erase a candidate and their stored files |
-| GET | `/api/audit` | JWT | This organisation's audit trail |
+| GET | `/api/audit` | JWT | This organisation's audit trail (members see decision and drive entries only) |
 | GET | `/api/status/{submit_token}` | token | Candidate's own application status |
 | POST | `/api/applicants/{id}/invite` | JWT | Invite a submitted candidate to interview |
 | POST | `/api/applicants/{id}/decision` | JWT | Record hire / reject, email the result |
@@ -185,7 +187,12 @@ is versioned and reviewable rather than living in a third-party dashboard.
 
 Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL`; the sender domain must be
 verified in Resend. Without them, sends are skipped and logged rather than
-failing the request that queued them.
+failing the request that queued them. In development a skipped message counts
+as delivered; with `ENVIRONMENT=production` it is recorded as failed, and
+startup logs an error, so a forgotten key shows up in the delivery record.
+
+Recruiters are also emailed when a candidate finishes an interview. Admins can
+turn this off on the settings page.
 
 Five templates: application received, task assigned, interview invitation,
 decision result (selected / rejected), password reset. Each is sent as HTML
