@@ -47,6 +47,7 @@ a fixed pipeline, and a recruiter makes every hiring decision.
 - **Teams and roles:** owner, admin and member. Members can review but not decide. The API enforces roles; the interface only reflects them.
 - **Several organisations per person:** the same email can belong to more than one organisation, with one password shared across all of them. Sign-in opens the organisation used most recently, and the account menu switches between them.
 - **Audit trail:** decisions, interview invitations, erasures, drive creation, edits, opening, closing and deletion, membership changes and password changes are all recorded, and entries are kept for two years.
+- **Notifications:** the bell in the dashboard lists new applications, task submissions and finished interviews, each linking to the candidate. Read state is per person, and notifications are kept for 90 days.
 - **Analytics:** applicant counts per status, per drive and over time.
 - **Data rights:** CSV export, per-candidate erasure (including stored files), and whole-account deletion.
 
