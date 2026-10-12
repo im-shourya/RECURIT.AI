@@ -31,6 +31,7 @@ import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
 import { api, ApplicantResponse } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
+import { safeExternalUrl } from '@/lib/utils'
 
 const STATUS_LABEL: Record<string, string> = {
   applied: 'Applied',
@@ -276,11 +277,11 @@ export default function ApplicantProfilePage() {
                 </div>
               )}
 
-              {applicant.github_url && (
+              {safeExternalUrl(applicant.github_url) && (
                 <a
-                  href={applicant.github_url}
+                  href={safeExternalUrl(applicant.github_url)}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
                 >
                   <Github className="h-4 w-4" />
@@ -309,12 +310,12 @@ export default function ApplicantProfilePage() {
                         Open file
                       </Button>
                     )}
-                    {applicant.submission.github_url && (
+                    {safeExternalUrl(applicant.submission.github_url) && (
                       <Button variant="outline" size="sm" asChild>
                         <a
-                          href={applicant.submission.github_url}
+                          href={safeExternalUrl(applicant.submission.github_url)}
                           target="_blank"
-                          rel="noreferrer"
+                          rel="noopener noreferrer"
                         >
                           <Github className="mr-2 h-4 w-4" />
                           Repository

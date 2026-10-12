@@ -46,6 +46,10 @@ settings = get_settings()
 log = logging.getLogger("recruit.interviews")
 router = APIRouter(prefix="/interview", tags=["Interview"])
 
+# An interview is nine questions. This leaves room for retries and reconnects
+# while keeping the embedded transcript far below MongoDB's 16MB document cap.
+MAX_TRANSCRIPT_ENTRIES = 60
+
 
 async def _by_token(token: str) -> Applicant:
     applicant = await Applicant.find_one({"interview.token": token})
@@ -154,6 +158,11 @@ async def submit_answer(token: str, body: InterviewAnswerRequest):
         raise HTTPException(status_code=400, detail="Interview has not started yet")
 
     transcript = applicant.interview.transcript or []
+    # The rate limit resets every hour, so on its own it does not stop a
+    # transcript growing across days.
+    if len(transcript) >= MAX_TRANSCRIPT_ENTRIES:
+        raise HTTPException(status_code=409, detail="This interview has no more questions")
+
     transcript.append({
         "round": body.round_name,
         "question": body.question_text,
@@ -352,11 +361,14 @@ async def get_interview_detail(
         raise HTTPException(status_code=404, detail="Interview not found")
 
     drive = await Drive.get(applicant.drive_id)
-    interview = applicant.interview
+    return interview_detail_response(applicant, drive.name if drive else "")
 
+
+def interview_detail_response(applicant: Applicant, drive_name: str) -> InterviewDetailResponse:
+    """The recruiter's view of one interview. Shared with the applicants router."""
+    interview = applicant.interview
     return InterviewDetailResponse(
         id=applicant.id,
-        token=interview.token,
         started_at=interview.started_at,
         ended_at=interview.ended_at,
         recording_url=interview.recording_url or "",
@@ -367,5 +379,5 @@ async def get_interview_detail(
         total_score=interview.total_score,
         malpractice_flags=interview.malpractice_flags or [],
         applicant_name=applicant.name,
-        drive_name=drive.name if drive else "",
+        drive_name=drive_name,
     )

@@ -119,20 +119,39 @@ async def test_gives_up_after_the_attempt_cap(db, monkeypatch):
     assert (await EmailOutbox.get(row.id)).status == EmailStatus.FAILED
 
 
-async def test_unconfigured_transport_counts_as_delivered(db, monkeypatch):
+async def _skipped(**_kwargs):
+    return "skipped-no-config"
+
+
+async def test_unconfigured_transport_counts_as_delivered_in_development(db, monkeypatch):
     """
     With no provider there is nothing to retry against, so leaving these
     pending would accumulate documents forever on a machine without email.
     """
+    monkeypatch.setattr(settings, "ENVIRONMENT", "development")
     row = await _queued()
 
-    async def _send(**_kwargs):
-        return "skipped-no-config"
-
-    monkeypatch.setattr("app.services.email_service.send_email", _send)
+    monkeypatch.setattr("app.services.email_service.send_email", _skipped)
     await email_outbox.deliver(row.id)
 
     assert (await EmailOutbox.get(row.id)).status == EmailStatus.SENT
+
+
+async def test_unconfigured_transport_is_a_failure_in_production(db, monkeypatch):
+    """
+    In production a missing key is a forgotten setting. Calling the message
+    sent would show a clean delivery record while candidates got nothing.
+    """
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    row = await _queued()
+
+    monkeypatch.setattr("app.services.email_service.send_email", _skipped)
+    assert await email_outbox.deliver(row.id) is False
+
+    stored = await EmailOutbox.get(row.id)
+    assert stored.status == EmailStatus.FAILED
+    assert stored.sent_at is None
+    assert stored.last_error == "Resend is not configured"
 
 
 async def test_already_sent_row_is_not_sent_again(db, monkeypatch):
