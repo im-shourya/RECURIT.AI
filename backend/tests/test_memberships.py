@@ -87,7 +87,7 @@ async def test_inviting_an_existing_member_of_the_same_organisation_is_refused(o
 async def test_registering_a_second_organisation_needs_the_existing_password(owner):
     with pytest.raises(HTTPException) as exc:
         await register(
-            OrgRegisterRequest(name="Second Club", email=owner.email, password="not-it"),
+            OrgRegisterRequest(name="Second Club", email=owner.email, password="not-the-password"),
             Response(),
         )
     assert exc.value.status_code == 400
@@ -191,3 +191,18 @@ async def test_the_old_deployment_wide_unique_index_is_dropped():
     await drop_superseded_indexes(database)  # and again, as on every boot
 
     assert "email_1" not in await database["users"].index_information()
+
+
+# ──────────────────────────────────────────────
+# Password policy at signup
+# ──────────────────────────────────────────────
+@pytest.mark.parametrize("password", ["short", "seven77", "x" * 129])
+def test_registration_applies_the_same_password_bounds_as_a_change(password):
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        OrgRegisterRequest(name="Club", email="new@example.com", password=password)
+
+
+def test_registration_accepts_an_eight_character_password():
+    assert OrgRegisterRequest(name="Club", email="new@example.com", password="eight888")
