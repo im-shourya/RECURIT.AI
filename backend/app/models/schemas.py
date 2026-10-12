@@ -431,8 +431,13 @@ class InterviewEndResponse(BaseModel):
 
 
 class InterviewSummaryResponse(BaseModel):
+    """
+    No `token`. The interview endpoints are unauthenticated and gated only on
+    that token, so returning it here handed every team member a working
+    capability to open, start or answer any candidate's interview. Recruiters
+    reach the interview by applicant id instead.
+    """
     id: UUID
-    token: str
     started_at: Optional[datetime]
     ended_at: Optional[datetime]
     recording_url: str

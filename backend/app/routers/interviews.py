@@ -352,11 +352,14 @@ async def get_interview_detail(
         raise HTTPException(status_code=404, detail="Interview not found")
 
     drive = await Drive.get(applicant.drive_id)
-    interview = applicant.interview
+    return interview_detail_response(applicant, drive.name if drive else "")
 
+
+def interview_detail_response(applicant: Applicant, drive_name: str) -> InterviewDetailResponse:
+    """The recruiter's view of one interview. Shared with the applicants router."""
+    interview = applicant.interview
     return InterviewDetailResponse(
         id=applicant.id,
-        token=interview.token,
         started_at=interview.started_at,
         ended_at=interview.ended_at,
         recording_url=interview.recording_url or "",
@@ -367,5 +370,5 @@ async def get_interview_detail(
         total_score=interview.total_score,
         malpractice_flags=interview.malpractice_flags or [],
         applicant_name=applicant.name,
-        drive_name=drive.name if drive else "",
+        drive_name=drive_name,
     )

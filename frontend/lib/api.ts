@@ -297,7 +297,6 @@ export interface InterviewEndResponse {
 
 export interface InterviewSummary {
   id: string;
-  token: string;
   started_at: string | null;
   ended_at: string | null;
   recording_url: string;
@@ -586,11 +585,11 @@ export const api = {
   /**
    * Full interview detail for a recruiter — transcript, scores, flags.
    *
-   * Authenticated and scoped to the calling organisation: an unknown token
-   * and another organisation's token both return 404.
+   * Keyed by applicant id: the API no longer hands recruiters the candidate's
+   * interview token. Another organisation's applicant returns 404.
    */
-  getInterviewDetail: (token: string) =>
-    request<InterviewDetail>(`/api/interview/${token}/detail`, {}, true),
+  getInterviewDetail: (applicantId: string) =>
+    request<InterviewDetail>(`/api/applicants/${applicantId}/interview`, {}, true),
 
   startInterview: (token: string) =>
     request<{ interview_id: string; message: string }>(`/api/interview/${token}/start`, { method: 'POST', body: '{}' }),
