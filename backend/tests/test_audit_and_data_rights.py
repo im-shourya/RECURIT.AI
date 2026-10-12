@@ -231,3 +231,50 @@ def test_the_plain_created_at_index_is_retired():
     assert "created_at_-1" in SUPERSEDED_INDEXES["audit_log"]
     names = {index.document.get("name") for index in AuditLog.Settings.indexes}
     assert "created_at_-1" not in names
+
+
+# ──────────────────────────────────────────────
+# Who can read which entries
+# ──────────────────────────────────────────────
+async def _seed_trail(org):
+    from app.services import audit
+
+    for action in (
+        AuditAction.APPLICANT_SELECTED,
+        AuditAction.DRIVE_CREATED,
+        AuditAction.MEMBER_INVITED,
+        AuditAction.PASSWORD_CHANGED,
+    ):
+        await audit.record(org_id=org.id, action=action, entity_type="x", entity_label="x")
+
+
+async def _read(org, user, **filters):
+    from fastapi import Response
+
+    from app.routers.audit import list_audit_entries
+
+    entries = await list_audit_entries(
+        Response(), action=filters.get("action"), entity_id=None,
+        limit=50, offset=0, org=org, user=user,
+    )
+    return {e.action for e in entries}
+
+
+async def test_members_see_decisions_but_not_team_administration(org, owner):
+    from app.models.documents import User, UserRole
+
+    member = User(org_id=org.id, email="member@example.com", role=UserRole.MEMBER)
+    await member.insert()
+    await _seed_trail(org)
+
+    assert await _read(org, member) == {"applicant.selected", "drive.created"}
+    # Asking for a hidden action by name returns nothing rather than leaking it.
+    assert await _read(org, member, action="member.invited") == set()
+
+
+async def test_admins_see_the_whole_trail(org, owner):
+    await _seed_trail(org)
+
+    assert await _read(org, owner) == {
+        "applicant.selected", "drive.created", "member.invited", "org.password_changed",
+    }

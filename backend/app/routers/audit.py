@@ -8,11 +8,23 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
-from app.models.documents import AuditAction, AuditLog, Organisation
+from app.models.documents import ROLE_RANK, AuditAction, AuditLog, Organisation, User, UserRole
 from app.models.schemas import AuditEntryResponse
-from app.services.auth_service import get_current_org
+from app.services.auth_service import get_current_org, get_current_user
 
 router = APIRouter(prefix="/audit", tags=["Audit"])
+
+# What a member may read. Decision and drive history is what a reviewer needs
+# to see; team administration and account changes carry colleagues' email
+# addresses and are for admins.
+MEMBER_VISIBLE_PREFIXES = ("applicant.", "drive.")
+
+
+def visible_actions(user: User) -> list[AuditAction] | None:
+    """The actions this user may see, or None for all of them."""
+    if ROLE_RANK[user.role] >= ROLE_RANK[UserRole.ADMIN]:
+        return None
+    return [a for a in AuditAction if a.value.startswith(MEMBER_VISIBLE_PREFIXES)]
 
 
 @router.get("", response_model=list[AuditEntryResponse])
@@ -23,9 +35,11 @@ async def list_audit_entries(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     org: Organisation = Depends(get_current_org),
+    user: User = Depends(get_current_user),
 ):
     """
-    Newest first, scoped to the calling organisation.
+    Newest first, scoped to the calling organisation. Members see decision and
+    drive history only; admins and owners see everything.
 
     Read-only by design: there is no endpoint to edit or delete an entry,
     because a trail that can be rewritten answers nothing.
@@ -43,6 +57,10 @@ async def list_audit_entries(
 
     if entity_id:
         conditions.append(AuditLog.entity_id == entity_id)
+
+    allowed = visible_actions(user)
+    if allowed is not None:
+        conditions.append({"action": {"$in": [a.value for a in allowed]}})
 
     query = AuditLog.find(*conditions)
 
