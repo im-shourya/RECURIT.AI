@@ -206,3 +206,35 @@ def test_registration_applies_the_same_password_bounds_as_a_change(password):
 
 def test_registration_accepts_an_eight_character_password():
     assert OrgRegisterRequest(name="Club", email="new@example.com", password="eight888")
+
+
+# ──────────────────────────────────────────────
+# Account events are audited
+# ──────────────────────────────────────────────
+async def _actions(org_id) -> list[str]:
+    from app.models.documents import AuditLog
+
+    return [e.action.value for e in await AuditLog.find(AuditLog.org_id == org_id).to_list()]
+
+
+async def test_registration_is_audited(db):
+    profile = await register(
+        OrgRegisterRequest(name="New Club", email="founder@example.com", password=PASSWORD),
+        Response(),
+    )
+    assert await _actions(profile.id) == ["org.registered"]
+
+
+async def test_sign_in_and_failed_sign_in_are_audited(owner):
+    with pytest.raises(HTTPException):
+        await login(OrgLoginRequest(email=owner.email, password="wrong-password"), Response())
+    await login(OrgLoginRequest(email=owner.email, password=PASSWORD), Response())
+
+    assert await _actions(owner.org_id) == ["user.sign_in_failed", "user.signed_in"]
+
+
+async def test_an_unknown_address_records_nothing(owner):
+    with pytest.raises(HTTPException):
+        await login(OrgLoginRequest(email="nobody@example.com", password=PASSWORD), Response())
+
+    assert await _actions(owner.org_id) == []

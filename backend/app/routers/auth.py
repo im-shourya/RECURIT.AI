@@ -104,6 +104,15 @@ async def register(body: OrgRegisterRequest, response: Response):
     )
     await owner.insert()
 
+    await audit.record(
+        org_id=org.id,
+        action=AuditAction.ORG_REGISTERED,
+        entity_type="organisation",
+        entity_id=org.id,
+        entity_label=org.name,
+        detail={"changed_by": owner.email},
+    )
+
     set_session_cookie(response, owner)
     return await _profile(org, owner)
 
@@ -126,11 +135,23 @@ async def login(body: OrgLoginRequest, response: Response):
     # invitation is never a match. It fails exactly like a wrong password, so
     # the response cannot be used to work out which addresses have an
     # invitation pending.
+    accepted = await accepted_memberships(body.email)
     memberships = [
-        m for m in await accepted_memberships(body.email)
+        m for m in accepted
         if verify_password(body.password, m.password_hash or "")
     ]
     if not memberships:
+        # Recorded in every organisation the address belongs to, so an owner
+        # can see someone trying a colleague's password. An address with no
+        # account has no organisation to record it in.
+        for m in accepted:
+            await audit.record(
+                org_id=m.org_id,
+                action=AuditAction.SIGN_IN_FAILED,
+                entity_type="user",
+                entity_id=m.id,
+                entity_label=m.email,
+            )
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     active = [m for m in memberships if m.is_active]
@@ -150,6 +171,14 @@ async def login(body: OrgLoginRequest, response: Response):
 
     user.last_login_at = datetime.now(timezone.utc)
     await user.save()
+
+    await audit.record(
+        org_id=user.org_id,
+        action=AuditAction.SIGNED_IN,
+        entity_type="user",
+        entity_id=user.id,
+        entity_label=user.email,
+    )
 
     set_session_cookie(response, user)
     return await _profile(org, user)
@@ -554,6 +583,12 @@ async def delete_account(
     if not org:
         raise HTTPException(status_code=404, detail="Organisation not found")
 
+    # The trail is deleted with the organisation, so the deletion itself can
+    # only be recorded in the application log.
+    log.warning(
+        "organisation deleted",
+        extra={"org_id": str(org.id), "user_id": str(user.id)},
+    )
     await cascade.delete_organisation(org)
     clear_session_cookie(response)
     return None
