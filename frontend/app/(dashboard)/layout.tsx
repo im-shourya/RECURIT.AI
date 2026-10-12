@@ -25,7 +25,6 @@ import {
   Settings,
   Menu,
   LogOut,
-  User,
   Building2,
   Check,
   ChevronLeft,
@@ -36,6 +35,7 @@ import { useAuth } from '@/lib/auth-context'
 import type { OrgProfile } from '@/lib/api'
 import { Spinner } from '@/components/ui/spinner'
 import { NotificationBell } from '@/components/notification-bell'
+import { ThemeSwitcher } from '@/components/theme-switcher'
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
@@ -270,14 +270,20 @@ function UserMenu({
             <DropdownMenuSeparator />
           </>
         )}
-        <DropdownMenuItem className="cursor-pointer">
-          <User className="mr-2 h-4 w-4" />
-          Profile
+        {/* Profile used to sit here with no page behind it. */}
+        <DropdownMenuItem asChild className="cursor-pointer">
+          <Link href="/dashboard/settings">
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
+          </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer">
-          <Settings className="mr-2 h-4 w-4" />
-          Settings
-        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        {/* Not a menu item: the switcher has its own buttons, and selecting
+            one should not close the menu. */}
+        <div className="flex items-center justify-between gap-3 px-2 py-1.5">
+          <span className="text-sm">Appearance</span>
+          <ThemeSwitcher />
+        </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="text-destructive cursor-pointer" onClick={onLogout}>
           <LogOut className="mr-2 h-4 w-4" />
