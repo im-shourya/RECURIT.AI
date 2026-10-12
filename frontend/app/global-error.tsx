@@ -12,11 +12,25 @@ export default function GlobalError({
     <html>
       <head>
         <style>{`
+          /* This page replaces the root layout, so the app's stylesheet is
+             not loaded; the theme tokens are repeated here. */
+          :root {
+            --bg: #FBFBFD; --fg: #1D1D1F; --muted: #6E6E73; --ghost: rgb(29 29 31 / 0.06);
+            --primary: #0B7A75; --primary-hover: #096560; --on-primary: #FFFFFF;
+            --border: #D2D2D7; --hover: #EEEEF1;
+          }
+          @media (prefers-color-scheme: dark) {
+            :root {
+              --bg: #0B0B0C; --fg: #F5F5F7; --muted: #A1A1A6; --ghost: rgb(245 245 247 / 0.06);
+              --primary: #2BC4B4; --primary-hover: #4FD3C5; --on-primary: #04201E;
+              --border: #38383A; --hover: #2C2C2E;
+            }
+          }
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background: #F7F8F7;
-            color: #171A1F;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--fg);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -34,7 +48,7 @@ export default function GlobalError({
             font-weight: 700;
             line-height: 1;
             letter-spacing: -0.04em;
-            color: rgba(23, 26, 31, 0.05);
+            color: var(--ghost);
             margin-bottom: -1.5rem;
             user-select: none;
           }
@@ -42,13 +56,13 @@ export default function GlobalError({
             font-size: 1.5rem;
             font-weight: 600;
             letter-spacing: -0.02em;
-            color: #171A1F;
+            color: var(--fg);
             margin-bottom: 0.75rem;
           }
           .error-description {
             font-size: 1rem;
             line-height: 1.6;
-            color: #5F6670;
+            color: var(--muted);
             margin-bottom: 2rem;
             max-width: 360px;
             margin-left: auto;
@@ -72,7 +86,7 @@ export default function GlobalError({
             justify-content: center;
             height: 44px;
             padding: 0 24px;
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 14px;
             font-weight: 600;
             font-family: inherit;
@@ -83,26 +97,26 @@ export default function GlobalError({
             min-width: 140px;
           }
           .btn-primary {
-            background: #2C52BA;
-            color: #ffffff;
+            background: var(--primary);
+            color: var(--on-primary);
           }
           .btn-primary:hover {
-            background: #2449A6;
+            background: var(--primary-hover);
           }
           .btn-secondary {
             background: transparent;
-            color: #171A1F;
-            border: 1px solid #D7DCE2;
+            color: var(--fg);
+            border: 1px solid var(--border);
           }
           .btn-secondary:hover {
-            background: rgba(162, 171, 195, 0.2);
+            background: var(--hover);
           }
         `}</style>
       </head>
       <body>
         <div className="error-container">
           <div className="error-code">500</div>
-          <h1 className="error-title">Something Went Wrong</h1>
+          <h1 className="error-title">Something went wrong</h1>
           <p className="error-description">
             An unexpected error occurred. Please try refreshing the page.
           </p>
@@ -114,7 +128,7 @@ export default function GlobalError({
               Try again
             </button>
             <a href="/" className="btn btn-secondary">
-              Go to Dashboard
+              Go to the home page
             </a>
           </div>
         </div>
