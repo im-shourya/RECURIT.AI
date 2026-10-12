@@ -5,6 +5,7 @@ GET    /applicants/export                — CSV export
 GET    /applicants/{id}                  — Full profile
 GET    /applicants/{id}/submission-file  — Short-lived download link
 GET    /applicants/{id}/recording-file   — Short-lived interview playback link
+GET    /applicants/{id}/interview        — Transcript, scores and flags
 POST   /applicants/{id}/invite           — Invite a submitted candidate to interview
 POST   /applicants/{id}/decision         — Hire / reject
 POST   /applicants/{id}/resend-email     — Re-send a transactional email
@@ -41,6 +42,7 @@ from app.models.documents import (
 )
 from app.models.schemas import (
     ApplicantDecisionRequest,
+    InterviewDetailResponse,
     InterviewSummaryResponse,
     SubmissionResponse,
     ApplicantDecisionResponse,
@@ -52,6 +54,7 @@ from app.models.schemas import (
     SubmissionFileLinkResponse,
 )
 from app.routers.applicants import new_interview
+from app.routers.interviews import interview_detail_response
 from app.services import audit, cascade, storage_service
 from app.services.auth_service import get_current_org, require_role
 from app.services.email_service import (
@@ -92,7 +95,6 @@ def applicant_to_response(a: Applicant) -> ApplicantResponse:
     interview = (
         InterviewSummaryResponse(
             id=a.id,
-            token=a.interview.token,
             started_at=a.interview.started_at,
             ended_at=a.interview.ended_at,
             recording_url=a.interview.recording_url or "",
@@ -378,6 +380,28 @@ async def get_recording_file_link(
     return StoredFileLinkResponse(
         url=url, expires_in_seconds=storage_service.PRESIGNED_URL_TTL_SECONDS
     )
+
+
+# ──────────────────────────────────────────────
+# INTERVIEW DETAIL
+# ──────────────────────────────────────────────
+@router.get("/{applicant_id}/interview", response_model=InterviewDetailResponse)
+async def get_applicant_interview(
+    applicant_id: UUID,
+    org: Organisation = Depends(get_current_org),
+):
+    """
+    Transcript, scores and flags for one candidate's interview.
+
+    Keyed by applicant id rather than interview token, so the dashboard never
+    needs to hold the candidate's capability token to read their answers.
+    """
+    applicant = await _owned_applicant(applicant_id, org)
+    if not applicant.interview:
+        raise HTTPException(status_code=404, detail="This applicant has no interview")
+
+    drive = await Drive.get(applicant.drive_id)
+    return interview_detail_response(applicant, drive.name if drive else "")
 
 
 # ──────────────────────────────────────────────

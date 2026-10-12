@@ -3,13 +3,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
+  Building2,
   CheckSquare,
   DoorClosed,
   DoorOpen,
   FileText,
   KeyRound,
+  LogIn,
   ScrollText,
   Send,
+  ShieldAlert,
   Trash2,
   UserMinus,
   UserPlus,
@@ -47,6 +50,9 @@ const ACTIONS: Record<string, { label: string; icon: typeof CheckSquare; tone: s
   'member.role_changed': { label: 'changed role of', icon: UserPlus, tone: 'text-muted-foreground' },
   'member.removed': { label: 'removed', icon: UserMinus, tone: 'text-destructive' },
   'org.password_changed': { label: 'changed password', icon: KeyRound, tone: 'text-muted-foreground' },
+  'org.registered': { label: 'created organisation', icon: Building2, tone: 'text-primary' },
+  'user.signed_in': { label: 'sign-in by', icon: LogIn, tone: 'text-muted-foreground' },
+  'user.sign_in_failed': { label: 'failed sign-in for', icon: ShieldAlert, tone: 'text-destructive' },
 }
 
 function when(iso: string): string {

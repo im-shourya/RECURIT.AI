@@ -87,7 +87,7 @@ async def test_inviting_an_existing_member_of_the_same_organisation_is_refused(o
 async def test_registering_a_second_organisation_needs_the_existing_password(owner):
     with pytest.raises(HTTPException) as exc:
         await register(
-            OrgRegisterRequest(name="Second Club", email=owner.email, password="not-it"),
+            OrgRegisterRequest(name="Second Club", email=owner.email, password="not-the-password"),
             Response(),
         )
     assert exc.value.status_code == 400
@@ -191,3 +191,69 @@ async def test_the_old_deployment_wide_unique_index_is_dropped():
     await drop_superseded_indexes(database)  # and again, as on every boot
 
     assert "email_1" not in await database["users"].index_information()
+
+
+# ──────────────────────────────────────────────
+# Password policy at signup
+# ──────────────────────────────────────────────
+@pytest.mark.parametrize("password", ["short", "seven77", "x" * 129])
+def test_registration_applies_the_same_password_bounds_as_a_change(password):
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        OrgRegisterRequest(name="Club", email="new@example.com", password=password)
+
+
+def test_registration_accepts_an_eight_character_password():
+    assert OrgRegisterRequest(name="Club", email="new@example.com", password="eight888")
+
+
+# ──────────────────────────────────────────────
+# Account events are audited
+# ──────────────────────────────────────────────
+async def _actions(org_id) -> list[str]:
+    from app.models.documents import AuditLog
+
+    return [e.action.value for e in await AuditLog.find(AuditLog.org_id == org_id).to_list()]
+
+
+async def test_registration_is_audited(db):
+    profile = await register(
+        OrgRegisterRequest(name="New Club", email="founder@example.com", password=PASSWORD),
+        Response(),
+    )
+    assert await _actions(profile.id) == ["org.registered"]
+
+
+async def test_sign_in_and_failed_sign_in_are_audited(owner):
+    with pytest.raises(HTTPException):
+        await login(OrgLoginRequest(email=owner.email, password="wrong-password"), Response())
+    await login(OrgLoginRequest(email=owner.email, password=PASSWORD), Response())
+
+    assert await _actions(owner.org_id) == ["user.sign_in_failed", "user.signed_in"]
+
+
+async def test_an_unknown_address_records_nothing(owner):
+    with pytest.raises(HTTPException):
+        await login(OrgLoginRequest(email="nobody@example.com", password=PASSWORD), Response())
+
+    assert await _actions(owner.org_id) == []
+
+
+# ──────────────────────────────────────────────
+# Interview notification preference
+# ──────────────────────────────────────────────
+async def test_interview_notifications_can_be_turned_off_and_on(org, owner):
+    from app.models.schemas import OrgProfileUpdate
+    from app.routers.auth import update_me
+
+    profile = await update_me(OrgProfileUpdate(notify_on_interview=False), org=org, user=owner)
+    assert profile.notify_on_interview is False
+    assert (await Organisation.get(org.id)).notify_on_interview is False
+
+    # Leaving it out of a partial update keeps the current value.
+    await update_me(OrgProfileUpdate(description="Hi"), org=org, user=owner)
+    assert (await Organisation.get(org.id)).notify_on_interview is False
+
+    profile = await update_me(OrgProfileUpdate(notify_on_interview=True), org=org, user=owner)
+    assert profile.notify_on_interview is True

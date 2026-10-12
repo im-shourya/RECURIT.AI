@@ -19,7 +19,7 @@ from app.routers import (
     team,
 )
 from app.security_headers import SecurityHeadersMiddleware
-from app.services import email_outbox
+from app.services import email_outbox, email_service
 
 settings = get_settings()
 
@@ -37,6 +37,12 @@ async def lifespan(app: FastAPI):
     # used to be table constraints, so this is not optional setup.
     await db.connect()
     log.info("database ready; indexes applied")
+
+    if settings.is_production and not email_service.is_configured():
+        log.error(
+            "RESEND_API_KEY or RESEND_FROM_EMAIL is not set: no email will be "
+            "sent, and every message will be recorded as failed"
+        )
 
     sweeper_stop = asyncio.Event()
     sweeper_task = None
