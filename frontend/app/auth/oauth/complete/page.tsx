@@ -64,7 +64,7 @@ export default function CompleteOAuthSignupPage() {
         <p className="mt-2 text-muted-foreground">
           It took too long to finish. Start again and it will only take a moment.
         </p>
-        <Button className="mt-6 gradient-primary border-0" onClick={() => router.push('/auth/register')}>
+        <Button className="mt-6 border-0" onClick={() => router.push('/auth/register')}>
           Back to sign-up
         </Button>
       </div>
@@ -107,7 +107,7 @@ export default function CompleteOAuthSignupPage() {
         <Button
           type="submit"
           disabled={saving || orgName.trim().length < 2}
-          className="w-full gradient-primary border-0 hover:opacity-90 h-11"
+          className="w-full border-0 h-11"
         >
           {saving ? (
             <Spinner className="h-4 w-4" />
