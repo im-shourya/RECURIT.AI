@@ -33,6 +33,7 @@ from app.models.documents import (
     Applicant,
     AuditLog,
     Drive,
+    Notification,
     Organisation,
     PasswordResetToken,
     User,
@@ -114,6 +115,7 @@ async def delete_drive(drive: Drive) -> int:
 
     result = await Applicant.find(Applicant.drive_id == drive.id).delete()
     removed = getattr(result, "deleted_count", 0) or 0
+    await Notification.find(Notification.drive_id == drive.id).delete()
 
     await drive.delete()
     await delete_stored_files(keys)
@@ -150,6 +152,7 @@ async def delete_organisation(org: Organisation) -> dict[str, int]:
         ("drives", Drive.find(Drive.org_id == org.id)),
         ("reset_tokens", PasswordResetToken.find(PasswordResetToken.org_id == org.id)),
         ("audit_entries", AuditLog.find(AuditLog.org_id == org.id)),
+        ("notifications", Notification.find(Notification.org_id == org.id)),
         ("users", User.find(User.org_id == org.id)),
     ):
         result = await query.delete()
@@ -160,6 +163,16 @@ async def delete_organisation(org: Organisation) -> dict[str, int]:
     counts["stored_files"] = len(keys)
     log.info("organisation deleted", extra={"org_id": str(org.id), **counts})
     return counts
+
+
+async def delete_applicant_notifications(applicant_id: UUID) -> None:
+    """
+    Remove the notifications that name a candidate.
+
+    They carry the candidate's name, so leaving them would undo an erasure
+    request for as long as they lasted.
+    """
+    await Notification.find(Notification.applicant_id == applicant_id).delete()
 
 
 async def delete_user(user: User) -> None:
