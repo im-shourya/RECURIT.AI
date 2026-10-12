@@ -342,7 +342,32 @@ export interface AnalyticsResponse {
 // API METHODS
 // ══════════════════════════════════════════════
 
+export type OAuthProvider = 'google' | 'github';
+
+/** A verified Google or GitHub identity waiting to name its organisation. */
+export interface PendingOAuthSignup {
+  provider: OAuthProvider;
+  email: string;
+  name: string;
+}
+
 export const api = {
+  // ── Sign in with Google / GitHub ──
+  // Starting a sign-in is a full-page navigation to
+  // /api/auth/oauth/<provider>/start, not a fetch: the provider's pages must
+  // load in the top window.
+
+  /** Providers the API has credentials for; only these buttons can work. */
+  getOAuthProviders: () =>
+    request<{ providers: OAuthProvider[] }>('/api/auth/oauth/providers'),
+
+  getPendingOAuthSignup: () =>
+    request<PendingOAuthSignup>('/api/auth/oauth/signup'),
+
+  /** Creates the organisation and sets the session cookie. */
+  completeOAuthSignup: (name: string) =>
+    request<OrgProfile>('/api/auth/oauth/signup', { method: 'POST', body: JSON.stringify({ name }) }),
+
   // ── Auth ──
   register: (data: {
     name: string;
