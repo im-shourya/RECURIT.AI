@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 import { motion, useScroll, useMotionValueEvent, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CheckCircle, User, Brain, FileSearch, Code, Share2 } from 'lucide-react'
+import { CheckCircle, User, MessageSquare, FileSearch, Code, Share2 } from 'lucide-react'
 
 import { useStickyStage } from '@/hooks/use-sticky-stage'
 import { appleOut } from './motion'
@@ -84,14 +84,14 @@ function UI_Candidate() {
 
 function UI_Interview() {
   return (
-    <PanelWrapper title="Live AI Interview">
+    <PanelWrapper title="Interview · Project round">
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
-          <Brain className="w-4 h-4 text-primary" />
-          <span className="text-xs font-medium text-foreground">Recruiter AI</span>
+          <MessageSquare className="w-4 h-4 text-primary" />
+          <span className="text-xs font-medium text-foreground">Question 4 of 9</span>
         </div>
         <div className="p-3 rounded-2xl rounded-tl-sm bg-muted border border-border text-sm leading-relaxed text-muted-foreground">
-          I noticed you implemented a custom Redis caching layer in your recent Next.js project. Could you explain the architectural reasoning behind bypassing the built-in cache?
+          Walk me through the architecture of your project.
         </div>
       </div>
       <div className="flex flex-col items-end">
@@ -117,9 +117,9 @@ function UI_Evidence() {
             <Code className="w-4 h-4 text-primary" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">Code Consistency</p>
+            <p className="text-sm font-semibold text-foreground">Submitted work</p>
             <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              Interview responses align deeply with the structural complexity of the submitted GitHub repositories.
+              Open the uploaded file or the repository the candidate shared.
             </p>
           </div>
         </div>
@@ -128,9 +128,9 @@ function UI_Evidence() {
             <FileSearch className="w-4 h-4 text-primary" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">Identity Verification</p>
+            <p className="text-sm font-semibold text-foreground">Recording and transcript</p>
             <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              Continuous gaze tracking and visual analysis confirm single-user presence. No anomalies detected.
+              Watch the interview and read every answer before you decide.
             </p>
           </div>
         </div>
@@ -144,8 +144,8 @@ function UI_Evidence() {
 const scenes = [
   { id: 0, title: 'Create a recruitment drive.', ui: UI_Create },
   { id: 1, title: 'Candidates submit profiles.', ui: UI_Candidate },
-  { id: 2, title: 'AI conducts the interview.', ui: UI_Interview },
-  { id: 3, title: 'Evaluate with evidence.', ui: UI_Evidence },
+  { id: 2, title: 'Invited candidates interview.', ui: UI_Interview },
+  { id: 3, title: 'Review the evidence.', ui: UI_Evidence },
 ]
 
 export function ProductStorySection() {

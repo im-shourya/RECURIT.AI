@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { Brain, Github, Video, Calculator, Link as LinkIcon, Zap } from 'lucide-react'
+import { CheckSquare, FileUp, Link as LinkIcon, Mail, UserCheck, Video } from 'lucide-react'
 
 import { useStickyStage } from '@/hooks/use-sticky-stage'
 import { Reveal } from './motion'
@@ -10,39 +10,39 @@ import { Reveal } from './motion'
 const capabilities = [
   {
     id: '01',
-    title: 'AI-Powered Interviews',
-    description: 'Structured interviews that adapt to each candidate. Relevant questions based on their profile, projects, and experience.',
-    icon: Brain
-  },
-  {
-    id: '02',
-    title: 'GitHub Integration',
-    description: 'Analyze candidate repositories automatically — code quality, tech stack, commit patterns, and project complexity.',
-    icon: Github
-  },
-  {
-    id: '03',
-    title: 'Video Analysis',
-    description: 'Real-time integrity checks using computer vision. Face and gaze tracking catch malpractice securely and privately.',
+    title: 'Recorded Interviews',
+    description: 'Candidates answer a structured interview in the browser while their camera records. You watch the recording and read the transcript.',
     icon: Video
   },
   {
+    id: '02',
+    title: 'Task Submissions',
+    description: 'Candidates upload their work or share a repository from a private link, before the deadline you set.',
+    icon: FileUp
+  },
+  {
+    id: '03',
+    title: 'You Choose Who Interviews',
+    description: 'Nobody is interviewed automatically. A recruiter reviews the submitted work and invites the candidates worth talking to.',
+    icon: UserCheck
+  },
+  {
     id: '04',
-    title: 'Smart Scoring',
-    description: 'Advanced NLP evaluation across communication, technical depth, and domain knowledge. Deep, explainable metrics.',
-    icon: Calculator
+    title: 'Decisions in Bulk',
+    description: 'Select or reject one candidate or a hundred at once. Each one is emailed the outcome, and the decision is kept in the audit trail.',
+    icon: CheckSquare
   },
   {
     id: '05',
     title: 'Instant Drive Links',
-    description: 'Generate shareable links and QR codes for your recruitment drives. Candidates can apply in under 30 seconds.',
+    description: 'Generate shareable links and QR codes for your recruitment drives. Candidates apply without making an account.',
     icon: LinkIcon
   },
   {
     id: '06',
-    title: 'Automated Workflows',
-    description: 'Confirmation emails, task assignments, interview invitations, and results — all triggered automatically upon phase completion.',
-    icon: Zap
+    title: 'Email That Arrives',
+    description: 'Confirmations, tasks, interview invitations and results go through an outbox that retries until each one is delivered.',
+    icon: Mail
   }
 ]
 

@@ -152,7 +152,7 @@ export default function DashboardLayout({
       </aside>
 
       {/* Mobile Header */}
-      <header className="lg:hidden sticky top-0 z-50 flex items-center justify-between h-16 px-4 border-b border-border bg-background">
+      <header className="lg:hidden sticky top-0 z-50 flex items-center justify-between h-16 px-4 border-b liquid-glass-bar">
         <div className="flex items-center gap-3">
           <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
             <SheetTrigger asChild>
@@ -184,7 +184,7 @@ export default function DashboardLayout({
         )}
       >
         {/* Desktop Top Bar */}
-        <header className="hidden lg:flex items-center justify-between h-16 px-8 border-b border-border bg-background sticky top-0 z-30">
+        <header className="hidden lg:flex items-center justify-between h-16 px-8 border-b liquid-glass-bar sticky top-0 z-30">
           <div>
             <h1 className="text-lg font-semibold text-foreground">
               {(() => {

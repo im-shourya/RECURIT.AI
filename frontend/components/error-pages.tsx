@@ -271,7 +271,7 @@ export function ErrorPage({
           {primaryHref && variant.primary.action !== 'retry' ? (
             <Button
               asChild
-              className="w-full sm:w-auto h-11 px-6 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg"
+              className="w-full sm:w-auto h-11 px-6 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary-hover rounded-lg"
             >
               <Link href={primaryHref}>
                 <PrimaryIcon className="mr-2 h-4 w-4" />
@@ -281,7 +281,7 @@ export function ErrorPage({
           ) : (
             <Button
               onClick={() => handleAction(variant.primary.action)}
-              className="w-full sm:w-auto h-11 px-6 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg"
+              className="w-full sm:w-auto h-11 px-6 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary-hover rounded-lg"
             >
               <PrimaryIcon className="mr-2 h-4 w-4" />
               {variant.primary.label}

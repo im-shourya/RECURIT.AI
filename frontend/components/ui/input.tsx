@@ -15,7 +15,7 @@ function Input({ className, type, style, ...props }: React.ComponentProps<'input
       style={style}
     >
       <Squircle
-        cornerRadius={6}
+        cornerRadius={10}
         cornerSmoothing={1}
         borderClassName="stroke-input"
         className="absolute inset-0 z-[0] pointer-events-none bg-transparent dark:bg-input/30"
