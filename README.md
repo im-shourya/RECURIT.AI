@@ -48,6 +48,7 @@ a fixed pipeline, and a recruiter makes every hiring decision.
 - **Sign in with Google or GitHub:** an existing account signs straight in, a pending team invitation is accepted, and someone new only has to name their organisation. Only verified provider email addresses are accepted. Each provider appears once its credentials are configured.
 - **Several organisations per person:** the same email can belong to more than one organisation, with one password shared across all of them. Sign-in opens the organisation used most recently, and the account menu switches between them.
 - **Audit trail:** decisions, interview invitations, erasures, drive creation, edits, opening, closing and deletion, membership changes, password changes, registration, sign-ins and failed sign-ins are all recorded, and entries are kept for two years. Members see decision and drive history; team and account entries are for admins and owners.
+- **Notifications:** the bell in the dashboard lists new applications, task submissions and finished interviews, each linking to the candidate. Read state is per person, and notifications are kept for 90 days.
 - **Analytics:** applicant counts per status, per drive and over time.
 - **Data rights:** CSV export, per-candidate erasure (including stored files), and whole-account deletion.
 

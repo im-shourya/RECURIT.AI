@@ -747,6 +747,7 @@ async def delete_applicant(
         detail={"drive": drive.name if drive else "", "stored_files": len(keys)},
     )
 
+    await cascade.delete_applicant_notifications(applicant.id)
     await applicant.delete()
 
     # After the document is gone: a storage error must not leave the record in
