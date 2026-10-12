@@ -38,6 +38,7 @@ from app.models.documents import (
     EmailType,
     Organisation,
     TaskType,
+    User,
     UserRole,
 )
 from app.models.schemas import (
@@ -56,7 +57,8 @@ from app.models.schemas import (
 from app.routers.applicants import new_interview
 from app.routers.interviews import interview_detail_response
 from app.services import audit, cascade, storage_service
-from app.services.auth_service import get_current_org, require_role
+from app.services.auth_service import get_current_org, get_current_user, require_role
+from app.services.rate_limit import RateLimit
 from app.services.email_service import (
     send_application_email,
     send_interview_email,
@@ -231,16 +233,46 @@ async def list_applicants(
 # Declared before /{applicant_id}: FastAPI matches in definition order, so a
 # later /export would be captured by the UUID route and rejected as invalid.
 # ──────────────────────────────────────────────
-@router.get("/export")
+# The whole file is built in memory, so it needs a ceiling. Far above any
+# single club's intake; a larger organisation can export per drive.
+MAX_EXPORT_ROWS = 10_000
+
+
+@router.get(
+    "/export",
+    # The cheapest way to pull every candidate record the organisation holds,
+    # so it is bounded like every other expensive endpoint.
+    dependencies=[Depends(RateLimit("export", limit=10, window_seconds=3600))],
+)
 async def export_applicants(
     drive_id: Optional[UUID] = Query(None),
     status: Optional[str] = Query(None),
     q: Optional[str] = Query(None, max_length=255),
     org: Organisation = Depends(get_current_org),
+    user: User = Depends(get_current_user),
 ):
     conditions = _build_conditions(org, drive_id, status, q)
+    # One extra row tells a full export apart from a truncated one.
     applicants = (
-        await Applicant.find(*conditions).sort(-Applicant.applied_at).to_list()
+        await Applicant.find(*conditions)
+        .sort(-Applicant.applied_at)
+        .limit(MAX_EXPORT_ROWS + 1)
+        .to_list()
+    )
+    truncated = len(applicants) > MAX_EXPORT_ROWS
+    applicants = applicants[:MAX_EXPORT_ROWS]
+
+    await audit.record(
+        org_id=org.id,
+        action=AuditAction.APPLICANTS_EXPORTED,
+        entity_type="export",
+        entity_label=f"{len(applicants)} applicants",
+        detail={
+            "changed_by": user.email,
+            "drive_id": str(drive_id) if drive_id else "",
+            "status": status or "",
+            "truncated": truncated,
+        },
     )
 
     buffer = io.StringIO()
@@ -274,7 +306,11 @@ async def export_applicants(
     return StreamingResponse(
         iter([buffer.getvalue()]),
         media_type="text/csv",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Export-Truncated": "true" if truncated else "false",
+            "Access-Control-Expose-Headers": "X-Export-Truncated",
+        },
     )
 
 
