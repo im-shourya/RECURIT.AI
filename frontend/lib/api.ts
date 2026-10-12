@@ -342,7 +342,39 @@ export interface AnalyticsResponse {
 // API METHODS
 // ══════════════════════════════════════════════
 
+export type NotificationKind =
+  | 'application.received'
+  | 'submission.received'
+  | 'interview.completed';
+
+export interface AppNotification {
+  id: string;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  /** A dashboard path. */
+  link: string;
+  created_at: string;
+  /** Read by the signed-in person; colleagues have their own read state. */
+  read: boolean;
+}
+
+export interface NotificationList {
+  items: AppNotification[];
+  unread_count: number;
+}
+
 export const api = {
+  // ── Notifications ──
+  getNotifications: (limit = 20) =>
+    request<NotificationList>(`/api/notifications?limit=${limit}`, {}, true),
+
+  markNotificationRead: (id: string) =>
+    request<void>(`/api/notifications/${id}/read`, { method: 'POST' }, true),
+
+  markAllNotificationsRead: () =>
+    request<void>('/api/notifications/read-all', { method: 'POST' }, true),
+
   // ── Auth ──
   register: (data: {
     name: string;

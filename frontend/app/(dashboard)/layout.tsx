@@ -23,7 +23,6 @@ import {
   Users,
   ScrollText,
   Settings,
-  Bell,
   Menu,
   LogOut,
   User,
@@ -36,6 +35,7 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth-context'
 import type { OrgProfile } from '@/lib/api'
 import { Spinner } from '@/components/ui/spinner'
+import { NotificationBell } from '@/components/notification-bell'
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
@@ -171,10 +171,7 @@ export default function DashboardLayout({
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="relative text-muted-foreground">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary border-2 border-background" />
-          </Button>
+          <NotificationBell />
           <UserMenu user={user} onLogout={logout} onSwitch={switchOrganisation} />
         </div>
       </header>
@@ -198,10 +195,7 @@ export default function DashboardLayout({
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:bg-secondary/50">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary border-2 border-background" />
-            </Button>
+            <NotificationBell className="hover:bg-secondary/50" />
             <UserMenu user={user} onLogout={logout} onSwitch={switchOrganisation} />
           </div>
         </header>
