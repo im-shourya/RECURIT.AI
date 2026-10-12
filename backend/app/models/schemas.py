@@ -4,13 +4,23 @@ Request / Response models for all API endpoints.
 """
 
 from datetime import date, datetime
-from typing import Optional
+from typing import Annotated, Optional
 from urllib.parse import urlsplit
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 MAX_URL_LENGTH = 2048
+
+# Upper bounds on free text. Interview answers and submissions are embedded in
+# the applicant document, which MongoDB caps at 16MB; without a bound, a few
+# very large requests could push one candidate's record past it and leave it
+# permanently unwritable.
+SHORT_TEXT = 255
+LONG_TEXT = 5_000
+TASK_TEXT = 20_000
+MAX_TAGS = 30
+Tag = Annotated[str, Field(max_length=50)]
 GITHUB_HOSTS = frozenset({"github.com", "www.github.com"})
 
 
@@ -50,8 +60,8 @@ class OrgRegisterRequest(BaseModel):
     # Same bounds as a password change or reset. Signup used to accept six
     # characters, which made the owner's password the weakest in the system.
     password: str = Field(..., min_length=8, max_length=128)
-    description: str = ""
-    domain_tags: list[str] = []
+    description: str = Field("", max_length=LONG_TEXT)
+    domain_tags: list[Tag] = Field([], max_length=MAX_TAGS)
     logo_url: str = ""
 
     @field_validator("logo_url")
@@ -125,8 +135,8 @@ class PasswordChangeRequest(BaseModel):
 
 class OrgProfileUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=2, max_length=255)
-    description: Optional[str] = None
-    domain_tags: Optional[list[str]] = None
+    description: Optional[str] = Field(None, max_length=LONG_TEXT)
+    domain_tags: Optional[list[Tag]] = Field(None, max_length=MAX_TAGS)
     logo_url: Optional[str] = None
 
     @field_validator("logo_url")
@@ -142,7 +152,7 @@ class DriveCreateRequest(BaseModel):
     name: str = Field(..., min_length=2, max_length=255)
     domain: str = Field(..., min_length=2, max_length=255)
     task_type: str = Field(..., pattern="^(task|github)$")
-    task_description: str = ""
+    task_description: str = Field("", max_length=TASK_TEXT)
     question_level: str = Field(default="beginner", pattern="^(beginner|intermediate|advanced)$")
     apply_deadline: date
     task_deadline: Optional[date] = None
@@ -181,7 +191,7 @@ class DriveUpdateRequest(BaseModel):
     """
     name: Optional[str] = Field(None, min_length=2, max_length=255)
     domain: Optional[str] = Field(None, min_length=2, max_length=255)
-    task_description: Optional[str] = None
+    task_description: Optional[str] = Field(None, max_length=TASK_TEXT)
     question_level: Optional[str] = Field(None, pattern="^(beginner|intermediate|advanced)$")
     apply_deadline: Optional[date] = None
     task_deadline: Optional[date] = None
@@ -216,9 +226,9 @@ class DrivePublicResponse(BaseModel):
 class ApplyRequest(BaseModel):
     name: str = Field(..., min_length=2, max_length=255)
     email: EmailStr
-    reg_no: str = ""
-    skills: list[str] = []
-    primary_domain: str = ""
+    reg_no: str = Field("", max_length=64)
+    skills: list[Tag] = Field([], max_length=MAX_TAGS)
+    primary_domain: str = Field("", max_length=SHORT_TEXT)
     github_url: str = ""
 
     @field_validator("github_url")
@@ -336,9 +346,9 @@ class ApplicantDecisionResponse(BaseModel):
 # SUBMISSIONS
 # ══════════════════════════════════════════════
 class SubmissionCreateRequest(BaseModel):
-    file_url: str = ""
+    file_url: str = Field("", max_length=1024)
     github_url: str = ""
-    description: str = ""
+    description: str = Field("", max_length=LONG_TEXT)
 
     @field_validator("github_url")
     @classmethod
@@ -402,8 +412,8 @@ class InterviewStartResponse(BaseModel):
 
 
 class InterviewAnswerRequest(BaseModel):
-    question_text: str
-    answer_text: str
+    question_text: str = Field(..., max_length=1_000)
+    answer_text: str = Field(..., max_length=LONG_TEXT)
     round_name: str = Field(..., pattern="^(intro|project|domain)$")
 
 
