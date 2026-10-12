@@ -35,6 +35,14 @@ function handleUnauthorized(): never {
 
 async function failureMessage(res: Response, fallback: string): Promise<string> {
   const body = await res.json().catch(() => ({}));
+  // A 422 carries a list of field errors rather than a string, which would
+  // otherwise reach the toast as "[object Object]".
+  if (Array.isArray(body.detail)) {
+    const messages = body.detail
+      .map((e: { msg?: string }) => e.msg?.replace(/^Value error, /, ''))
+      .filter(Boolean);
+    if (messages.length) return messages.join('. ');
+  }
   return body.detail || `${fallback}: ${res.status}`;
 }
 
