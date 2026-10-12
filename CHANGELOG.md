@@ -4,6 +4,25 @@ All notable changes to RECRUIT.AI are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- An Appearance card in Settings (light, dark or system), alongside the
+  switchers in the account menu and footer.
+- A real scroll button in the hero, and a back-to-top button once the hero is
+  out of view.
+- Categorical chart colour tokens that follow the theme.
+
+### Changed
+
+- The landing page is a quarter shorter (14.8 screens instead of 19.4): the
+  statement section is no longer pinned, and every pinned section scrolls for
+  less.
+- Sentence-case eyebrows instead of letter-spaced capitals; tighter headlines.
+- Text sizes, radii, chart colours, the QR code and the global error page all
+  come from the design tokens.
+
 ## [2.1.0] — 2026-10-18
 
 ### Added
