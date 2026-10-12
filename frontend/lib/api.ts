@@ -106,6 +106,8 @@ export interface OrgProfile {
   domain_tags: string[];
   logo_url: string;
   created_at: string;
+  /** Email recruiters when a candidate finishes an interview. */
+  notify_on_interview?: boolean;
   // Who is signed in, as opposed to which organisation. Optional so an older
   // backend that does not send it still deserialises.
   user_id?: string;
@@ -375,6 +377,7 @@ export const api = {
     description?: string;
     domain_tags?: string[];
     logo_url?: string;
+    notify_on_interview?: boolean;
   }) => request<OrgProfile>('/api/auth/me', { method: 'PATCH', body: JSON.stringify(data) }, true),
 
   /**

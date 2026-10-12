@@ -273,6 +273,7 @@ async def _profile(org: Organisation, user: User) -> OrgProfileResponse:
         # through untouched.
         logo_url=storage_service.resolve_logo_url(org.logo_url),
         created_at=org.created_at,
+        notify_on_interview=org.notify_on_interview,
         user_id=user.id,
         user_name=user.name,
         user_email=user.email,
@@ -309,6 +310,8 @@ async def update_me(
         org.domain_tags = body.domain_tags
     if body.logo_url is not None:
         org.logo_url = body.logo_url
+    if body.notify_on_interview is not None:
+        org.notify_on_interview = body.notify_on_interview
 
     await org.save()
     return await _profile(org, user)

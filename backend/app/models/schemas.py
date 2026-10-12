@@ -94,6 +94,8 @@ class OrgProfileResponse(BaseModel):
     domain_tags: list[str]
     logo_url: str
     created_at: datetime
+    # Whether recruiters are emailed when a candidate finishes an interview.
+    notify_on_interview: bool = True
 
     # Who is signed in, not just which organisation. Without this the client
     # cannot tell a member from an owner, so it would offer every action to
@@ -138,6 +140,7 @@ class OrgProfileUpdate(BaseModel):
     description: Optional[str] = Field(None, max_length=LONG_TEXT)
     domain_tags: Optional[list[Tag]] = Field(None, max_length=MAX_TAGS)
     logo_url: Optional[str] = None
+    notify_on_interview: Optional[bool] = None
 
     @field_validator("logo_url")
     @classmethod

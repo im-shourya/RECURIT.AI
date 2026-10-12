@@ -238,3 +238,22 @@ async def test_an_unknown_address_records_nothing(owner):
         await login(OrgLoginRequest(email="nobody@example.com", password=PASSWORD), Response())
 
     assert await _actions(owner.org_id) == []
+
+
+# ──────────────────────────────────────────────
+# Interview notification preference
+# ──────────────────────────────────────────────
+async def test_interview_notifications_can_be_turned_off_and_on(org, owner):
+    from app.models.schemas import OrgProfileUpdate
+    from app.routers.auth import update_me
+
+    profile = await update_me(OrgProfileUpdate(notify_on_interview=False), org=org, user=owner)
+    assert profile.notify_on_interview is False
+    assert (await Organisation.get(org.id)).notify_on_interview is False
+
+    # Leaving it out of a partial update keeps the current value.
+    await update_me(OrgProfileUpdate(description="Hi"), org=org, user=owner)
+    assert (await Organisation.get(org.id)).notify_on_interview is False
+
+    profile = await update_me(OrgProfileUpdate(notify_on_interview=True), org=org, user=owner)
+    assert profile.notify_on_interview is True
