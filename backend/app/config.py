@@ -43,10 +43,14 @@ class Settings(BaseSettings):
     SESSION_COOKIE_SECURE: bool | None = None
 
     @property
+    def is_production(self) -> bool:
+        return self.ENVIRONMENT.strip().lower() == "production"
+
+    @property
     def session_cookie_secure(self) -> bool:
         if self.SESSION_COOKIE_SECURE is not None:
             return self.SESSION_COOKIE_SECURE
-        return self.ENVIRONMENT.strip().lower() == "production"
+        return self.is_production
 
     # ── AWS S3 / MinIO ──
     S3_BUCKET_NAME: str = "recruit-ai-uploads"
