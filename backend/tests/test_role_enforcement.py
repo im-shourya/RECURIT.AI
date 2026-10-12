@@ -76,6 +76,9 @@ def test_no_organisation_write_is_left_unguarded():
     # writes (PATCH /me, the logo), and a prefix skip once hid them.
     exempt = {
         "/api/auth/register",
+        # The same as /register, for someone who came back from Google or
+        # GitHub: it creates a new organisation, so there is no role yet.
+        "/api/auth/oauth/signup",
         "/api/auth/login",
         "/api/auth/forgot-password",
         "/api/auth/reset-password",
