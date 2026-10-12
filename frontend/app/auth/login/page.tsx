@@ -129,7 +129,7 @@ export default function LoginPage() {
         <Button
           type="submit"
           disabled={isLoading}
-          className="w-full gradient-primary border-0 hover:opacity-90 h-11"
+          className="w-full border-0 h-11"
         >
           {isLoading ? (
             <Spinner className="h-4 w-4" />
