@@ -350,7 +350,7 @@ export default function DriveDetailsPage() {
             <div className="space-y-2 pt-4 border-t border-border/50">
               <span className="text-sm text-muted-foreground">Public Apply Link</span>
               <div className="flex items-center gap-2">
-                <code className="text-sm bg-muted/50 p-2 rounded flex-1 truncate">{applyLink}</code>
+                <code className="text-sm bg-muted/50 p-2 rounded-md flex-1 truncate">{applyLink}</code>
                 <Button size="icon" variant="ghost" onClick={copyLink}><Copy className="h-4 w-4" /></Button>
               </div>
             </div>
