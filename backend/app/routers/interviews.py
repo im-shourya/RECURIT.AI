@@ -46,6 +46,10 @@ settings = get_settings()
 log = logging.getLogger("recruit.interviews")
 router = APIRouter(prefix="/interview", tags=["Interview"])
 
+# An interview is nine questions. This leaves room for retries and reconnects
+# while keeping the embedded transcript far below MongoDB's 16MB document cap.
+MAX_TRANSCRIPT_ENTRIES = 60
+
 
 async def _by_token(token: str) -> Applicant:
     applicant = await Applicant.find_one({"interview.token": token})
@@ -154,6 +158,11 @@ async def submit_answer(token: str, body: InterviewAnswerRequest):
         raise HTTPException(status_code=400, detail="Interview has not started yet")
 
     transcript = applicant.interview.transcript or []
+    # The rate limit resets every hour, so on its own it does not stop a
+    # transcript growing across days.
+    if len(transcript) >= MAX_TRANSCRIPT_ENTRIES:
+        raise HTTPException(status_code=409, detail="This interview has no more questions")
+
     transcript.append({
         "round": body.round_name,
         "question": body.question_text,
