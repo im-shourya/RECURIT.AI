@@ -10,7 +10,7 @@ state is per person, so marking something read never hides it from a
 colleague.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -60,7 +60,9 @@ async def list_notifications(
                 title=n.title,
                 body=n.body,
                 link=n.link,
-                created_at=n.created_at,
+                # MongoDB returns naive UTC. Without the zone the browser reads
+                # it as local time and "2 minutes ago" is off by the offset.
+                created_at=n.created_at.replace(tzinfo=n.created_at.tzinfo or timezone.utc),
                 read=user.id in n.read_by,
             )
             for n in items
