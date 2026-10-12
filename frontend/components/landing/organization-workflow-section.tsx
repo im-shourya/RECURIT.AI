@@ -53,7 +53,7 @@ export function OrganizationWorkflowSection() {
         
         {/* Section Header */}
         <Reveal className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-16 lg:mb-24 shrink-0">
-          <span className="eyebrow text-muted-foreground/70 mb-4 block">For Organizations</span>
+          <span className="eyebrow mb-3 block">For organizations</span>
           <h2 className="section-title text-foreground">
             The Recruiter Journey
           </h2>

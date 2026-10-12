@@ -114,7 +114,6 @@ export function CapabilitiesSection() {
                   {/* Top-aligned so every card's title sits on the same baseline,
                       regardless of how long its description runs. */}
                   <div className="mt-8">
-                    <span className="eyebrow text-primary/60 block mb-2">{cap.id}</span>
                     <h3 className="text-xl font-semibold tracking-tight text-foreground mb-3">{cap.title}</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       {cap.description}
@@ -137,7 +136,6 @@ export function CapabilitiesSection() {
                     <Icon className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <span className="eyebrow text-primary/60 block mb-2">{cap.id}</span>
                     <h3 className="text-xl font-semibold tracking-tight text-foreground mb-3">{cap.title}</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       {cap.description}

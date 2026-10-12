@@ -58,7 +58,7 @@ export function Navbar() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  'rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors duration-200',
+                  'rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-200',
                   pathname === link.href
                     ? 'text-foreground'
                     : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'
@@ -73,13 +73,13 @@ export function Navbar() {
           <div className="hidden md:flex items-center gap-4">
             <Link
               href="/auth/login"
-              className="text-[13px] font-medium text-muted-foreground hover:text-foreground transition-colors duration-200"
+              className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors duration-200"
             >
               Sign In
             </Link>
             <Button
               asChild
-              className="press h-8 px-4 text-[13px] font-semibold bg-foreground text-background hover:bg-foreground/90"
+              className="press h-8 px-4 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90"
             >
               <Link href="/auth/register">
                 Get Started

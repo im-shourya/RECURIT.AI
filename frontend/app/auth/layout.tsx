@@ -66,7 +66,7 @@ export default function AuthLayout({
                     <fact.icon className="h-5 w-5 text-primary" aria-hidden="true" />
                   </span>
                   <span>
-                    <span className="block font-semibold text-[15px]">{fact.title}</span>
+                    <span className="block font-semibold text-sm">{fact.title}</span>
                     <span className="mt-1 block text-sm text-muted-foreground leading-relaxed">
                       {fact.body}
                     </span>

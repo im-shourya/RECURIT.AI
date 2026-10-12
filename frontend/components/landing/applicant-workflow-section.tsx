@@ -41,7 +41,7 @@ export function ApplicantWorkflowSection() {
       <div className="sm:sticky sm:top-0 sm:h-screen w-full flex flex-col justify-center overflow-hidden px-4 sm:px-6 lg:px-8 py-24 sm:py-0 border-t border-border/30">
         
         <Reveal className="w-full max-w-5xl mx-auto mb-16 lg:mb-24 text-center">
-          <span className="eyebrow text-muted-foreground/70 mb-4 block">For Applicants</span>
+          <span className="eyebrow mb-3 block">For candidates</span>
           <h2 className="section-title text-foreground">
             A frictionless experience.
           </h2>
