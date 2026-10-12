@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { ThemeSwitcher } from '@/components/theme-switcher'
 import { Textarea } from '@/components/ui/textarea'
 import { Spinner } from '@/components/ui/spinner'
 import { api, OrgProfile } from '@/lib/api'
@@ -331,6 +332,20 @@ export default function SettingsPage() {
           </Button>
         </div>
       </form>
+
+      {/* Appearance belongs to the person, not the organisation, so it applies
+          at once, needs no Save and is open to every role. */}
+      <Card className="border-border/50 bg-card/50">
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+          <CardDescription>
+            Choose light or dark, or follow your device. Saved in this browser.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ThemeSwitcher labelled />
+        </CardContent>
+      </Card>
 
       {/* Password — applies to the signed-in user, not the organisation, so it
           is a separate form rather than part of Save Changes. */}
