@@ -1,10 +1,18 @@
 import type { Metadata, Viewport } from 'next'
-import { JetBrains_Mono } from 'next/font/google'
+import { Inter, JetBrains_Mono } from 'next/font/google'
 
 import { ThemeProvider } from '@/components/theme-provider'
 import { Providers } from '@/components/providers'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
+
+// The fallback for platforms without SF Pro; Apple devices never load it
+// into use, because the system font comes first in --font-sans.
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
@@ -72,8 +80,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#F5F5F7' },
-    { media: '(prefers-color-scheme: dark)', color: '#000000' },
+    { media: '(prefers-color-scheme: light)', color: '#FBFBFD' },
+    { media: '(prefers-color-scheme: dark)', color: '#0B0B0C' },
   ],
   width: 'device-width',
   initialScale: 1,
@@ -86,7 +94,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-          <body className={`${jetbrainsMono.variable} font-sans antialiased`}>
+          <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
             <ThemeProvider
               attribute="class"
               defaultTheme="light"
