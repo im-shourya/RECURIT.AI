@@ -74,10 +74,10 @@ export function DecisionMomentSection() {
                 Review evidence and make your final decision.
               </p>
               <div className="flex gap-3">
-                <button className="press px-4 py-2 rounded-full border border-border bg-surface text-sm font-medium transition-colors hover:bg-muted">
+                <button className="press px-4 py-2 rounded-md border border-border bg-surface text-sm font-medium transition-colors hover:bg-muted">
                   Reject
                 </button>
-                <button className="press px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium flex items-center gap-2 transition-colors hover:bg-primary/90 shadow-elevation-1">
+                <button className="press px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-2 transition-colors hover:bg-primary-hover shadow-elevation-1">
                   <CheckSquare className="w-4 h-4" />
                   Proceed to Hire
                 </button>
