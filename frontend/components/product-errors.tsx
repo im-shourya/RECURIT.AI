@@ -107,7 +107,7 @@ function InlineError({ icon: Icon, title, description, actions, detail }: Inline
               size="sm"
               className={
                 index === 0
-                  ? 'h-9 px-4 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg'
+                  ? 'h-9 px-4 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary-hover rounded-lg'
                   : 'h-9 px-4 text-sm font-medium rounded-lg hover:bg-secondary/40'
               }
             >

@@ -115,7 +115,7 @@ function MockDecision() {
           <Squircle cornerRadius={8} borderClassName="stroke-border" className="flex items-center justify-center p-3 bg-card text-sm font-medium hover:bg-secondary/20 cursor-pointer transition-colors">
             Reject
           </Squircle>
-          <Squircle cornerRadius={8} borderClassName="stroke-primary/20" className="flex items-center justify-center gap-2 p-3 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 cursor-pointer transition-colors">
+          <Squircle cornerRadius={8} borderClassName="stroke-primary/20" className="flex items-center justify-center gap-2 p-3 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary-hover cursor-pointer transition-colors">
             <CheckSquare className="w-4 h-4" />
             Proceed to Hire
           </Squircle>

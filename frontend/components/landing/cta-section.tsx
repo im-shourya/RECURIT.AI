@@ -27,7 +27,7 @@ export function CTASection() {
           <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
             <Link
               href="/auth/register"
-              className="press group inline-flex h-14 items-center justify-center rounded-full bg-primary px-8 text-base font-medium text-primary-foreground shadow-elevation-2 transition-colors hover:bg-primary/90"
+              className="press group inline-flex h-14 items-center justify-center rounded-lg bg-primary px-8 text-base font-medium text-primary-foreground shadow-elevation-2 transition-colors hover:bg-primary-hover"
             >
               Start Hiring Now
               <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />

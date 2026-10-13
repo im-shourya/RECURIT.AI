@@ -142,7 +142,7 @@ export default function DashboardPage() {
             Metrics and recent activity across all your recruitment drives.
           </p>
         </div>
-        <Button asChild size="default" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shrink-0">
+        <Button asChild size="default" className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold shrink-0">
           <Link href="/dashboard/drives/new">
             <Plus className="mr-2 h-4 w-4" />
             New Drive
