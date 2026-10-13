@@ -211,3 +211,13 @@ def test_task_emails_link_only_to_routes_that_exist():
     ):
         assert "/task/" not in html and "/task/" not in text
         assert "https://x.test/submit/abc" in text
+
+
+def test_emails_use_the_product_accent_in_both_themes():
+    """Mail should carry the app's lagoon accent, not the retired blue."""
+    from app.services import email_templates as t
+
+    _, html, _ = t.interview_invitation(to_name="A", drive_name="D", interview_link="https://x/i")
+    assert "#007AFF" not in html
+    assert t.PRIMARY in html
+    assert "prefers-color-scheme: dark" in html and t.DARK_PRIMARY in html
