@@ -57,7 +57,7 @@
   /* Liquid glass */
   --glass-fill: rgb(251 251 253 / 0.66);
   --glass-fill-strong: rgb(255 255 255 / 0.78);
-  --glass-edge: rgb(255 255 255 / 0.7);
+  --glass-sheen: rgb(255 255 255 / 0.32);
   --glass-border: rgb(0 0 0 / 0.08);
   --glass-shadow: 0 1px 0 rgb(255 255 255 / 0.6) inset, 0 8px 32px -12px rgb(0 0 0 / 0.18);
 
@@ -117,7 +117,7 @@
 
   --glass-fill: rgb(28 28 30 / 0.6);
   --glass-fill-strong: rgb(36 36 38 / 0.78);
-  --glass-edge: rgb(255 255 255 / 0.14);
+  --glass-sheen: rgb(255 255 255 / 0.05);
   --glass-border: rgb(255 255 255 / 0.1);
   --glass-shadow: 0 1px 0 rgb(255 255 255 / 0.08) inset, 0 12px 40px -12px rgb(0 0 0 / 0.7);
 
@@ -225,6 +225,60 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/*
+ * Liquid glass — the one translucent material in the product.
+ *
+ * Only for chrome that content scrolls beneath (navigation bars) and for
+ * transient overlays (menus, popovers, sheets). Cards and page surfaces stay
+ * solid: glass everywhere stops meaning "this floats above".
+ *
+ * A translucent fill, a blur with a saturation boost so colour bleeds
+ * through, a lit top edge and a hairline. Opaque where backdrop-filter is
+ * unsupported, so text never sits on raw page content, and opaque when the
+ * system asks to reduce transparency.
+ */
+@utility liquid-glass {
+  background-color: var(--popover);
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: var(--glass-fill-strong);
+    background-image: linear-gradient(
+      180deg,
+      var(--glass-sheen) 0%,
+      transparent 42%
+    );
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--popover);
+    background-image: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* The bar variant: thinner, so more of the page shows through behind it. */
+@utility liquid-glass-bar {
+  background-color: var(--background);
+  border-color: var(--glass-border);
+
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: var(--glass-fill);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--background);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -298,21 +352,6 @@
     @apply bg-secondary/50 border border-border/50 rounded-lg;
   }
   
-  /* Apple-style glass: blur + saturation boost so color bleeds through.
-     Falls back to a near-opaque bar where backdrop-filter is unavailable,
-     otherwise page content stays legible straight through the nav. */
-  .glass-nav {
-    background: color-mix(in srgb, var(--background) 94%, transparent);
-  }
-
-  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .glass-nav {
-      background: color-mix(in srgb, var(--background) 72%, transparent);
-      backdrop-filter: saturate(180%) blur(20px);
-      -webkit-backdrop-filter: saturate(180%) blur(20px);
-    }
-  }
-
   /* The workhorse card surface across the landing page */
   .panel {
     @apply bg-surface border border-border/70 rounded-2xl;
