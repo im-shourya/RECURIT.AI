@@ -34,7 +34,7 @@ export function Navbar() {
       className={cn(
         'fixed top-0 left-0 right-0 z-50 h-14 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
         isScrolled
-          ? 'glass-nav border-b border-border/60'
+          ? 'liquid-glass-bar border-b'
           : 'bg-transparent border-b border-transparent'
       )}
     >
@@ -97,7 +97,9 @@ export function Navbar() {
             </SheetTrigger>
             <SheetContent 
               side="right" 
-              className="w-full border-0 bg-background p-0"
+              // Important: the sheet's own bg-background is emitted later and
+              // would otherwise paint over the glass fill.
+              className="w-full border-0 liquid-glass! p-0"
             >
               <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
               <div className="flex flex-col items-center justify-center h-full gap-8">
