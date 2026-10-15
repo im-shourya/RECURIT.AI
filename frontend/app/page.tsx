@@ -1,6 +1,7 @@
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 import { HeroSection } from '@/components/landing/hero-section'
+import { PipelineScrubSection } from '@/components/landing/pipeline-scrub-section'
 import { TrustValueSection } from '@/components/landing/trust-value-section'
 import { ProductStorySection } from '@/components/landing/product-story-section'
 import { CapabilitiesSection } from '@/components/landing/capabilities-section'
@@ -15,6 +16,7 @@ export default function HomePage() {
       <Navbar />
       <main>
         <HeroSection />
+        <PipelineScrubSection />
         <TrustValueSection />
         <ProductStorySection />
         <CapabilitiesSection />
