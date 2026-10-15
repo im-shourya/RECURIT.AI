@@ -660,10 +660,11 @@ export const api = {
     round_name: string;
   }) => request<InterviewAnswerResponse>(`/api/interview/${token}/answer`, { method: 'POST', body: JSON.stringify(data) }),
 
-  endInterview: (token: string, recording_url: string = '') =>
+  /** The recording is uploaded separately, before this is called. */
+  endInterview: (token: string) =>
     request<InterviewEndResponse>(`/api/interview/${token}/end`, {
       method: 'POST',
-      body: JSON.stringify({ recording_url }),
+      body: '{}',
     }),
 
   // ── Analytics (authed) ──

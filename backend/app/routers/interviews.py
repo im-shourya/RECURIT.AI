@@ -27,7 +27,6 @@ from app.models.documents import (
     Drive,
     NotificationKind,
     Organisation,
-    User,
 )
 from app.models.schemas import (
     InterviewAnswerRequest,
@@ -245,8 +244,6 @@ async def end_interview(
         raise HTTPException(status_code=400, detail="Interview already ended")
 
     interview.ended_at = datetime.now(timezone.utc)
-    # body.recording_url is ignored: it let the client decide what the
-    # recording pointed at. Recordings arrive via /recording instead.
 
     transcript = interview.transcript or []
     intro = [t for t in transcript if t["round"] == "intro"]
