@@ -25,6 +25,7 @@ from app.models.documents import (
     Applicant,
     ApplicantStatus,
     Drive,
+    NotificationKind,
     Organisation,
     User,
 )
@@ -37,7 +38,7 @@ from app.models.schemas import (
     InterviewEndResponse,
     InterviewStartResponse,
 )
-from app.services import storage_service
+from app.services import notifications, storage_service
 from app.services.auth_service import get_current_org
 from app.services.rate_limit import RateLimit
 from app.services.email_service import send_interview_completed_email
@@ -258,6 +259,17 @@ async def end_interview(
     # by opening the dashboard and looking.
     org = await Organisation.get(applicant.org_id)
     drive = await Drive.get(applicant.drive_id)
+
+    # In the dashboard regardless of the email preference: that setting is
+    # about the inbox, and the bell is where people look while working.
+    await notifications.about_applicant(
+        applicant,
+        NotificationKind.INTERVIEW_COMPLETED,
+        title="Interview completed",
+        body=f"{applicant.name} finished their interview"
+        + (f" for {drive.name}" if drive else ""),
+    )
+
     if org and org.notify_on_interview and org.email:
         background_tasks.add_task(
             send_interview_completed_email,

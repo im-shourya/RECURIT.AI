@@ -29,6 +29,7 @@ from app.models.documents import (
     EmailLogEntry,
     EmailType,
     Interview,
+    NotificationKind,
     Organisation,
     Submission,
     TaskType,
@@ -43,7 +44,7 @@ from app.models.schemas import (
     SubmissionCreateRequest,
     SubmissionResponse,
 )
-from app.services import storage_service
+from app.services import notifications, storage_service
 from app.services.email_service import send_application_email, send_interview_email
 from app.services.rate_limit import RateLimit
 
@@ -248,6 +249,13 @@ async def submit_application(
 
     await applicant.save()
 
+    await notifications.about_applicant(
+        applicant,
+        NotificationKind.APPLICATION_RECEIVED,
+        title="New application",
+        body=f"{applicant.name} applied to {drive.name}",
+    )
+
     return ApplyAcceptedResponse(
         id=applicant.id,
         drive_id=applicant.drive_id,
@@ -287,7 +295,7 @@ async def submit_task(
     if applicant.submission:
         raise HTTPException(status_code=400, detail="You have already submitted")
 
-    await _drive_open_for_submission(applicant)
+    drive = await _drive_open_for_submission(applicant)
 
     applicant.submission = Submission(
         file_url=body.file_url,
@@ -300,6 +308,14 @@ async def submit_task(
     applicant.status = ApplicantStatus.SUBMITTED
     await applicant.save()
     # TODO: trigger RepoLens analysis once the GitAnalyser service is wired in
+
+    await notifications.about_applicant(
+        applicant,
+        NotificationKind.SUBMISSION_RECEIVED,
+        title="Task submitted",
+        body=f"{applicant.name} submitted their work for {drive.name}. "
+        "Review it to decide on an interview.",
+    )
 
     return SubmissionResponse(
         id=applicant.id,

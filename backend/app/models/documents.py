@@ -111,6 +111,12 @@ class AuditAction(str, Enum):
     PASSWORD_CHANGED = "org.password_changed"
 
 
+class NotificationKind(str, Enum):
+    APPLICATION_RECEIVED = "application.received"
+    SUBMISSION_RECEIVED = "submission.received"
+    INTERVIEW_COMPLETED = "interview.completed"
+
+
 # ──────────────────────────────────────────────
 # Embedded documents
 # ──────────────────────────────────────────────
@@ -397,6 +403,50 @@ class EmailOutbox(Document):
         ]
 
 
+# Long enough to catch up after a break; notifications point at the dashboard,
+# which remains the record, so nothing is lost when one expires.
+NOTIFICATION_RETENTION_DAYS = 90
+
+
+class Notification(Document):
+    """
+    Something a recruiter should know happened, shown under the bell.
+
+    One document per event for the whole organisation, not one per member:
+    `read_by` holds the members who have seen it, so a new member does not
+    need copies written for them and a removed one leaves nothing behind.
+
+    Candidate names appear in `body`, so erasing a candidate erases their
+    notifications too (services/cascade.py).
+    """
+    id: UUID = Field(default_factory=uuid4)
+    org_id: UUID
+    kind: NotificationKind
+    title: str
+    body: str = ""
+    # A dashboard path, never an absolute URL.
+    link: str = ""
+    drive_id: Optional[UUID] = None
+    applicant_id: Optional[UUID] = None
+    read_by: list[UUID] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=_now)
+
+    class Settings:
+        name = "notifications"
+        indexes = [
+            pymongo.IndexModel(
+                [("org_id", pymongo.ASCENDING), ("created_at", pymongo.DESCENDING)]
+            ),
+            pymongo.IndexModel([("applicant_id", pymongo.ASCENDING)]),
+            pymongo.IndexModel([("drive_id", pymongo.ASCENDING)]),
+            pymongo.IndexModel(
+                [("created_at", pymongo.ASCENDING)],
+                expireAfterSeconds=60 * 60 * 24 * NOTIFICATION_RETENTION_DAYS,
+                name="ttl_created_at",
+            ),
+        ]
+
+
 # Registered with Beanie at startup. Order does not matter; listed in the
 # order they appear above for readability.
 ALL_DOCUMENTS = [
@@ -407,4 +457,5 @@ ALL_DOCUMENTS = [
     PasswordResetToken,
     AuditLog,
     EmailOutbox,
+    Notification,
 ]

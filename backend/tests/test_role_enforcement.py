@@ -86,6 +86,9 @@ def test_no_organisation_write_is_left_unguarded():
         # Moves the caller's own session to another of their memberships,
         # which carries its own role from then on.
         "/api/auth/switch",
+        # Change only the caller's own read state; nothing a colleague sees.
+        "/api/notifications/read-all",
+        "/api/notifications/{notification_id}/read",
     }
     unguarded = []
 
