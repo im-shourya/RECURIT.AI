@@ -43,8 +43,8 @@ export function TrustValueSection() {
 
           <Reveal delay={0.1}>
             <p className="body-large text-muted-foreground text-balance max-w-3xl mx-auto mb-12">
-              Automate screening and technical interviews so your team can focus on the
-              candidates who actually matter. Five minutes per candidate, not five hours.
+              Applications, submissions, interviews and decisions in one place, instead of
+              a form, a spreadsheet and a group chat.
             </p>
           </Reveal>
 

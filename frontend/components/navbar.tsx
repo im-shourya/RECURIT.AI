@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 const navLinks = [
   { href: '/#features', label: 'Features' },
   { href: '/#how-it-works', label: 'How It Works' },
-  { href: '/#trusted', label: 'For Organizations' },
+  { href: '/#for-organizations', label: 'For Organizations' },
 ]
 
 export function Navbar() {
