@@ -66,8 +66,8 @@ function UI_Candidate() {
           <h3 className="text-sm font-semibold text-foreground">Alex Developer</h3>
           <p className="text-xs text-muted-foreground mb-2">alex@example.com</p>
           <div className="flex gap-2">
-            <span className="px-2 py-0.5 rounded border border-border bg-muted text-[10px] font-medium text-muted-foreground">Frontend</span>
-            <span className="px-2 py-0.5 rounded border border-border bg-muted text-[10px] font-medium text-muted-foreground">React</span>
+            <span className="px-2 py-0.5 rounded-sm border border-border bg-muted text-[11px] font-medium text-muted-foreground">Frontend</span>
+            <span className="px-2 py-0.5 rounded-sm border border-border bg-muted text-[11px] font-medium text-muted-foreground">React</span>
           </div>
         </div>
       </div>
@@ -172,7 +172,7 @@ export function ProductStorySection() {
   const ActiveUI = activeScene.ui
 
   return (
-    <section ref={containerRef} id="how-it-works" className="relative bg-background sm:h-[250vh]">
+    <section ref={containerRef} id="how-it-works" className="relative bg-background sm:h-[200vh]">
       <div className="sm:sticky sm:top-0 sm:h-screen w-full flex items-center justify-center overflow-hidden px-4 sm:px-6 lg:px-8 py-24 sm:py-0">
         
         {/* Desktop Sticky View */}

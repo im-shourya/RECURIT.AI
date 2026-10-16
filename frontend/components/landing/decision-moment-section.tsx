@@ -28,7 +28,7 @@ export function DecisionMomentSection() {
   return (
     <section
       ref={containerRef}
-      className="relative bg-background border-t border-border/30 sm:h-[220vh]"
+      className="relative bg-background border-t border-border/30 sm:h-[160vh]"
     >
       <div className="sm:sticky sm:top-0 sm:h-screen w-full flex flex-col justify-center overflow-hidden py-24 sm:py-0">
         <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center">

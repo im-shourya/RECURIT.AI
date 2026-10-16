@@ -81,7 +81,7 @@ function FooterAnchor({ link, className }: { link: FooterLink; className: string
 
 export function Footer() {
   const linkClass =
-    'text-[13px] text-muted-foreground transition-colors duration-200 hover:text-foreground hover:underline underline-offset-4'
+    'text-xs text-muted-foreground transition-colors duration-200 hover:text-foreground hover:underline underline-offset-4'
 
   return (
     <footer className="border-t bg-muted/60" aria-labelledby="footer-heading">
@@ -98,7 +98,7 @@ export function Footer() {
               <span className="text-primary">.</span>
               <span className="text-base font-extrabold tracking-tight text-foreground">AI</span>
             </Link>
-            <p className="mt-4 max-w-xs text-[13px] leading-relaxed text-muted-foreground">
+            <p className="mt-4 max-w-xs text-xs leading-relaxed text-muted-foreground">
               Recruitment drives for college clubs and small teams: one apply link, task
               submissions, recorded interviews and your decision.
             </p>
@@ -122,7 +122,7 @@ export function Footer() {
           <nav aria-label="Footer" className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-4">
             {COLUMNS.map((column) => (
               <div key={column.title}>
-                <h3 className="text-[13px] font-semibold text-foreground">{column.title}</h3>
+                <h3 className="text-xs font-semibold text-foreground">{column.title}</h3>
                 <ul className="mt-4 space-y-3">
                   {column.links.map((link) => (
                     <li key={link.label}>

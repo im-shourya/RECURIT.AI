@@ -54,6 +54,14 @@
   --info: #0068B8;
   --info-foreground: #FFFFFF;
 
+  /* Charts — categorical, distinct from the status colours so a chart
+     never reads as "error" or "success" by accident */
+  --chart-1: #0B7A75;
+  --chart-2: #0068B8;
+  --chart-3: #B26B00;
+  --chart-4: #7D5BB5;
+  --chart-5: #5C6773;
+
   /* Liquid glass */
   --glass-fill: rgb(251 251 253 / 0.66);
   --glass-fill-strong: rgb(255 255 255 / 0.78);
@@ -114,6 +122,12 @@
   --warning-foreground: #1C1C1E;
   --info: #64D2FF;
   --info-foreground: #04131C;
+
+  --chart-1: #2BC4B4;
+  --chart-2: #64B5FF;
+  --chart-3: #F5B544;
+  --chart-4: #B79CF0;
+  --chart-5: #9AA4AF;
 
   --glass-fill: rgb(28 28 30 / 0.6);
   --glass-fill-strong: rgb(36 36 38 / 0.78);
@@ -182,6 +196,11 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -345,8 +364,10 @@
     @apply text-base text-muted-foreground leading-relaxed;
   }
   
+  /* Apple-style eyebrow: sentence case in the accent, never letter-spaced
+     capitals. */
   .eyebrow {
-    @apply text-sm uppercase tracking-[0.2em] font-semibold text-primary;
+    @apply text-lg font-semibold tracking-tight text-primary;
   }
   
   .data-value {

@@ -172,7 +172,8 @@ export default function CreateDrivePage() {
                   value={generatedLink}
                   size={200}
                   bgColor="#ffffff"
-                  fgColor="#7c3aed"
+                  // Ink on white whatever the theme: scanners need the contrast.
+                  fgColor="#1D1D1F"
                   level="H"
                 />
               </div>
