@@ -45,6 +45,7 @@ a fixed pipeline, and a recruiter makes every hiring decision.
 - **Interview checkpoint:** a submitted candidate is only interviewed if a recruiter invites them.
 - **Decisions:** select or reject one candidate or up to 100 at once. The candidate is emailed the outcome.
 - **Teams and roles:** owner, admin and member. Members can review but not decide. The API enforces roles; the interface only reflects them.
+- **Sign in with Google or GitHub:** an existing account signs straight in, a pending team invitation is accepted, and someone new only has to name their organisation. Only verified provider email addresses are accepted. Each provider appears once its credentials are configured.
 - **Several organisations per person:** the same email can belong to more than one organisation, with one password shared across all of them. Sign-in opens the organisation used most recently, and the account menu switches between them.
 - **Audit trail:** decisions, interview invitations, erasures, drive creation, edits, opening, closing and deletion, membership changes and password changes are all recorded, and entries are kept for two years.
 - **Analytics:** applicant counts per status, per drive and over time.
@@ -310,6 +311,8 @@ These are the ones you are most likely to set:
 | `FRONTEND_URL` | Yes | Base of every link emailed to candidates |
 | `APP_URL` | — | Base for logo and footer links inside emails |
 | `CORS_ALLOWED_ORIGINS` | Production | Exact frontend origins, comma-separated. `*` is rejected |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | For Google sign-in | Register `<FRONTEND_URL>/api/auth/oauth/google/callback` as the redirect URI |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | For GitHub sign-in | Register `<FRONTEND_URL>/api/auth/oauth/github/callback` as the callback URL |
 | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | For email | Without them, emails are logged instead of sent |
 | `S3_BUCKET_NAME`, `S3_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | For uploads | `S3_ENDPOINT_URL` for MinIO or other S3-compatible stores |
 | `REDIS_URL` | — | Shared rate-limit counters. Without it, limits are counted per process |
