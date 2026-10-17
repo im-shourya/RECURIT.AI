@@ -15,7 +15,8 @@ from app.config import get_settings
 from app.error_tracking import configure_error_tracking
 from app.logging_config import configure_logging
 from app.routers import (
-    analytics, applicant_admin, applicants, audit, auth, drives, interviews, oauth, team,
+    analytics, applicant_admin, applicants, audit, auth, drives, interviews, notifications,
+    oauth, team,
 )
 from app.security_headers import SecurityHeadersMiddleware
 from app.services import email_outbox, email_service
@@ -111,6 +112,7 @@ app.include_router(interviews.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(audit.router, prefix="/api")
 app.include_router(team.router, prefix="/api")
+app.include_router(notifications.router, prefix="/api")
 
 
 # ── Health ──
