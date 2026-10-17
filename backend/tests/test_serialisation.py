@@ -51,10 +51,11 @@ async def test_applicant_with_embedded_interview_serialises(applicant):
 
     out = applicant_to_response(applicant)
     assert out.interview is not None
-    assert out.interview.token == "tok-abc"
+    # The token is the candidate's capability, so recruiters never see it.
+    assert "token" not in out.interview.model_dump()
     assert out.interview.total_score == 81
     # 1:1 with the applicant, so the applicant's id identifies it — the same
-    # value /interview/{token}/detail reports.
+    # value /applicants/{id}/interview reports.
     assert out.interview.id == applicant.id
 
 

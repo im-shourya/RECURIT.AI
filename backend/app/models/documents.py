@@ -109,6 +109,9 @@ class AuditAction(str, Enum):
     DRIVE_CLOSED = "drive.closed"
     DRIVE_DELETED = "drive.deleted"
     PASSWORD_CHANGED = "org.password_changed"
+    ORG_REGISTERED = "org.registered"
+    SIGNED_IN = "user.signed_in"
+    SIGN_IN_FAILED = "user.sign_in_failed"
 
 
 class NotificationKind(str, Enum):
