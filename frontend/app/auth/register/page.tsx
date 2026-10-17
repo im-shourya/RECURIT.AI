@@ -83,7 +83,7 @@ export default function RegisterPage() {
             <div
               className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-all ${
                 s === step
-                  ? 'gradient-primary text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : s < step
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground'
@@ -245,7 +245,7 @@ export default function RegisterPage() {
           <Button
             type="submit"
             disabled={isLoading}
-            className="flex-1 gradient-primary border-0 hover:opacity-90 h-11"
+            className="flex-1 border-0 h-11"
           >
             {isLoading ? (
               <Spinner className="h-4 w-4" />

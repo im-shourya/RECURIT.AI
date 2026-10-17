@@ -285,7 +285,7 @@ export default function ApplyPage({ params }: { params: Promise<{ token: string 
                     {drive.organisation_name}
                   </CardDescription>
                 </div>
-                <Badge className="gradient-primary border-0">
+                <Badge className="border-0">
                   {drive.domain}
                 </Badge>
               </div>
@@ -319,7 +319,7 @@ export default function ApplyPage({ params }: { params: Promise<{ token: string 
                   className={cn(
                     'flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-all',
                     s === step
-                      ? 'gradient-primary text-white'
+                      ? 'bg-primary text-primary-foreground'
                       : s < step
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted text-muted-foreground'
@@ -445,7 +445,7 @@ export default function ApplyPage({ params }: { params: Promise<{ token: string 
                         type="button"
                         onClick={() => setStep(2)}
                         disabled={!formData.name || !formData.email || !formData.primaryDomain || (drive.task_type === 'github' && !formData.githubUrl)}
-                        className="w-full gradient-primary border-0"
+                        className="w-full border-0"
                       >
                         Continue
                         <ArrowRight className="ml-2 h-4 w-4" />
@@ -490,7 +490,7 @@ export default function ApplyPage({ params }: { params: Promise<{ token: string 
                                 className={cn(
                                   'px-3 py-1.5 rounded-full text-sm font-medium transition-all',
                                   isSelected
-                                    ? 'gradient-primary text-white scale-105'
+                                    ? 'bg-primary text-primary-foreground scale-105'
                                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
                                 )}
                               >
@@ -514,7 +514,7 @@ export default function ApplyPage({ params }: { params: Promise<{ token: string 
                         <Button
                           type="submit"
                           disabled={!canSubmit() || isSubmitting}
-                          className="flex-1 gradient-primary border-0"
+                          className="flex-1 border-0"
                         >
                           {isSubmitting ? (
                             <Spinner className="h-4 w-4" />
