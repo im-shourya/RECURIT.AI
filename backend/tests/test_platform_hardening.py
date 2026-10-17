@@ -172,3 +172,21 @@ def test_apply_handles_the_duplicate_key_error():
     source = inspect.getsource(applicants.submit_application)
     assert "DuplicateKeyError" in source
     assert "already applied" in source
+
+
+# ──────────────────────────────────────────────
+# API docs
+# ──────────────────────────────────────────────
+def test_api_docs_are_not_served_in_production():
+    from app.main import docs_urls
+
+    assert docs_urls(production=True) == {
+        "docs_url": None, "redoc_url": None, "openapi_url": None,
+    }
+
+
+def test_api_docs_stay_available_in_development():
+    from app.main import docs_urls
+
+    urls = docs_urls(production=False)
+    assert urls["docs_url"] == "/docs" and urls["openapi_url"] == "/openapi.json"

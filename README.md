@@ -187,7 +187,8 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 The API is at <http://localhost:8000>, and its interactive docs are at
-<http://localhost:8000/docs>. There are no migrations. Indexes are created
+<http://localhost:8000/docs>. The docs are not served when
+`ENVIRONMENT=production`. There are no migrations. Indexes are created
 when the app starts.
 
 ### 4. Frontend

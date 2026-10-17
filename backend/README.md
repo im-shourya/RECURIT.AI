@@ -137,7 +137,7 @@ needs one to be set first through "forgot password".
 | POST | `/api/submit/{submit_token}` | token | Task submission; the candidate then waits for a recruiter |
 | POST | `/api/submit/{submit_token}/upload` | token | Upload a submission file (max 10MB) |
 | GET | `/api/applicants` | JWT | List applicants (filter / search; `X-Total-Count` header) |
-| GET | `/api/applicants/export` | JWT | CSV export (same filters as list) |
+| GET | `/api/applicants/export` | JWT | CSV export (same filters as list); up to 10,000 rows and 10 exports an hour, each recorded in the audit log |
 | GET | `/api/applicants/{id}` | JWT | Applicant profile + submission + interview |
 | GET | `/api/applicants/{id}/submission-file` | JWT | Short-lived download link |
 | GET | `/api/applicants/{id}/recording-file` | JWT | Short-lived interview playback link |
