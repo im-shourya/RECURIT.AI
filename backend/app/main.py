@@ -16,7 +16,7 @@ from app.error_tracking import configure_error_tracking
 from app.logging_config import configure_logging
 from app.routers import (
     analytics, applicant_admin, applicants, audit, auth, drives, interviews, notifications,
-    team,
+    oauth, team,
 )
 from app.security_headers import SecurityHeadersMiddleware
 from app.services import email_outbox, email_service
@@ -104,6 +104,7 @@ app.add_middleware(
 
 # ── Routers ──
 app.include_router(auth.router, prefix="/api")
+app.include_router(oauth.router, prefix="/api")
 app.include_router(drives.router, prefix="/api")
 app.include_router(applicants.router, prefix="/api")
 app.include_router(applicant_admin.router, prefix="/api")

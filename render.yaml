@@ -49,6 +49,18 @@ services:
       - key: CORS_ALLOWED_ORIGINS
         sync: false
 
+      # ── Sign in with Google / GitHub (optional) ──
+      # Callback to register with each provider:
+      #   <FRONTEND_URL>/api/auth/oauth/<google|github>/callback
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+
       # ── Email (Resend) ──
       - key: RESEND_API_KEY
         sync: false
