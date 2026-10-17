@@ -119,6 +119,9 @@ can still send `Authorization: Bearer <token>` instead.
 | POST | `/api/applicants/{id}/resend-email` | JWT | Re-send applied / task / interview / result |
 | POST | `/api/applicants/bulk-decision` | JWT | Decide up to 100 applicants at once |
 | DELETE | `/api/applicants/{id}` | JWT | Erase a candidate and their stored files |
+| GET | `/api/notifications` | JWT | Recent notifications and the caller's unread count |
+| POST | `/api/notifications/{id}/read` | JWT | Mark one read for the caller |
+| POST | `/api/notifications/read-all` | JWT | Mark all read for the caller |
 | GET | `/api/audit` | JWT | This organisation's audit trail |
 | GET | `/api/status/{submit_token}` | token | Candidate's own application status |
 | POST | `/api/applicants/{id}/invite` | JWT | Invite a submitted candidate to interview |
@@ -202,8 +205,13 @@ nothing will warn you.
 
 ## Database
 
-7 MongoDB collections: `organisations`, `users`, `drives`, `applicants`,
-`password_reset_tokens`, `audit_log`, `email_outbox`.
+8 MongoDB collections: `organisations`, `users`, `drives`, `applicants`,
+`password_reset_tokens`, `audit_log`, `email_outbox`, `notifications`.
+
+`notifications` holds one document per event for the whole organisation, with
+the people who have read it in `read_by`. Entries expire after 90 days, and
+because they name candidates they are removed when a candidate is erased or
+their drive or organisation is deleted.
 
 `submissions`, `interviews` and `email_logs` are no longer separate: each was
 either 1:1 with an applicant or an append-only list only ever read through
