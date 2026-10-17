@@ -109,6 +109,8 @@ async def test_newest_first_with_an_unread_count(applicant, owner):
     assert [n.title for n in listing.items] == ["n2", "n1", "n0"]
     assert listing.unread_count == 3
     assert not any(n.read for n in listing.items)
+    # Naive datetimes reach the browser as local time; these must carry UTC.
+    assert all(n.created_at.tzinfo is not None for n in listing.items)
 
 
 async def test_read_state_is_per_person(applicant, owner, colleague):
