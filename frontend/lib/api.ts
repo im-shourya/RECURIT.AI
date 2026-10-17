@@ -35,6 +35,14 @@ function handleUnauthorized(): never {
 
 async function failureMessage(res: Response, fallback: string): Promise<string> {
   const body = await res.json().catch(() => ({}));
+  // A 422 carries a list of field errors rather than a string, which would
+  // otherwise reach the toast as "[object Object]".
+  if (Array.isArray(body.detail)) {
+    const messages = body.detail
+      .map((e: { msg?: string }) => e.msg?.replace(/^Value error, /, ''))
+      .filter(Boolean);
+    if (messages.length) return messages.join('. ');
+  }
   return body.detail || `${fallback}: ${res.status}`;
 }
 
@@ -98,6 +106,8 @@ export interface OrgProfile {
   domain_tags: string[];
   logo_url: string;
   created_at: string;
+  /** Email recruiters when a candidate finishes an interview. */
+  notify_on_interview?: boolean;
   // Who is signed in, as opposed to which organisation. Optional so an older
   // backend that does not send it still deserialises.
   user_id?: string;
@@ -289,7 +299,6 @@ export interface InterviewEndResponse {
 
 export interface InterviewSummary {
   id: string;
-  token: string;
   started_at: string | null;
   ended_at: string | null;
   recording_url: string;
@@ -393,6 +402,7 @@ export const api = {
     description?: string;
     domain_tags?: string[];
     logo_url?: string;
+    notify_on_interview?: boolean;
   }) => request<OrgProfile>('/api/auth/me', { method: 'PATCH', body: JSON.stringify(data) }, true),
 
   /**
@@ -603,11 +613,11 @@ export const api = {
   /**
    * Full interview detail for a recruiter — transcript, scores, flags.
    *
-   * Authenticated and scoped to the calling organisation: an unknown token
-   * and another organisation's token both return 404.
+   * Keyed by applicant id: the API no longer hands recruiters the candidate's
+   * interview token. Another organisation's applicant returns 404.
    */
-  getInterviewDetail: (token: string) =>
-    request<InterviewDetail>(`/api/interview/${token}/detail`, {}, true),
+  getInterviewDetail: (applicantId: string) =>
+    request<InterviewDetail>(`/api/applicants/${applicantId}/interview`, {}, true),
 
   startInterview: (token: string) =>
     request<{ interview_id: string; message: string }>(`/api/interview/${token}/start`, { method: 'POST', body: '{}' }),

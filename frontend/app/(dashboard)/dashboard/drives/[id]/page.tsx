@@ -43,6 +43,7 @@ import {
 import { toast } from 'sonner'
 import { api, DriveDetailResponse } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
+import { safeExternalUrl } from '@/lib/utils'
 
 export default function DriveDetailsPage() {
   const { can } = useAuth()
@@ -423,8 +424,8 @@ export default function DriveDetailsPage() {
                         <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {candidate.github_url && (
-                          <DropdownMenuItem onClick={() => window.open(candidate.github_url, '_blank')}>
+                        {safeExternalUrl(candidate.github_url) && (
+                          <DropdownMenuItem onClick={() => window.open(safeExternalUrl(candidate.github_url), '_blank', 'noopener,noreferrer')}>
                             <LinkIcon className="h-4 w-4 mr-2" /> View GitHub
                           </DropdownMenuItem>
                         )}

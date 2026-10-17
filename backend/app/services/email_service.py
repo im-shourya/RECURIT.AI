@@ -26,6 +26,9 @@ from app.config import get_settings
 from app.services import email_templates
 
 settings = get_settings()
+
+# Returned by send_email when Resend is not configured, so nothing was sent.
+SKIPPED_NO_CONFIG = "skipped-no-config"
 log = logging.getLogger("recruit.email")
 
 RESEND_API_URL = "https://api.resend.com/emails"
@@ -103,7 +106,7 @@ async def send_email(
             "email skipped: Resend is not configured",
             extra={"to": to_email, "subject": subject},
         )
-        return "skipped-no-config"
+        return SKIPPED_NO_CONFIG
 
     payload = {
         "from": _from_header(),

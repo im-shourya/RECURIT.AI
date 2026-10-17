@@ -4,10 +4,51 @@ Request / Response models for all API endpoints.
 """
 
 from datetime import date, datetime
-from typing import Optional
+from typing import Annotated, Optional
+from urllib.parse import urlsplit
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+MAX_URL_LENGTH = 2048
+
+# Upper bounds on free text. Interview answers and submissions are embedded in
+# the applicant document, which MongoDB caps at 16MB; without a bound, a few
+# very large requests could push one candidate's record past it and leave it
+# permanently unwritable.
+SHORT_TEXT = 255
+LONG_TEXT = 5_000
+TASK_TEXT = 20_000
+MAX_TAGS = 30
+Tag = Annotated[str, Field(max_length=50)]
+GITHUB_HOSTS = frozenset({"github.com", "www.github.com"})
+
+
+def web_url(value: Optional[str], *, github: bool = False) -> Optional[str]:
+    """
+    Accept an http(s) URL, or an empty string meaning "none".
+
+    These values end up in an href, a window.open and an <img src> on pages
+    other people view, so a `javascript:` or `data:` URL here would run in a
+    recruiter's session. A bare "github.com/name" gains https:// rather than
+    being rejected, since that is how most people type it.
+    """
+    if value is None:
+        return None
+    value = value.strip()
+    if not value:
+        return ""
+    if len(value) > MAX_URL_LENGTH:
+        raise ValueError(f"URL must be at most {MAX_URL_LENGTH} characters")
+    if "://" not in value and not value.lower().startswith(("javascript:", "data:", "vbscript:")):
+        value = f"https://{value}"
+
+    parts = urlsplit(value)
+    if parts.scheme.lower() not in ("http", "https") or not parts.hostname:
+        raise ValueError("Must be a web address starting with http:// or https://")
+    if github and parts.hostname.lower() not in GITHUB_HOSTS:
+        raise ValueError("Must be a github.com address")
+    return value
 
 
 # ══════════════════════════════════════════════
@@ -16,10 +57,17 @@ from pydantic import BaseModel, EmailStr, Field
 class OrgRegisterRequest(BaseModel):
     name: str = Field(..., min_length=2, max_length=255)
     email: EmailStr
-    password: str = Field(..., min_length=6)
-    description: str = ""
-    domain_tags: list[str] = []
+    # Same bounds as a password change or reset. Signup used to accept six
+    # characters, which made the owner's password the weakest in the system.
+    password: str = Field(..., min_length=8, max_length=128)
+    description: str = Field("", max_length=LONG_TEXT)
+    domain_tags: list[Tag] = Field([], max_length=MAX_TAGS)
     logo_url: str = ""
+
+    @field_validator("logo_url")
+    @classmethod
+    def _logo_is_a_web_url(cls, value):
+        return web_url(value)
 
 
 class OrgLoginRequest(BaseModel):
@@ -46,6 +94,8 @@ class OrgProfileResponse(BaseModel):
     domain_tags: list[str]
     logo_url: str
     created_at: datetime
+    # Whether recruiters are emailed when a candidate finishes an interview.
+    notify_on_interview: bool = True
 
     # Who is signed in, not just which organisation. Without this the client
     # cannot tell a member from an owner, so it would offer every action to
@@ -87,9 +137,15 @@ class PasswordChangeRequest(BaseModel):
 
 class OrgProfileUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=2, max_length=255)
-    description: Optional[str] = None
-    domain_tags: Optional[list[str]] = None
+    description: Optional[str] = Field(None, max_length=LONG_TEXT)
+    domain_tags: Optional[list[Tag]] = Field(None, max_length=MAX_TAGS)
     logo_url: Optional[str] = None
+    notify_on_interview: Optional[bool] = None
+
+    @field_validator("logo_url")
+    @classmethod
+    def _logo_is_a_web_url(cls, value):
+        return web_url(value)
 
 
 # ══════════════════════════════════════════════
@@ -99,7 +155,7 @@ class DriveCreateRequest(BaseModel):
     name: str = Field(..., min_length=2, max_length=255)
     domain: str = Field(..., min_length=2, max_length=255)
     task_type: str = Field(..., pattern="^(task|github)$")
-    task_description: str = ""
+    task_description: str = Field("", max_length=TASK_TEXT)
     question_level: str = Field(default="beginner", pattern="^(beginner|intermediate|advanced)$")
     apply_deadline: date
     task_deadline: Optional[date] = None
@@ -138,7 +194,7 @@ class DriveUpdateRequest(BaseModel):
     """
     name: Optional[str] = Field(None, min_length=2, max_length=255)
     domain: Optional[str] = Field(None, min_length=2, max_length=255)
-    task_description: Optional[str] = None
+    task_description: Optional[str] = Field(None, max_length=TASK_TEXT)
     question_level: Optional[str] = Field(None, pattern="^(beginner|intermediate|advanced)$")
     apply_deadline: Optional[date] = None
     task_deadline: Optional[date] = None
@@ -173,10 +229,15 @@ class DrivePublicResponse(BaseModel):
 class ApplyRequest(BaseModel):
     name: str = Field(..., min_length=2, max_length=255)
     email: EmailStr
-    reg_no: str = ""
-    skills: list[str] = []
-    primary_domain: str = ""
+    reg_no: str = Field("", max_length=64)
+    skills: list[Tag] = Field([], max_length=MAX_TAGS)
+    primary_domain: str = Field("", max_length=SHORT_TEXT)
     github_url: str = ""
+
+    @field_validator("github_url")
+    @classmethod
+    def _github_url_is_on_github(cls, value):
+        return web_url(value, github=True)
 
 
 class ApplicantResponse(BaseModel):
@@ -288,9 +349,14 @@ class ApplicantDecisionResponse(BaseModel):
 # SUBMISSIONS
 # ══════════════════════════════════════════════
 class SubmissionCreateRequest(BaseModel):
-    file_url: str = ""
+    file_url: str = Field("", max_length=1024)
     github_url: str = ""
-    description: str = ""
+    description: str = Field("", max_length=LONG_TEXT)
+
+    @field_validator("github_url")
+    @classmethod
+    def _github_url_is_on_github(cls, value):
+        return web_url(value, github=True)
 
 
 class FileUploadResponse(BaseModel):
@@ -349,8 +415,8 @@ class InterviewStartResponse(BaseModel):
 
 
 class InterviewAnswerRequest(BaseModel):
-    question_text: str
-    answer_text: str
+    question_text: str = Field(..., max_length=1_000)
+    answer_text: str = Field(..., max_length=LONG_TEXT)
     round_name: str = Field(..., pattern="^(intro|project|domain)$")
 
 
@@ -378,8 +444,13 @@ class InterviewEndResponse(BaseModel):
 
 
 class InterviewSummaryResponse(BaseModel):
+    """
+    No `token`. The interview endpoints are unauthenticated and gated only on
+    that token, so returning it here handed every team member a working
+    capability to open, start or answer any candidate's interview. Recruiters
+    reach the interview by applicant id instead.
+    """
     id: UUID
-    token: str
     started_at: Optional[datetime]
     ended_at: Optional[datetime]
     recording_url: str
