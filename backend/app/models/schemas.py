@@ -304,13 +304,6 @@ class ApplicantStatusView(BaseModel):
     decision: Optional[str]
 
 
-class ApplicantStatusUpdate(BaseModel):
-    status: str = Field(
-        ...,
-        pattern="^(applied|task_sent|submitted|interview_sent|interviewed|selected|rejected)$",
-    )
-
-
 class ApplicantDecisionRequest(BaseModel):
     """A recruiter's final hire / reject decision on one applicant."""
     decision: str = Field(..., pattern="^(selected|rejected)$")
@@ -427,11 +420,13 @@ class InterviewAnswerResponse(BaseModel):
 
 
 class InterviewEndRequest(BaseModel):
-    # recording_url was previously accepted here and stored verbatim, so the
-    # client decided what the "recording" pointed at. Recordings now go
-    # through POST /interview/{token}/recording instead; this field is kept
-    # so existing clients do not break, but it is ignored.
-    recording_url: str = ""
+    """
+    Carries nothing. recording_url used to be accepted here and stored
+    verbatim, so the client decided what the "recording" pointed at.
+    Recordings go through POST /interview/{token}/recording instead. An older
+    client that still sends the field is unaffected: unknown fields are
+    ignored.
+    """
 
 
 class InterviewEndResponse(BaseModel):
@@ -468,20 +463,6 @@ class InterviewDetailResponse(InterviewSummaryResponse):
     transcript: list
     applicant_name: str = ""
     drive_name: str = ""
-
-
-# ══════════════════════════════════════════════
-# EMAIL
-# ══════════════════════════════════════════════
-class EmailLogResponse(BaseModel):
-    id: UUID
-    applicant_id: UUID
-    type: str
-    sent_at: datetime
-    emailjs_msg_id: str
-
-    class Config:
-        from_attributes = True
 
 
 # ══════════════════════════════════════════════
