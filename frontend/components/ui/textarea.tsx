@@ -15,7 +15,7 @@ function Textarea({ className, style, ...props }: React.ComponentProps<'textarea
       style={style}
     >
       <Squircle
-        cornerRadius={6}
+        cornerRadius={10}
         cornerSmoothing={1}
         borderClassName="stroke-input"
         className="absolute inset-0 z-[0] pointer-events-none bg-transparent dark:bg-input/30"

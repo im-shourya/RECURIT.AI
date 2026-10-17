@@ -11,7 +11,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        default: 'bg-primary text-primary-foreground hover:bg-primary-hover',
         destructive:
           'bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
         outline:
@@ -46,7 +46,8 @@ const Button = React.forwardRef<HTMLButtonElement, React.ComponentProps<'button'
     
     // Determine Squircle border based on variant
     const borderClassName = variant === 'outline' ? 'stroke-border dark:stroke-input' : undefined
-    const cornerRadius = size === 'sm' || size === 'icon-sm' ? 6 : size === 'lg' || size === 'icon-lg' ? 10 : 8
+    // 8–12px, matching the radius tokens: small controls 8, default 10, large 12.
+    const cornerRadius = size === 'sm' || size === 'icon-sm' ? 8 : size === 'lg' || size === 'icon-lg' ? 12 : 10
 
     const { ref: squircleRef, clipStyle, svgOverlay } = useSquircle({
       cornerRadius,

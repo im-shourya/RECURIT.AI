@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 const navLinks = [
   { href: '/#features', label: 'Features' },
   { href: '/#how-it-works', label: 'How It Works' },
-  { href: '/#trusted', label: 'For Organizations' },
+  { href: '/#for-organizations', label: 'For Organizations' },
 ]
 
 export function Navbar() {
@@ -34,7 +34,7 @@ export function Navbar() {
       className={cn(
         'fixed top-0 left-0 right-0 z-50 h-14 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
         isScrolled
-          ? 'glass-nav border-b border-border/60'
+          ? 'liquid-glass-bar border-b'
           : 'bg-transparent border-b border-transparent'
       )}
     >
@@ -79,7 +79,7 @@ export function Navbar() {
             </Link>
             <Button
               asChild
-              className="press h-8 px-4 text-[13px] font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-full"
+              className="press h-8 px-4 text-[13px] font-semibold bg-foreground text-background hover:bg-foreground/90"
             >
               <Link href="/auth/register">
                 Get Started
@@ -97,7 +97,9 @@ export function Navbar() {
             </SheetTrigger>
             <SheetContent 
               side="right" 
-              className="w-full border-0 bg-background p-0"
+              // Important: the sheet's own bg-background is emitted later and
+              // would otherwise paint over the glass fill.
+              className="w-full border-0 liquid-glass! p-0"
             >
               <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
               <div className="flex flex-col items-center justify-center h-full gap-8">
@@ -137,12 +139,12 @@ export function Navbar() {
                   transition={{ delay: 0.25, duration: 0.3 }}
                   className="flex flex-col gap-3 w-48"
                 >
-                  <Button variant="outline" asChild className="w-full rounded-full h-12">
+                  <Button variant="outline" asChild className="w-full h-12">
                     <Link href="/auth/login" onClick={() => setIsOpen(false)}>
                       Sign In
                     </Link>
                   </Button>
-                  <Button asChild className="w-full bg-foreground text-background hover:bg-foreground/90 rounded-full h-12">
+                  <Button asChild className="w-full bg-foreground text-background hover:bg-foreground/90 h-12">
                     <Link href="/auth/register" onClick={() => setIsOpen(false)}>
                       Get Started
                     </Link>

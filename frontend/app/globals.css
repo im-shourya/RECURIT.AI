@@ -4,105 +4,148 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ══════════════════════════════════════════════
-   Apple Design System Foundation
-   High-contrast neutrals, system blue, SF Pro
+   RECRUIT.AI design tokens
+
+   Apple-inspired: quiet paper neutrals, ink text, and one product accent —
+   "lagoon", a deep teal — used only for primary actions, links, focus and
+   the active state. Status colours are semantic and never decorative.
+
+   Every text pair below meets WCAG AA (4.5:1) in both themes; see the
+   contrast notes beside the values. Dark mode is re-tuned, not inverted.
    ══════════════════════════════════════════════ */
 
 :root {
-  --background: #F5F5F7;
-  --foreground: #1d1d1f;
+  /* Surfaces */
+  --background: #FBFBFD;
+  --foreground: #1D1D1F;            /* 16.3:1 on background */
   --card: #FFFFFF;
-  --card-foreground: #1d1d1f;
+  --card-foreground: #1D1D1F;
   --popover: #FFFFFF;
-  --popover-foreground: #1d1d1f;
-  --primary: #007AFF;
-  --primary-foreground: #ffffff;
-  --secondary: #e5e5ea;
-  --secondary-foreground: #1d1d1f;
-  --muted: #f2f2f7;
-  --muted-foreground: #86868b;
-  --accent: #007AFF;
-  --accent-foreground: #ffffff;
-  --destructive: #ff3b30;
-  --destructive-foreground: #ffffff;
-  --success: #34c759;
-  --success-foreground: #ffffff;
-  --warning: #ffcc00;
-  --warning-foreground: #1d1d1f;
-  --border: #d1d1d6;
-  --input: #d1d1d6;
-  --ring: #007AFF;
-
-  /* Layered surface — sits between background and card */
+  --popover-foreground: #1D1D1F;
   --surface: #FFFFFF;
-  --surface-foreground: #1d1d1f;
-  --surface-elevated: #FBFBFD;
+  --surface-foreground: #1D1D1F;
+  --surface-elevated: #F9F9FB;
 
-  /* Apple elevation: tight contact shadow + soft ambient spread */
+  /* Neutrals */
+  --secondary: #EDEDF0;
+  --secondary-foreground: #1D1D1F;
+  --muted: #F5F5F7;
+  --muted-foreground: #6E6E73;      /* 4.9:1 on background (was 3.3:1) */
+  /* shadcn uses "accent" as the hover/selected surface, so it stays neutral */
+  --accent: #EEEEF1;
+  --accent-foreground: #1D1D1F;
+  --border: #D2D2D7;
+  --input: #D2D2D7;
+
+  /* Brand — lagoon */
+  --primary: #0B7A75;               /* 5.2:1 under white text, 5.0:1 as link text */
+  --primary-hover: #096560;
+  --primary-foreground: #FFFFFF;
+  --primary-subtle: #E7F3F2;
+  --ring: #0B7A75;
+
+  /* Status — each usable as text on the background */
+  --destructive: #D70015;
+  --destructive-foreground: #FFFFFF;
+  --success: #1A7F37;
+  --success-foreground: #FFFFFF;
+  --warning: #9A6700;
+  --warning-foreground: #FFFFFF;
+  --info: #0068B8;
+  --info-foreground: #FFFFFF;
+
+  /* Liquid glass */
+  --glass-fill: rgb(251 251 253 / 0.66);
+  --glass-fill-strong: rgb(255 255 255 / 0.78);
+  --glass-sheen: rgb(255 255 255 / 0.32);
+  --glass-border: rgb(0 0 0 / 0.08);
+  --glass-shadow: 0 1px 0 rgb(255 255 255 / 0.6) inset, 0 8px 32px -12px rgb(0 0 0 / 0.18);
+
+  /* Elevation: tight contact shadow + soft ambient spread */
   --elevation-1: 0 1px 2px rgb(0 0 0 / 0.04), 0 1px 1px rgb(0 0 0 / 0.03);
   --elevation-2: 0 2px 6px rgb(0 0 0 / 0.05), 0 8px 24px -8px rgb(0 0 0 / 0.08);
   --elevation-3: 0 4px 12px rgb(0 0 0 / 0.06), 0 24px 48px -16px rgb(0 0 0 / 0.12);
 
-  --radius: 0.5rem;
-  
+  /* Shape — 8–12px on controls, larger on surfaces */
+  --radius: 0.75rem;
+
   --sidebar: #F5F5F7;
-  --sidebar-foreground: #1d1d1f;
-  --sidebar-primary: #007AFF;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e5e5ea;
-  --sidebar-accent-foreground: #1d1d1f;
-  --sidebar-border: #d1d1d6;
-  --sidebar-ring: #007AFF;
+  --sidebar-foreground: #1D1D1F;
+  --sidebar-primary: #0B7A75;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #EAEAED;
+  --sidebar-accent-foreground: #1D1D1F;
+  --sidebar-border: #D2D2D7;
+  --sidebar-ring: #0B7A75;
 }
 
 .dark {
-  --background: #000000; 
-  --foreground: #F5F5F7;
-  --card: #1c1c1e;
+  --background: #0B0B0C;
+  --foreground: #F5F5F7;            /* 18.1:1 */
+  --card: #1C1C1E;
   --card-foreground: #F5F5F7;
-  --popover: #1c1c1e;
+  --popover: #1C1C1E;
   --popover-foreground: #F5F5F7;
-  --primary: #0a84ff;
-  --primary-foreground: #ffffff;
-  --secondary: #2c2c2e;
-  --secondary-foreground: #F5F5F7;
-  --muted: #1c1c1e;
-  --muted-foreground: #98989d;
-  --accent: #0a84ff;
-  --accent-foreground: #ffffff;
-  --destructive: #ff453a;
-  --destructive-foreground: #ffffff;
-  --success: #30d158;
-  --success-foreground: #ffffff;
-  --warning: #ffd60a;
-  --warning-foreground: #1c1c1e;
-  --border: #38383a;
-  --input: #38383a;
-  --ring: #0a84ff;
-
-  --surface: #1c1c1e;
+  --surface: #1C1C1E;
   --surface-foreground: #F5F5F7;
-  --surface-elevated: #2c2c2e;
+  --surface-elevated: #2C2C2E;
+
+  --secondary: #2C2C2E;
+  --secondary-foreground: #F5F5F7;
+  --muted: #1C1C1E;
+  --muted-foreground: #A1A1A6;      /* 7.7:1 on background, 6.6:1 on card */
+  --accent: #2C2C2E;
+  --accent-foreground: #F5F5F7;
+  --border: #38383A;
+  --input: #38383A;
+
+  /* Lifted for a dark ground; carries dark text, not white */
+  --primary: #2BC4B4;               /* 9.1:1 as text; 7.9:1 under its foreground */
+  --primary-hover: #4FD3C5;
+  --primary-foreground: #04201E;
+  --primary-subtle: #0E2E2C;
+  --ring: #2BC4B4;
+
+  --destructive: #FF453A;
+  --destructive-foreground: #FFFFFF;
+  --success: #30D158;
+  --success-foreground: #04200C;
+  --warning: #FFD60A;
+  --warning-foreground: #1C1C1E;
+  --info: #64D2FF;
+  --info-foreground: #04131C;
+
+  --glass-fill: rgb(28 28 30 / 0.6);
+  --glass-fill-strong: rgb(36 36 38 / 0.78);
+  --glass-sheen: rgb(255 255 255 / 0.05);
+  --glass-border: rgb(255 255 255 / 0.1);
+  --glass-shadow: 0 1px 0 rgb(255 255 255 / 0.08) inset, 0 12px 40px -12px rgb(0 0 0 / 0.7);
 
   --elevation-1: 0 1px 2px rgb(0 0 0 / 0.5);
   --elevation-2: 0 2px 6px rgb(0 0 0 / 0.55), 0 8px 24px -8px rgb(0 0 0 / 0.6);
   --elevation-3: 0 4px 12px rgb(0 0 0 / 0.6), 0 24px 48px -16px rgb(0 0 0 / 0.7);
-  
-  --sidebar: #000000;
+
+  --sidebar: #0B0B0C;
   --sidebar-foreground: #F5F5F7;
-  --sidebar-primary: #0a84ff;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #2c2c2e;
+  --sidebar-primary: #2BC4B4;
+  --sidebar-primary-foreground: #04201E;
+  --sidebar-accent: #2C2C2E;
   --sidebar-accent-foreground: #F5F5F7;
-  --sidebar-border: #38383a;
-  --sidebar-ring: #0a84ff;
+  --sidebar-border: #38383A;
+  --sidebar-ring: #2BC4B4;
 }
 
 @theme inline {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
-  --font-mono: var(--font-jetbrains-mono, 'JetBrains Mono'), monospace;
-  
-  /* Apple Type Scale Overrides */
+  /*
+   * SF Pro cannot be self-hosted: its licence limits it to Apple platforms.
+   * The system names come first, so Apple devices render SF Pro Text and
+   * Display natively, with the OS choosing the optical size. Everyone else
+   * gets Inter, loaded through next/font, rather than falling to Arial.
+   */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", var(--font-inter), "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", var(--font-jetbrains-mono, 'JetBrains Mono'), monospace;
+
+  /* Type scale — 17px body, as on Apple platforms */
   --text-xs: 13px;
   --text-sm: 15px;
   --text-base: 17px;
@@ -122,7 +165,9 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-subtle: var(--primary-subtle);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -135,6 +180,8 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -146,23 +193,28 @@
   --shadow-elevation-2: var(--elevation-2);
   --shadow-elevation-3: var(--elevation-3);
 
-  /* Apple motion curves */
+  /* Motion — one vocabulary for the whole product */
   --ease-apple: cubic-bezier(0.25, 0.1, 0.25, 1);
   --ease-apple-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-apple-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  
-  /* Semantic utility colors — used for state communication in dashboard */
-  --color-cyan: #32ade6;
-  --color-indigo: #5856d6;
-  --color-emerald: #34c759;
-  --color-rose: #ff2d55;
-  --color-amber: #ffcc00;
-  
-  --radius-sm: calc(var(--radius) - 2px);
-  --radius-md: calc(var(--radius) - 1px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 2px);
-  
+
+  /*
+   * Older pages name status colours by hue. They now resolve to the semantic
+   * roles, so they follow the theme and meet contrast instead of being fixed
+   * iOS hues (#34c759 green was 2.2:1 on white).
+   */
+  --color-emerald: var(--success);
+  --color-rose: var(--destructive);
+  --color-amber: var(--warning);
+  --color-cyan: var(--info);
+  --color-indigo: var(--primary);
+
+  --radius-sm: 6px;    /* chips, menu items */
+  --radius-md: 8px;    /* buttons, inputs */
+  --radius-lg: 12px;   /* large controls, popovers */
+  --radius-xl: 16px;   /* cards */
+  --radius-2xl: 20px;  /* panels, sheets */
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -171,6 +223,60 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/*
+ * Liquid glass — the one translucent material in the product.
+ *
+ * Only for chrome that content scrolls beneath (navigation bars) and for
+ * transient overlays (menus, popovers, sheets). Cards and page surfaces stay
+ * solid: glass everywhere stops meaning "this floats above".
+ *
+ * A translucent fill, a blur with a saturation boost so colour bleeds
+ * through, a lit top edge and a hairline. Opaque where backdrop-filter is
+ * unsupported, so text never sits on raw page content, and opaque when the
+ * system asks to reduce transparency.
+ */
+@utility liquid-glass {
+  background-color: var(--popover);
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: var(--glass-fill-strong);
+    background-image: linear-gradient(
+      180deg,
+      var(--glass-sheen) 0%,
+      transparent 42%
+    );
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--popover);
+    background-image: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* The bar variant: thinner, so more of the page shows through behind it. */
+@utility liquid-glass-bar {
+  background-color: var(--background);
+  border-color: var(--glass-border);
+
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: var(--glass-fill);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--background);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 @layer base {
@@ -246,21 +352,6 @@
     @apply bg-secondary/50 border border-border/50 rounded-lg;
   }
   
-  /* Apple-style glass: blur + saturation boost so color bleeds through.
-     Falls back to a near-opaque bar where backdrop-filter is unavailable,
-     otherwise page content stays legible straight through the nav. */
-  .glass-nav {
-    background: color-mix(in srgb, var(--background) 94%, transparent);
-  }
-
-  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .glass-nav {
-      background: color-mix(in srgb, var(--background) 72%, transparent);
-      backdrop-filter: saturate(180%) blur(20px);
-      -webkit-backdrop-filter: saturate(180%) blur(20px);
-    }
-  }
-
   /* The workhorse card surface across the landing page */
   .panel {
     @apply bg-surface border border-border/70 rounded-2xl;

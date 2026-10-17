@@ -36,9 +36,9 @@ export function DecisionMomentSection() {
           <motion.div style={headlineStage} className="mb-16 sm:mb-24">
             <Reveal>
               <h2 className="section-title text-foreground">
-                AI assists.
+                You review.
                 <br />
-                <span className="text-gradient">Recruiter decides.</span>
+                <span className="text-gradient">You decide.</span>
               </h2>
             </Reveal>
           </motion.div>
@@ -54,18 +54,18 @@ export function DecisionMomentSection() {
                   </div>
                   <div>
                     <h3 className="text-sm font-semibold text-foreground">Alex Developer</h3>
-                    <p className="text-xs text-muted-foreground">Evaluation Complete</p>
+                    <p className="text-xs text-muted-foreground">Interview completed</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald/10 text-emerald text-xs font-medium border border-emerald/20">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  Integrity Verified
+                  Task submitted
                 </div>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Based on the technical interview and GitHub repository analysis, the
-                candidate demonstrated strong architectural reasoning but may require
-                ramping up on CI/CD pipelines.
+                The task was submitted before the deadline and the interview was
+                recorded. Watch the recording and read the transcript, round by round,
+                before you decide.
               </p>
             </div>
 
@@ -74,12 +74,12 @@ export function DecisionMomentSection() {
                 Review evidence and make your final decision.
               </p>
               <div className="flex gap-3">
-                <button className="press px-4 py-2 rounded-full border border-border bg-surface text-sm font-medium transition-colors hover:bg-muted">
+                <button className="press px-4 py-2 rounded-md border border-border bg-surface text-sm font-medium transition-colors hover:bg-muted">
                   Reject
                 </button>
-                <button className="press px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium flex items-center gap-2 transition-colors hover:bg-primary/90 shadow-elevation-1">
+                <button className="press px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-2 transition-colors hover:bg-primary-hover shadow-elevation-1">
                   <CheckSquare className="w-4 h-4" />
-                  Proceed to Hire
+                  Select
                 </button>
               </div>
             </div>
