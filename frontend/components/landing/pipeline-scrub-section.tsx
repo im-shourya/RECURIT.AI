@@ -226,7 +226,7 @@ export function PipelineScrubSection() {
       ref={sectionRef}
       id="pipeline"
       aria-labelledby="pipeline-heading"
-      className={canScrub ? 'relative h-[320vh] bg-background' : 'relative bg-background py-24'}
+      className={canScrub ? 'relative h-[260vh] bg-background' : 'relative bg-background py-24'}
     >
       <div
         className={
