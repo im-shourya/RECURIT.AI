@@ -67,14 +67,14 @@ export function HeroSection() {
         >
           <Link
             href="/auth/register"
-            className="press group inline-flex h-12 items-center justify-center rounded-lg bg-primary px-7 text-[15px] font-medium text-primary-foreground shadow-elevation-2 transition-colors hover:bg-primary-hover"
+            className="press group inline-flex h-12 items-center justify-center rounded-lg bg-primary px-7 text-sm font-medium text-primary-foreground shadow-elevation-2 transition-colors hover:bg-primary-hover"
           >
             Start Recruiting
             <ArrowRight className="ml-1.5 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
           </Link>
           <Link
             href="/#how-it-works"
-            className="text-[15px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             See how it works
           </Link>

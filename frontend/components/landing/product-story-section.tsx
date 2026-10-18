@@ -66,8 +66,8 @@ function UI_Candidate() {
           <h3 className="text-sm font-semibold text-foreground">Alex Developer</h3>
           <p className="text-xs text-muted-foreground mb-2">alex@example.com</p>
           <div className="flex gap-2">
-            <span className="px-2 py-0.5 rounded border border-border bg-muted text-[10px] font-medium text-muted-foreground">Frontend</span>
-            <span className="px-2 py-0.5 rounded border border-border bg-muted text-[10px] font-medium text-muted-foreground">React</span>
+            <span className="px-2 py-0.5 rounded border border-border bg-muted text-[11px] font-medium text-muted-foreground">Frontend</span>
+            <span className="px-2 py-0.5 rounded border border-border bg-muted text-[11px] font-medium text-muted-foreground">React</span>
           </div>
         </div>
       </div>

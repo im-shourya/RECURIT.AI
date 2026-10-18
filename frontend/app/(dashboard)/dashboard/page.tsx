@@ -305,7 +305,7 @@ function StatusBadge({ status }: { status: string }) {
   }
 
   return (
-    <Badge variant="outline" className={`text-[10px] px-2 py-0.5 font-medium ${config.className}`}>
+    <Badge variant="outline" className={`text-[11px] px-2 py-0.5 font-medium ${config.className}`}>
       {config.label}
     </Badge>
   )
