@@ -9,6 +9,7 @@ import { OrganizationWorkflowSection } from '@/components/landing/organization-w
 import { ApplicantWorkflowSection } from '@/components/landing/applicant-workflow-section'
 import { DecisionMomentSection } from '@/components/landing/decision-moment-section'
 import { CTASection } from '@/components/landing/cta-section'
+import { BackToTop } from '@/components/landing/back-to-top'
 
 export default function HomePage() {
   return (
@@ -26,6 +27,7 @@ export default function HomePage() {
         <CTASection />
       </main>
       <Footer />
+      <BackToTop />
     </div>
   )
 }
