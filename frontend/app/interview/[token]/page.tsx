@@ -642,7 +642,7 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
                       <Button
                         onClick={startInterview}
                         size="lg"
-                        className="gradient-primary border-0 animate-pulse-glow"
+                        className="border-0"
                       >
                         <Play className="mr-2 h-5 w-5" />
                         Start Interview
@@ -686,7 +686,7 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
                         <div className={cn(
                           'h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0',
                           message.role === 'ai'
-                            ? 'gradient-primary'
+                            ? 'bg-primary text-primary-foreground'
                             : 'bg-primary/10'
                         )}>
                           {message.role === 'ai' ? (
@@ -699,7 +699,7 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
                           'rounded-2xl px-4 py-3 max-w-[80%]',
                           message.role === 'ai'
                             ? 'bg-muted'
-                            : 'gradient-primary text-white'
+                            : 'bg-primary text-primary-foreground'
                         )}>
                           <p className="text-sm">{message.text}</p>
                         </div>
@@ -723,7 +723,7 @@ export default function InterviewPage({ params }: { params: Promise<{ token: str
                       onClick={submitResponse}
                       disabled={!userResponse.trim()}
                       size="icon"
-                      className="h-12 w-12 rounded-full gradient-primary border-0"
+                      className="h-12 w-12 rounded-full border-0"
                     >
                       <Send className="h-5 w-5" />
                     </Button>

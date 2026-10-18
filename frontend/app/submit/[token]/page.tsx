@@ -421,7 +421,7 @@ export default function SubmitPage({ params }: { params: Promise<{ token: string
                 <Button
                   type="submit"
                   disabled={(!file && !formData.githubUrl) || isSubmitting}
-                  className="w-full gradient-primary border-0"
+                  className="w-full border-0"
                 >
                   {isSubmitting ? (
                     <Spinner className="h-4 w-4" />

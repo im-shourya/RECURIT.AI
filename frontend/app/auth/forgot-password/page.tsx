@@ -64,7 +64,7 @@ export default function ForgotPasswordPage() {
             />
           </div>
 
-          <Button type="submit" className="w-full gradient-primary border-0" disabled={loading}>
+          <Button type="submit" className="w-full border-0" disabled={loading}>
             {loading ? 'Sending...' : (
               <>
                 <Send className="mr-2 h-4 w-4" />

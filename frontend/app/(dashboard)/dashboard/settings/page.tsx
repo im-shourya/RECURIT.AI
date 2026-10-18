@@ -325,7 +325,7 @@ export default function SettingsPage() {
           <Button type="button" variant="outline" onClick={() => loadProfile()}>
             Reset
           </Button>
-          <Button type="submit" className="gradient-primary border-0" disabled={saving || !canEdit}>
+          <Button type="submit" className="border-0" disabled={saving || !canEdit}>
             {saving ? <Spinner className="h-4 w-4 mr-2" /> : <Save className="h-4 w-4 mr-2" />}
             Save Changes
           </Button>

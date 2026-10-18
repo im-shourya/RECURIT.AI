@@ -289,6 +289,16 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /*
+   * Icons. SF Symbols are licensed for Apple-platform apps only, so they
+   * cannot ship on the web. Lucide shares their grammar (outline glyphs,
+   * round caps and joins), and at a 1.75 stroke on its 24px grid it matches
+   * SF's regular weight beside 15-17px text instead of reading heavier.
+   */
+  svg.lucide {
+    stroke-width: 1.75;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
