@@ -26,13 +26,26 @@ from app.config import get_settings
 settings = get_settings()
 
 # ── Palette (kept in step with frontend/app/globals.css) ──
+# Light values are inlined; the dark ones only apply through the
+# prefers-color-scheme block, in the clients that honour it.
 BG = "#F5F5F7"
 CARD = "#FFFFFF"
-TEXT = "#1d1d1f"
-MUTED = "#86868b"
-PRIMARY = "#007AFF"
-BORDER = "#d1d1d6"
-SUCCESS = "#34c759"
+TEXT = "#1D1D1F"
+MUTED = "#6E6E73"
+PRIMARY = "#0B7A75"          # lagoon
+PRIMARY_FOREGROUND = "#FFFFFF"
+BORDER = "#D2D2D7"
+SUCCESS = "#1A7F37"
+
+DARK_BG = "#0B0B0C"
+DARK_CARD = "#1C1C1E"
+DARK_SURFACE = "#2C2C2E"
+DARK_TEXT = "#F5F5F7"
+DARK_MUTED = "#A1A1A6"
+DARK_PRIMARY = "#2BC4B4"
+DARK_PRIMARY_FOREGROUND = "#04201E"
+DARK_BORDER = "#38383A"
+DARK_SUCCESS = "#30D158"
 
 FONT = (
     "-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,"
@@ -60,10 +73,10 @@ def _button(label: str, href: str) -> str:
     return f"""
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0;">
       <tr>
-        <td align="center" bgcolor="{PRIMARY}" style="border-radius:980px;">
-          <a href="{escape(href, quote=True)}"
+        <td class="btn" align="center" bgcolor="{PRIMARY}" style="background:{PRIMARY};border-radius:980px;">
+          <a class="btn-a" href="{escape(href, quote=True)}"
              style="display:inline-block;padding:14px 30px;font-family:{FONT};
-                    font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;
+                    font-size:15px;font-weight:600;color:{PRIMARY_FOREGROUND};text-decoration:none;
                     border-radius:980px;">{escape(label)}</a>
         </td>
       </tr>
@@ -77,10 +90,10 @@ def _detail_rows(details: list[tuple[str, str]]) -> str:
     rows = "".join(
         f"""
         <tr>
-          <td style="padding:10px 0;border-bottom:1px solid {BORDER};
+          <td class="bd m" style="padding:10px 0;border-bottom:1px solid {BORDER};
                      font-family:{FONT};font-size:13px;color:{MUTED};
                      width:40%;vertical-align:top;">{escape(label)}</td>
-          <td style="padding:10px 0;border-bottom:1px solid {BORDER};
+          <td class="bd t" style="padding:10px 0;border-bottom:1px solid {BORDER};
                      font-family:{FONT};font-size:14px;color:{TEXT};
                      font-weight:600;vertical-align:top;">{escape(value)}</td>
         </tr>"""
@@ -113,7 +126,7 @@ def _layout(
           {escape(fallback_note)}
         </p>
         <p style="margin:0 0 8px;font-family:{FONT};font-size:12px;line-height:1.6;word-break:break-all;">
-          <a href="{escape(cta_url, quote=True)}" style="color:{PRIMARY};text-decoration:underline;">{escape(cta_url)}</a>
+          <a class="lnk" href="{escape(cta_url, quote=True)}" style="color:{PRIMARY};text-decoration:underline;">{escape(cta_url)}</a>
         </p>"""
 
     return f"""<!DOCTYPE html>
@@ -123,6 +136,7 @@ def _layout(
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="x-apple-disable-message-reformatting">
 <meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
 <title>{escape(heading)}</title>
 <style>
   @media (max-width:620px) {{
@@ -130,11 +144,18 @@ def _layout(
     .pad {{ padding-left:22px !important; padding-right:22px !important; }}
     .h1 {{ font-size:23px !important; }}
   }}
+  :root {{ color-scheme: light dark; supported-color-schemes: light dark; }}
   @media (prefers-color-scheme: dark) {{
-    .bg {{ background:#000000 !important; }}
-    .card {{ background:#1c1c1e !important; border-color:#38383a !important; }}
-    .t {{ color:#F5F5F7 !important; }}
-    .m {{ color:#98989d !important; }}
+    .bg {{ background:{DARK_BG} !important; }}
+    .card {{ background:{DARK_CARD} !important; border-color:{DARK_BORDER} !important; }}
+    .t, .t strong, .m strong {{ color:{DARK_TEXT} !important; }}
+    .m {{ color:{DARK_MUTED} !important; }}
+    .bd {{ border-color:{DARK_BORDER} !important; }}
+    .sub {{ background:{DARK_SURFACE} !important; border-color:{DARK_BORDER} !important; color:{DARK_TEXT} !important; }}
+    .lnk {{ color:{DARK_PRIMARY} !important; }}
+    .btn {{ background:{DARK_PRIMARY} !important; }}
+    .btn-a {{ color:{DARK_PRIMARY_FOREGROUND} !important; }}
+    .ok {{ color:{DARK_SUCCESS} !important; border-color:rgba(48,209,88,0.35) !important; }}
   }}
 </style>
 </head>
@@ -159,7 +180,7 @@ def _layout(
                 <img src="{escape(b['logo_url'], quote=True)}" width="40" height="40" alt="RECRUIT.AI"
                      style="display:block;border:0;border-radius:9px;margin:0 auto 10px;">
                 <span class="t" style="font-family:{FONT};font-size:15px;font-weight:700;
-                             letter-spacing:-0.2px;color:{TEXT};">RECRUIT<span style="color:{PRIMARY};">.</span>AI</span>
+                             letter-spacing:-0.2px;color:{TEXT};">RECRUIT<span class="lnk" style="color:{PRIMARY};">.</span>AI</span>
               </a>
             </td>
           </tr>
@@ -190,17 +211,17 @@ def _layout(
             <td class="pad" style="padding:26px 24px 8px;" align="center">
               <p class="m" style="margin:0 0 10px;font-family:{FONT};font-size:12px;
                         line-height:1.7;color:{MUTED};">
-                Sent by <a href="{escape(b['app_url'], quote=True)}" style="color:{MUTED};text-decoration:underline;">RECRUIT.AI</a>,
+                Sent by <a class="m" href="{escape(b['app_url'], quote=True)}" style="color:{MUTED};text-decoration:underline;">RECRUIT.AI</a>,
                 an AI-powered recruitment platform.<br>
                 Questions? Reach us at
-                <a href="mailto:{escape(b['support_email'], quote=True)}" style="color:{PRIMARY};text-decoration:none;">{escape(b['support_email'])}</a>.
+                <a class="lnk" href="mailto:{escape(b['support_email'], quote=True)}" style="color:{PRIMARY};text-decoration:none;">{escape(b['support_email'])}</a>.
               </p>
               <p class="m" style="margin:0 0 10px;font-family:{FONT};font-size:12px;color:{MUTED};">
-                <a href="{escape(b['app_url'], quote=True)}/privacy" style="color:{MUTED};text-decoration:underline;">Privacy</a>
+                <a class="m" href="{escape(b['app_url'], quote=True)}/privacy" style="color:{MUTED};text-decoration:underline;">Privacy</a>
                 &nbsp;·&nbsp;
-                <a href="{escape(b['app_url'], quote=True)}/terms" style="color:{MUTED};text-decoration:underline;">Terms</a>
+                <a class="m" href="{escape(b['app_url'], quote=True)}/terms" style="color:{MUTED};text-decoration:underline;">Terms</a>
                 &nbsp;·&nbsp;
-                <a href="{escape(b['app_url'], quote=True)}/cookies" style="color:{MUTED};text-decoration:underline;">Cookies</a>
+                <a class="m" href="{escape(b['app_url'], quote=True)}/cookies" style="color:{MUTED};text-decoration:underline;">Cookies</a>
               </p>
               <p class="m" style="margin:0;font-family:{FONT};font-size:11px;line-height:1.7;color:{MUTED};">
                 This is a transactional message about an application you submitted,
@@ -289,7 +310,7 @@ def task_assigned(
     body = _detail_rows([("Role", drive_name), ("Submit by", deadline)])
     if task_description:
         body += (
-            f'<div style="margin:18px 0 4px;padding:16px 18px;background:{BG};'
+            f'<div class="sub" style="margin:18px 0 4px;padding:16px 18px;background:{BG};'
             f'border:1px solid {BORDER};border-radius:10px;font-family:{FONT};'
             f'font-size:14px;line-height:1.65;color:{TEXT};white-space:pre-wrap;">'
             f"{escape(task_description)}</div>"
@@ -359,8 +380,8 @@ def decision_result(
         )
         closing = "The team will be in touch shortly with next steps."
         badge = (
-            f'<div style="display:inline-block;margin:0 0 6px;padding:6px 14px;'
-            f'background:rgba(52,199,89,0.12);border:1px solid rgba(52,199,89,0.3);'
+            f'<div class="ok" style="display:inline-block;margin:0 0 6px;padding:6px 14px;'
+            f'background:rgba(26,127,55,0.10);border:1px solid rgba(26,127,55,0.3);'
             f'border-radius:980px;font-family:{FONT};font-size:12px;font-weight:600;'
             f'color:{SUCCESS};">Selected</div>'
         )
