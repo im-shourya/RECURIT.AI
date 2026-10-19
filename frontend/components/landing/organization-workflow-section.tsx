@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { Building2, FolderPlus, Share2, Brain, CheckSquare, ArrowRight } from 'lucide-react'
+import { Building2, FolderPlus, Share2, UserCheck, CheckSquare, ArrowRight } from 'lucide-react'
 
 import { useStickyStage } from '@/hooks/use-sticky-stage'
 import { Reveal } from './motion'
@@ -11,8 +11,8 @@ const steps = [
   { id: '01', title: 'Create Account', desc: 'Set up your organization profile securely.', icon: Building2 },
   { id: '02', title: 'Create Drive', desc: 'Define roles, required skills, and deadlines.', icon: FolderPlus },
   { id: '03', title: 'Share Link', desc: 'Distribute the unique drive link to candidates.', icon: Share2 },
-  { id: '04', title: 'AI Evaluates', desc: 'AI conducts adaptive interviews automatically.', icon: Brain },
-  { id: '05', title: 'Review & Hire', desc: 'Review deep evaluations and make final decisions.', icon: CheckSquare },
+  { id: '04', title: 'Invite to Interview', desc: 'Review submissions and invite the strongest to a recorded interview.', icon: UserCheck },
+  { id: '05', title: 'Review & Decide', desc: 'Watch interviews, read transcripts and make the final call.', icon: CheckSquare },
 ]
 
 export function OrganizationWorkflowSection() {
@@ -48,7 +48,7 @@ export function OrganizationWorkflowSection() {
   const x = useTransform(scrollYProgress, [0, 1], [0, -distance])
 
   return (
-    <section ref={containerRef} id="trusted" className="relative bg-background sm:h-[220vh]">
+    <section ref={containerRef} id="for-organizations" className="relative bg-background sm:h-[220vh]">
       <div className="sm:sticky sm:top-0 sm:h-screen w-full flex flex-col justify-center overflow-hidden py-24 sm:py-0 border-t border-border/30">
         
         {/* Section Header */}

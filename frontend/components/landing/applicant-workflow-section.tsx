@@ -2,16 +2,16 @@
 
 import { useRef, useState } from 'react'
 import { motion, useScroll, useMotionValueEvent, AnimatePresence } from 'framer-motion'
-import { Link2, Upload, Brain, FileCheck } from 'lucide-react'
+import { Link2, Upload, Video, FileCheck } from 'lucide-react'
 
 import { useStickyStage } from '@/hooks/use-sticky-stage'
 import { Reveal, appleOut } from './motion'
 
 const steps = [
   { id: '01', title: 'Open Link', desc: 'Access the drive securely without friction.', icon: Link2 },
-  { id: '02', title: 'Submit Profile', desc: 'Upload resume or connect GitHub repositories.', icon: Upload },
-  { id: '03', title: 'AI Interview', desc: 'Complete the structured technical interview.', icon: Brain },
-  { id: '04', title: 'Get Results', desc: 'Receive fair, automated evaluation feedback.', icon: FileCheck },
+  { id: '02', title: 'Submit Work', desc: 'Upload the task or share a repository before the deadline.', icon: Upload },
+  { id: '03', title: 'Interview', desc: 'If invited, answer a recorded interview in the browser.', icon: Video },
+  { id: '04', title: 'Hear Back', desc: 'Get the decision by email and follow progress on a private status page.', icon: FileCheck },
 ]
 
 export function ApplicantWorkflowSection() {
