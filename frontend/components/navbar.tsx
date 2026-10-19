@@ -79,7 +79,7 @@ export function Navbar() {
             </Link>
             <Button
               asChild
-              className="press h-8 px-4 text-[13px] font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-full"
+              className="press h-8 px-4 text-[13px] font-semibold bg-foreground text-background hover:bg-foreground/90"
             >
               <Link href="/auth/register">
                 Get Started
@@ -137,12 +137,12 @@ export function Navbar() {
                   transition={{ delay: 0.25, duration: 0.3 }}
                   className="flex flex-col gap-3 w-48"
                 >
-                  <Button variant="outline" asChild className="w-full rounded-full h-12">
+                  <Button variant="outline" asChild className="w-full h-12">
                     <Link href="/auth/login" onClick={() => setIsOpen(false)}>
                       Sign In
                     </Link>
                   </Button>
-                  <Button asChild className="w-full bg-foreground text-background hover:bg-foreground/90 rounded-full h-12">
+                  <Button asChild className="w-full bg-foreground text-background hover:bg-foreground/90 h-12">
                     <Link href="/auth/register" onClick={() => setIsOpen(false)}>
                       Get Started
                     </Link>
