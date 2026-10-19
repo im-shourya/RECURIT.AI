@@ -41,3 +41,26 @@ def test_the_built_in_default_is_itself_refused():
 def test_development_keeps_working_with_the_default():
     """Local setup should need no secret at all."""
     assert Settings(_env_file=None, ENVIRONMENT="development").SECRET_KEY
+
+
+def test_production_never_emails_localhost_links():
+    """An unset FRONTEND_URL falls back to the public APP_URL."""
+    s = Settings(_env_file=None, ENVIRONMENT="production", SECRET_KEY=STRONG,
+                 FRONTEND_URL="http://localhost:3000", APP_URL="https://example.com/")
+    assert s.FRONTEND_URL == "https://example.com"
+
+
+def test_production_keeps_an_explicit_public_frontend_url():
+    s = Settings(_env_file=None, ENVIRONMENT="production", SECRET_KEY=STRONG,
+                 FRONTEND_URL="https://app.example.com", APP_URL="https://example.com")
+    assert s.FRONTEND_URL == "https://app.example.com"
+
+
+def test_production_refuses_a_local_app_url():
+    with pytest.raises(ValidationError, match="APP_URL"):
+        Settings(_env_file=None, ENVIRONMENT="production", SECRET_KEY=STRONG,
+                 APP_URL="http://127.0.0.1:3000")
+
+
+def test_development_keeps_localhost():
+    assert "localhost" in Settings(_env_file=None).FRONTEND_URL

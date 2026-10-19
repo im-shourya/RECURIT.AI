@@ -3,9 +3,14 @@ RECRUIT.AI — Backend Configuration
 Loads environment variables and exposes typed settings.
 """
 
+import logging
+from functools import lru_cache
+from urllib.parse import urlparse
+
 from pydantic import model_validator
 from pydantic_settings import BaseSettings
-from functools import lru_cache
+
+logger = logging.getLogger(__name__)
 
 # Placeholders published in this repository. Anyone can sign a token with
 # them, so they are only acceptable where nothing real is at stake.
@@ -14,6 +19,13 @@ KNOWN_PLACEHOLDER_SECRETS = frozenset({
     "change-me-generate-with-openssl-rand-hex-32",
 })
 MIN_SECRET_KEY_LENGTH = 32
+
+LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "0.0.0.0", "::1"})
+
+
+def _is_loopback(url: str) -> bool:
+    host = (urlparse(url.strip()).hostname or "").lower()
+    return host in LOOPBACK_HOSTS or host.endswith(".localhost")
 
 
 class Settings(BaseSettings):
@@ -150,6 +162,30 @@ class Settings(BaseSettings):
                 f"SECRET_KEY must be at least {MIN_SECRET_KEY_LENGTH} characters "
                 "in production. Generate one with: openssl rand -hex 32"
             )
+        return self
+
+    @model_validator(mode="after")
+    def _keep_emailed_links_off_localhost_in_production(self):
+        """
+        FRONTEND_URL defaults to localhost for development. A deployment that
+        never sets it would email candidates links to their own machine, so
+        fall back to APP_URL, the public site, and refuse to boot only if
+        that is local too.
+        """
+        if self.ENVIRONMENT.strip().lower() != "production":
+            return self
+        if _is_loopback(self.APP_URL):
+            raise ValueError(
+                "APP_URL points at localhost in production. Set it to the "
+                "public site, e.g. https://recruitai.shouryaparashar.in"
+            )
+        if not self.FRONTEND_URL.strip() or _is_loopback(self.FRONTEND_URL):
+            logger.warning(
+                "FRONTEND_URL is unset or local in production; emailed links "
+                "will use APP_URL (%s) instead",
+                self.APP_URL,
+            )
+            self.FRONTEND_URL = self.APP_URL.strip().rstrip("/")
         return self
 
     class Config:
