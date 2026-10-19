@@ -22,6 +22,7 @@
 - [Current limitations](#current-limitations)
 - [How it works](#how-it-works)
 - [Tech stack](#tech-stack)
+- [Design](#design)
 - [Getting started](#getting-started)
 - [Project structure](#project-structure)
 - [API](#api)
@@ -29,6 +30,7 @@
 - [Deployment](#deployment)
 - [Environment variables](#environment-variables)
 - [Contributing](#contributing)
+- [Changelog](CHANGELOG.md)
 
 ---
 
@@ -140,6 +142,28 @@ doesn't exist and the interview invitation is sent when they apply.
 | Email | Resend, with versioned templates in `backend/app/services/email_templates.py` |
 | Hosting | Vercel (frontend), Render (API + Redis) |
 | GitAnalyser | Separate FastAPI service using Gemini, SQLite and WebSocket progress, deployable to Railway (not connected, see above) |
+
+---
+
+## Design
+
+The interface takes its cues from Apple's own sites, adapted to a hiring tool:
+
+- **Colour.** Paper neutrals and ink text, with one accent, a deep lagoon teal,
+  reserved for primary actions, links, focus and the active state. Every text
+  pair meets WCAG AA in light and dark. The tokens live in
+  `frontend/app/globals.css`.
+- **Type.** The system font comes first, so Apple devices render SF Pro (it
+  can't be self-hosted under its licence). Every other platform gets Inter,
+  loaded through `next/font`.
+- **Shape.** Controls use 8–12px radii; cards and panels go larger.
+- **Liquid glass.** One translucent material, used only for navigation bars and
+  overlays. It falls back to an opaque surface when the system asks to reduce
+  transparency or the browser lacks `backdrop-filter`.
+- **Motion.** The landing page's pipeline section scrubs a canvas with scroll
+  position, as Apple's product pages do with image sequences. Its frames are
+  drawn from data rather than downloaded. Reduced motion, Save-Data and
+  low-end devices get a single still frame.
 
 ---
 
@@ -327,6 +351,7 @@ These are the ones you are most likely to set:
 |:---------|:--------:|:------------|
 | `NEXT_PUBLIC_API_URL` | Yes | API base URL. Read at build time by the `/api` rewrite |
 | `NEXT_PUBLIC_APP_URL` | Production | Public site origin, used for canonical URLs, Open Graph, robots.txt and the sitemap |
+| `NEXT_PUBLIC_SUPPORT_EMAIL` | — | Support address shown in the footer (default `support@shouryaparashar.in`) |
 
 ### GitAnalyser (`aiml/GitAnalyser/.env`)
 
