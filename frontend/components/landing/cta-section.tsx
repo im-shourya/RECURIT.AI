@@ -18,8 +18,8 @@ export function CTASection() {
       <div className="relative w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center">
         <Reveal>
           <h2 className="section-title text-foreground text-balance mb-12">
-            Ready to recruit with <br className="hidden sm:block" />
-            more signal and less noise?
+            Run your next drive <br className="hidden sm:block" />
+            in one place.
           </h2>
         </Reveal>
 
@@ -29,14 +29,14 @@ export function CTASection() {
               href="/auth/register"
               className="press group inline-flex h-14 items-center justify-center rounded-lg bg-primary px-8 text-base font-medium text-primary-foreground shadow-elevation-2 transition-colors hover:bg-primary-hover"
             >
-              Start Hiring Now
+              Get started
               <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
             </Link>
             <Link
               href="/#how-it-works"
               className="text-base font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              See How It Works
+              See how it works
             </Link>
           </div>
         </Reveal>

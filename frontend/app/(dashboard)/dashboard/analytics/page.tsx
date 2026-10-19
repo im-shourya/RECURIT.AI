@@ -46,7 +46,8 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 }
 
-const COLORS = ['#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#64748b']
+// Theme tokens, so the charts follow light and dark like everything else.
+const COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)']
 
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsResponse | null>(null)
@@ -210,8 +211,8 @@ export default function AnalyticsPage() {
                   <AreaChart data={data.recent_trend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="opacity-10" />
@@ -232,7 +233,7 @@ export default function AnalyticsPage() {
                       type="monotone" 
                       dataKey="value" 
                       name="Applications"
-                      stroke="#0ea5e9" 
+                      stroke="var(--chart-1)" 
                       strokeWidth={3}
                       fillOpacity={1} 
                       fill="url(#colorValue)" 
@@ -324,7 +325,7 @@ export default function AnalyticsPage() {
                     <Bar 
                       dataKey="value" 
                       name="Candidates"
-                      fill="#10b981" 
+                      fill="var(--chart-1)" 
                       radius={[4, 4, 0, 0]} 
                       barSize={40}
                     />
@@ -375,7 +376,7 @@ export default function AnalyticsPage() {
                     <Bar 
                       dataKey="value" 
                       name="Candidates"
-                      fill="#f59e0b" 
+                      fill="var(--chart-2)" 
                       radius={[0, 4, 4, 0]} 
                       barSize={24}
                     />

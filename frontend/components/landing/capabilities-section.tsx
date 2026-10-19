@@ -80,17 +80,16 @@ export function CapabilitiesSection() {
   const x = useTransform(scrollYProgress, [0, 1], [0, -distance])
 
   return (
-    <section ref={containerRef} id="features" className="relative bg-background sm:h-[250vh]">
+    <section ref={containerRef} id="features" className="relative bg-background sm:h-[200vh]">
       <div className="sm:sticky sm:top-0 sm:h-screen w-full flex flex-col justify-center overflow-hidden py-24 sm:py-0 border-t border-border/30">
 
         {/* Section Header */}
         <Reveal className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-12 shrink-0">
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground">
-            Everything you need for <br className="hidden lg:block" />
-            modern recruitment.
+            Everything a drive needs.
           </h2>
           <p className="text-lg md:text-xl text-muted-foreground mt-4 max-w-2xl">
-            From first application to final decision — one unified platform without the spreadsheets, friction, or guesswork.
+            From the first application to the final decision, without a spreadsheet in sight.
           </p>
         </Reveal>
 
@@ -106,7 +105,7 @@ export function CapabilitiesSection() {
               return (
                 <article
                   key={cap.id}
-                  className="panel lift w-[360px] h-[380px] shrink-0 flex flex-col p-8"
+                  className="panel lift w-[360px] h-[320px] shrink-0 flex flex-col p-8"
                 >
                   <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
                     <Icon className="w-7 h-7 text-primary" />
@@ -114,7 +113,6 @@ export function CapabilitiesSection() {
                   {/* Top-aligned so every card's title sits on the same baseline,
                       regardless of how long its description runs. */}
                   <div className="mt-8">
-                    <span className="eyebrow text-primary/60 block mb-2">{cap.id}</span>
                     <h3 className="text-xl font-semibold tracking-tight text-foreground mb-3">{cap.title}</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       {cap.description}
@@ -137,7 +135,6 @@ export function CapabilitiesSection() {
                     <Icon className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <span className="eyebrow text-primary/60 block mb-2">{cap.id}</span>
                     <h3 className="text-xl font-semibold tracking-tight text-foreground mb-3">{cap.title}</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       {cap.description}

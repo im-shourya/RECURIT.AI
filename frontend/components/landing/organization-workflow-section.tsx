@@ -48,14 +48,14 @@ export function OrganizationWorkflowSection() {
   const x = useTransform(scrollYProgress, [0, 1], [0, -distance])
 
   return (
-    <section ref={containerRef} id="for-organizations" className="relative bg-background sm:h-[220vh]">
+    <section ref={containerRef} id="for-organizations" className="relative bg-background sm:h-[170vh]">
       <div className="sm:sticky sm:top-0 sm:h-screen w-full flex flex-col justify-center overflow-hidden py-24 sm:py-0 border-t border-border/30">
         
         {/* Section Header */}
         <Reveal className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-16 lg:mb-24 shrink-0">
-          <span className="eyebrow text-muted-foreground/70 mb-4 block">For Organizations</span>
+          <span className="eyebrow mb-3 block">For organizations</span>
           <h2 className="section-title text-foreground">
-            The Recruiter Journey
+            From sign-up to decision.
           </h2>
         </Reveal>
 
@@ -72,7 +72,7 @@ export function OrganizationWorkflowSection() {
 
               return (
                 <div key={step.id} className="flex items-center gap-12 shrink-0">
-                  <div className="panel w-[320px] h-[360px] p-8 flex flex-col justify-between relative group overflow-hidden">
+                  <div className="panel w-[320px] h-[300px] p-8 flex flex-col justify-between relative group overflow-hidden">
                     <div className="absolute inset-0 bg-primary/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
 
                     <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center relative z-10">

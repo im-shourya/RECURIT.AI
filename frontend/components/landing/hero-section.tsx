@@ -67,27 +67,38 @@ export function HeroSection() {
         >
           <Link
             href="/auth/register"
-            className="press group inline-flex h-12 items-center justify-center rounded-lg bg-primary px-7 text-[15px] font-medium text-primary-foreground shadow-elevation-2 transition-colors hover:bg-primary-hover"
+            className="press group inline-flex h-12 items-center justify-center rounded-lg bg-primary px-7 text-sm font-medium text-primary-foreground shadow-elevation-2 transition-colors hover:bg-primary-hover"
           >
             Start Recruiting
             <ArrowRight className="ml-1.5 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
           </Link>
           <Link
             href="/#how-it-works"
-            className="text-[15px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             See how it works
           </Link>
         </motion.div>
       </motion.div>
 
-      {/* Scroll cue */}
+      {/* Scroll cue — a real control, not decoration: it takes you to the
+          pipeline story, and fades as you scroll past the hero. */}
       <motion.div
         style={prefersReducedMotion ? {} : { opacity }}
-        className="absolute bottom-10 left-1/2 -translate-x-1/2"
-        aria-hidden
+        className="absolute bottom-8 left-1/2 -translate-x-1/2"
       >
-        <ChevronDown className="h-5 w-5 text-muted-foreground animate-scroll-cue" />
+        <button
+          type="button"
+          onClick={() =>
+            document.getElementById('pipeline')?.scrollIntoView({
+              behavior: prefersReducedMotion ? 'auto' : 'smooth',
+            })
+          }
+          aria-label="Scroll to how a drive works"
+          className="flex size-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          <ChevronDown className="size-5 animate-scroll-cue" aria-hidden="true" />
+        </button>
       </motion.div>
     </section>
   )
