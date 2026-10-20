@@ -24,7 +24,6 @@ env/
 brag-output/
 .agents/
 skill/
-.claude/
 
 # Build artefacts
 *.tsbuildinfo
